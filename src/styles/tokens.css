@@ -1,0 +1,76 @@
+/*
+ * Clothet Design-Tokens. Einzige Quelle für Farben, Schrift, Abstände, Radien, Schatten, Bewegung.
+ * Komponenten nutzen ausschließlich diese Variablen, nie feste Werte. Regeln dazu: DESIGN.md.
+ * Layout-Idee: ruhige Ablagefläche, auf der die Kleidung liegt. Die Oberfläche tritt zurück.
+ */
+:root {
+  /* Farbe: Flächen */
+  --c-bg: #f2f4f1;          /* Seitenhintergrund, kühles Leinen */
+  --c-surface: #ffffff;     /* Karten, Sheets, Leisten */
+  --c-tile: #e6eae5;        /* Ablage hinter freigestellter Kleidung */
+  --c-line: #d5dbd5;        /* Trennlinien, Rahmen */
+  /* Farbe: Text */
+  --c-ink: #16201c;         /* Haupttext */
+  --c-muted: #5f6b65;       /* Nebentext, Beschriftungen */
+  /* Farbe: Akzent (Tannengrün) – nur für die eine Hauptaktion und aktive Zustände */
+  --c-accent: #17694f;
+  --c-accent-ink: #ffffff;  /* Text auf Akzent */
+  --c-accent-soft: #dcebe4; /* aktive Chips, Auswahl */
+  /* Farbe: Bedeutung (getrennt vom Akzent) */
+  --c-danger: #b3372c;
+  --c-danger-soft: #f6e0dd;
+  --c-scrim: rgba(16, 24, 20, 0.45);
+
+  /* Schrift */
+  --font-display: 'Bricolage Grotesque', 'Segoe UI', system-ui, sans-serif; /* Titel, Zahlen im Kalender */
+  --font-body: 'Instrument Sans', 'Segoe UI', system-ui, sans-serif;        /* alles andere */
+  --fs-xs: 0.75rem;   /* 12 Beschriftung, Tabs */
+  --fs-sm: 0.875rem;  /* 14 Nebentext, Chips */
+  --fs-md: 1rem;      /* 16 Fließtext, Eingaben, Buttons */
+  --fs-lg: 1.25rem;   /* 20 Sheet-Titel */
+  --fs-xl: 1.75rem;   /* 28 Seitentitel */
+  --lh-tight: 1.15;
+  --lh-body: 1.45;
+
+  /* Abstände: 4er-Raster */
+  --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px; --s-5: 24px; --s-6: 32px; --s-7: 48px;
+
+  /* Radien: Kacheln weich, Bedienelemente rund */
+  --r-sm: 8px;    /* Eingaben, kleine Flächen */
+  --r-md: 14px;   /* Kacheln, Karten */
+  --r-lg: 22px;   /* Sheets, Bühne */
+  --r-pill: 999px;/* Buttons, Chips */
+
+  /* Schatten: sparsam, nur für Schwebendes */
+  --sh-1: 0 1px 2px rgba(22, 32, 28, 0.08);
+  --sh-2: 0 8px 28px rgba(22, 32, 28, 0.16);
+
+  /* Bewegung: kurz und ruhig */
+  --t-fast: 120ms;
+  --t-base: 220ms;
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+
+  /* Maße */
+  --tap: 44px;        /* Mindestgröße für alles Antippbare */
+  --maxw: 960px;      /* maximale Inhaltsbreite */
+  --nav-h: 60px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --c-bg: #101412; --c-surface: #181e1b; --c-tile: #232b27; --c-line: #2e3833;
+    --c-ink: #e8ede9; --c-muted: #9aa8a0;
+    --c-accent: #57c79f; --c-accent-ink: #0c1512; --c-accent-soft: #1d3a30;
+    --c-danger: #ef8076; --c-danger-soft: #3d1f1c; --c-scrim: rgba(0, 0, 0, 0.6);
+    --sh-1: 0 1px 2px rgba(0, 0, 0, 0.4); --sh-2: 0 8px 28px rgba(0, 0, 0, 0.5);
+    color-scheme: dark;
+  }
+}
+:root[data-theme='dark'] {
+  --c-bg: #101412; --c-surface: #181e1b; --c-tile: #232b27; --c-line: #2e3833;
+  --c-ink: #e8ede9; --c-muted: #9aa8a0;
+  --c-accent: #57c79f; --c-accent-ink: #0c1512; --c-accent-soft: #1d3a30;
+  --c-danger: #ef8076; --c-danger-soft: #3d1f1c; --c-scrim: rgba(0, 0, 0, 0.6);
+  --sh-1: 0 1px 2px rgba(0, 0, 0, 0.4); --sh-2: 0 8px 28px rgba(0, 0, 0, 0.5);
+  color-scheme: dark;
+}
