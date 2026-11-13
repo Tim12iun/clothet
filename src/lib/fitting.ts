@@ -5,8 +5,10 @@ import { specks } from './image'
 /**
  * Sitz am Avatar ohne KI. Standard: Jede Art hat eine feste Zone an der Figur (Oberteil und Jacke von der Schulter
  * bis zur Hüfte, Hose von der Hüfte bis zum Knöchel). Das freigestellte Bild wird über seinen wirklichen Umriss (ohne
- * Rand und lose Bildreste) unverformt in diese Zone gelegt: oben angelegt, mittig, proportional so groß, dass es in
- * Breite und Höhe der Zone passt. Zusatz auf Wunsch (item.sleeves): Bei Oberteilen fallen die Ärmel zu den Armen hin.
+ * Rand und lose Bildreste) in diese Zone gelegt: oben angelegt, mittig, proportional so groß, dass es in Breite und
+ * Höhe der Zone passt. Das ist der sichere Weg, der bei jedem Bild geht. Bei Oberteilen bestimmt, wenn sie sicher
+ * erkannt ist, die Schulterbreite die Größe (Schultern des Teils auf die Schultern der Figur), und das Teil wird
+ * höchstens leicht gestreckt, bis es den Oberkörper bedeckt. Zusatz auf Wunsch (item.sleeves): Bei Oberteilen fallen die Ärmel zu den Armen hin.
  * Das greift nur, wenn beide Ärmel sicher erkannt sind, sonst bleibt es beim Standard.
  * Ergebnis ist ein Bild in Bühnengröße (3:4) für die Figur in Normalbreite.
  */
@@ -172,24 +174,111 @@ function waistRow(m: Mask): number {
 function zoneBox(kind: FitKind, jacket: boolean, sex: Sex | undefined, tall: boolean) {
   const t = bodyTargets(sex)
   if (kind === 'top') {
-    const top = t.shoulderY - (jacket ? 8 : 6), k = jacket ? 1.07 : 1
-    return { top: top * U, maxW: (t.armOuter * 2 + 8) * k * U, maxH: (t.crotchY - 4 - top) * k * U }
+    // Vom Halsansatz bis über die Hüfte, in der Breite über beide Arme hinaus (Ärmel liegen beim Foto ausgebreitet)
+    const top = t.shoulderY - (jacket ? 11 : 9), k = jacket ? 1.07 : 1
+    return { top: top * U, maxW: (t.armOuter * 2 + 42) * k * U, maxH: (t.crotchY - 2 - top) * k * U, minBody: (t.shoulderHalf * 2 + (jacket ? 18 : 12)) * U, cover: (t.waistY + 10 - top) * U }
   }
   // Lange Hosen dürfen weit sein, kurze Hosen richten sich nach der Hüfte
   const hip = t.torsoHalf(t.waistY) * 2
-  return { top: (t.waistY - 3) * U, maxW: hip * (tall ? 1.7 : 1.25) * U, maxH: (t.ankleY + 5 - t.waistY) * U }
+  return { top: (t.waistY - 3) * U, maxW: hip * (tall ? 1.7 : 1.25) * U, maxH: (t.ankleY + 5 - t.waistY) * U, minBody: 0, cover: 0 }
 }
 
-/** Standard: das Teil unverformt in seine Zone legen. */
-function place(src: HTMLCanvasElement, m: Mask, kind: FitKind, jacket: boolean, sex: Sex | undefined): { out: HTMLCanvasElement; s: number } {
-  const y0 = kind === 'bottom' ? waistRow(m) : m.top
-  const w = m.right - m.left + 1, h = m.bottom - y0 + 1
-  const box = zoneBox(kind, jacket, sex, h / w >= 1.3)
-  const s = Math.min(box.maxW / w, box.maxH / h)
+/** Sicherer Weg, der bei jedem Bild geht: das Teil als Ganzes in seine Zone einpassen, ohne etwas zu erkennen. */
+function simpleScale(m: Mask, y0: number, box: ReturnType<typeof zoneBox>) {
+  return Math.min(box.maxW / (m.right - m.left + 1), box.maxH / (m.bottom - y0 + 1))
+}
+
+/**
+ * Oberteil und Jacke: Wenn sie sicher erkannt ist, bestimmt die Schulterbreite des Teils (Rumpf ohne Ärmel) die Größe:
+ * Sie wird zur Schulterbreite der Figur. Danach höchstens leicht in die Länge gestreckt, bis der Oberkörper bedeckt ist.
+ */
+function placeTop(src: HTMLCanvasElement, m: Mask, jacket: boolean, sex: Sex | undefined): { out: HTMLCanvasElement; s: number } {
+  const h = m.bottom - m.top + 1, box = zoneBox('top', jacket, sex, false), simple = simpleScale(m, m.top, box)
+  let s = simple
+  const body = readTop(m)?.bh, byShoulder = body ? box.minBody / (2 * body) : 0
+  // Weicht die Erkennung stark vom sicheren Weg ab, stimmt sie nicht, und der sichere Weg gilt
+  if (byShoulder > simple * 0.75 && byShoulder < simple * 1.35 && h * byShoulder < box.maxH * 1.15) s = byShoulder
+  const sy = h * s < box.cover ? s * Math.min(1.1, box.cover / (h * s)) : s
   const { out, ctx } = stage()
-  ctx.setTransform(s, 0, 0, s, CX - ((m.left + m.right + 1) / 2) * s, box.top - y0 * s)
+  ctx.setTransform(s, 0, 0, sy, CX - ((m.left + m.right + 1) / 2) * s, box.top - m.top * sy)
   ctx.drawImage(src, 0, 0)
   return { out, s }
+}
+
+/**
+ * Hose: Wenn er sicher erkannt ist, bestimmt der Bund die Größe (Bundbreite auf Hüftbreite) und die Mitte. Lange Hosen
+ * werden höchstens leicht in der Länge angeglichen, damit sie am Knöchel enden. Sind zwei Beine sicher erkannt, wird
+ * jedes Bein unterhalb des Schritts stufenlos zur Seite geschoben, bis es am Saum über dem Bein der Figur liegt.
+ * Geschoben wird nur, nichts gestaucht: Weite und Form der Hose bleiben, wie sie sind.
+ */
+function placeBottom(src: HTMLCanvasElement, m: Mask, sex: Sex | undefined): HTMLCanvasElement {
+  const t = bodyTargets(sex), y0 = waistRow(m), w = m.right - m.left + 1, h = m.bottom - y0 + 1
+  const tall = h / w >= 1.3, box = zoneBox('bottom', false, sex, tall), simple = simpleScale(m, y0, box)
+  let s = simple, cx = (m.left + m.right + 1) / 2
+  const rows: [number, number][] = []
+  for (let y = Math.round(y0 + h * 0.01); y <= y0 + h * 0.05; y++) { const r = span(m, y); if (r) rows.push(r) }
+  if (rows.length >= 2) {
+    const wh = median(rows.map((r) => (r[1] - r[0]) / 2)), byWaist = ((t.torsoHalf(t.waistY) + 2.5) * U) / wh
+    if (wh >= 10 && byWaist > simple * 0.75 && byWaist < simple * 1.35) {
+      s = byWaist
+      cx = median(rows.map((r) => (r[0] + r[1]) / 2))
+    }
+  }
+  const full = (t.ankleY + 2 - t.waistY) * U
+  const sy = tall ? s * clamp(full / (h * s), 0.9, 1.12) : s
+  const top = box.top, { out, ctx } = stage()
+
+  // Zwei Beine? Der Schritt ist die erste Zeile, ab der die Mitte bis zum Saum frei bleibt.
+  let crotch = -1
+  const mid = Math.round(cx)
+  for (let y = Math.round(y0 + h * 0.15); y < y0 + h * 0.8; y++) {
+    if (m.on(mid, y)) continue
+    let free = true
+    for (let k = y; k <= m.bottom && free; k += 3) free = !m.on(mid, k)
+    if (free) { crotch = y; break }
+  }
+  // Mitte und innere Kante jedes Beins am Saum (mittlere der untersten Zeilen)
+  const hem: Record<1 | -1, { c: number; inner: number } | null> = { 1: null, [-1]: null }
+  if (crotch > 0) for (const side of [1, -1] as const) {
+    const cs: number[] = [], inner: number[] = []
+    for (let y = Math.round(m.bottom - h * 0.06); y <= m.bottom - h * 0.01; y++) {
+      const lim = side > 0 ? m.right : m.left
+      let a = mid, e = lim
+      while (a !== lim && !m.on(a, y)) a += side
+      while (e !== a && !m.on(e, y)) e -= side
+      if (a !== e) { cs.push(Math.abs((a + e) / 2 - cx)); inner.push(Math.abs(a - cx)) }
+    }
+    if (cs.length >= 2) hem[side] = { c: median(cs), inner: median(inner) }
+  }
+  if (crotch < 0 || !tall || !hem[1] || !hem[-1]) {
+    // Beine nicht sicher erkannt oder kurze Hose: nur skalieren und setzen
+    ctx.setTransform(s, 0, 0, sy, CX - cx * s, top - y0 * sy)
+    ctx.drawImage(src, 0, 0)
+    return out
+  }
+  // Bis zum Schritt bleibt das Bild, wie es ist
+  ctx.setTransform(s, 0, 0, sy, CX - cx * s, top - y0 * sy)
+  ctx.drawImage(src, 0, y0, m.w, crotch - y0, 0, y0, m.w, crotch - y0)
+  ctx.setTransform(1, 0, 0, 1, 0, 0)
+  const legLen = (m.bottom - crotch) * sy, target = t.leg(t.ankleY - 6) * U
+  const end = { 1: 0, [-1]: 0 } as Record<1 | -1, number>
+  for (const side of [1, -1] as const) {
+    const l = hem[side]!
+    // Nach außen höchstens ein Stück der Beinlänge, nach innen nur so weit, dass die Beine sich nicht überlagern
+    end[side] = clamp(target - l.c * s, -Math.min(l.inner * s * 0.8, legLen * 0.12), legLen * 0.12)
+  }
+  const crotchT = top + (crotch - y0) * sy, step = 1 / sy
+  for (let ty = Math.floor(crotchT); ty < Math.min(H, top + h * sy + 1); ty++) {
+    const srcY = crotch + (ty + 0.5 - crotchT) / sy - step / 2
+    if (srcY > m.bottom) break
+    const k = smooth((ty - crotchT) / legLen)
+    for (const side of [1, -1] as const) {
+      const x0 = side > 0 ? cx : m.left, wd = side > 0 ? m.right + 1 - cx : cx - m.left
+      if (wd < 1) continue
+      ctx.drawImage(src, x0, clamp(srcY, 0, m.h - step), wd, step, CX + (x0 - cx) * s + side * end[side] * k, ty, wd * s, 1)
+    }
+  }
+  return out
 }
 
 const cache = new Map<string, Promise<string | null>>()
@@ -219,11 +308,25 @@ export function fittedUrl(item: Item, sex: Sex | undefined): Promise<string | nu
       const m = maskOf(src)
       if (!m) return null
       const jacket = item.category === 'Jacken'
-      let { out, s } = place(src, m, kind, jacket, sex)
-      if (kind === 'top' && item.sleeves) {
-        // Nur wenn beide Ärmel erkannt sind und der Maßstab zum Standard passt, sonst bleibt der Standard
-        const sh = readTop(m), sw = sh ? ((bodyTargets(sex).shoulderHalf + (jacket ? 5 : 3)) * U) / sh.bh : 0
-        if (sh && sh.sleeves[1] && sh.sleeves[-1] && sw > s * 0.8 && sw < s * 1.35) out = warpTop(src, m, sex, sh, sw)
+      let out: HTMLCanvasElement
+      try {
+        if (kind === 'bottom') out = placeBottom(src, m, sex)
+        else {
+          const placed = placeTop(src, m, jacket, sex)
+          out = placed.out
+          if (item.sleeves) {
+            // Nur wenn beide Ärmel erkannt sind und der Maßstab zum Standard passt, sonst bleibt der Standard
+            const sh = readTop(m), sw = sh ? ((bodyTargets(sex).shoulderHalf + (jacket ? 5 : 3)) * U) / sh.bh : 0
+            if (sh && sh.sleeves[1] && sh.sleeves[-1] && sw > placed.s * 0.8 && sw < placed.s * 1.35) out = warpTop(src, m, sex, sh, sw)
+          }
+        }
+      } catch {
+        // Was auch immer bei der Erkennung schiefgeht: Der einfache Weg legt das Teil unverändert in seine Zone
+        const y0 = m.top, box = zoneBox(kind, jacket, sex, (m.bottom - m.top) / (m.right - m.left) >= 1.3), k = simpleScale(m, y0, box)
+        const st = stage()
+        st.ctx.setTransform(k, 0, 0, k, CX - ((m.left + m.right + 1) / 2) * k, box.top - y0 * k)
+        st.ctx.drawImage(src, 0, 0)
+        out = st.out
       }
       const blob = await new Promise<Blob | null>((res) => out.toBlob(res, 'image/png'))
       return blob ? URL.createObjectURL(blob) : null
