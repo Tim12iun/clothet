@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { IconCamera, IconImage } from '../icons'
-import { coverage, detectColor, loadPhoto, removeBackground, toBlob } from '../lib/image'
+import { coverage, detectColors, guessCategory, loadPhoto, removeBackground, toBlob } from '../lib/image'
 import { saveItem } from '../store'
-import { uid, type Category, type Season } from '../types'
+import { uid, type Category, type Season, type Style } from '../types'
 import { ItemFields } from './Closet'
 import { Sheet } from './Sheet'
 
@@ -13,8 +13,8 @@ export function AddItem({ onClose }: { onClose: () => void }) {
   const [result, setResult] = useState<{ canvas: HTMLCanvasElement; url: string } | null>(null)
   const [error, setError] = useState('')
   const [hint, setHint] = useState('')
-  const [fields, setFields] = useState({ name: '', category: 'Oberteile' as Category, color: 'Grau', seasons: ['Frühling', 'Sommer', 'Herbst', 'Winter'] as Season[] })
-  const colorTouched = useRef(false)
+  const [fields, setFields] = useState({ name: '', category: 'Oberteile' as Category, color: 'Grau', color2: undefined as string | undefined, seasons: ['Frühling', 'Sommer', 'Herbst', 'Winter'] as Season[], styles: [] as Style[] })
+  const touched = useRef({ color: false, category: false })
 
   async function pick(file?: File) {
     if (!file) return
@@ -37,7 +37,13 @@ export function AddItem({ onClose }: { onClose: () => void }) {
       else if (cov < 0.08) note = 'Es ist fast nichts übrig geblieben. Stell den Regler weiter nach links.'
     }
     setHint(note)
-    if (!colorTouched.current) setFields((f) => ({ ...f, color: detectColor(canvas) }))
+    // Automatisch taggen: Farben und eine Vermutung zur Kategorie. Was der Nutzer selbst gewählt hat, bleibt.
+    const auto = detectColors(canvas)
+    setFields((f) => ({
+      ...f,
+      ...(touched.current.color ? {} : auto),
+      ...(touched.current.category || !cutout ? {} : { category: guessCategory(canvas) }),
+    }))
     const url = canvas.toDataURL('image/png')
     setResult({ canvas, url })
   }, [photo, cutout, tolerance])
@@ -84,11 +90,13 @@ export function AddItem({ onClose }: { onClose: () => void }) {
             )}
             {hint && <p className="note">{hint}</p>}
           </div>
+          <p className="muted">Farbe und Kategorie sind automatisch erkannt. Prüf sie kurz und ergänz Jahreszeit und Stil.</p>
           <ItemFields
             value={fields}
             onChange={(v) => {
-              if (v.color) colorTouched.current = true
-              setFields({ ...fields, ...v })
+              if (v.color) touched.current.color = true
+              if (v.category) touched.current.category = true
+              setFields({ ...fields, ...v, ...(v.color ? { color2: undefined } : {}) })
             }}
           />
           <div className="actions">

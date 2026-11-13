@@ -1,8 +1,11 @@
-export const CATEGORIES = ['Oberteile', 'Hosen', 'Kleider & Röcke', 'Jacken', 'Schuhe', 'Accessoires'] as const
+export const CATEGORIES = ['Oberteile', 'Hosen', 'Röcke', 'Kleider', 'Jacken', 'Schuhe', 'Accessoires'] as const
 export type Category = (typeof CATEGORIES)[number]
 
 export const SEASONS = ['Frühling', 'Sommer', 'Herbst', 'Winter'] as const
 export type Season = (typeof SEASONS)[number]
+
+export const STYLES = ['Lässig', 'Business', 'Sport', 'Elegant'] as const
+export type Style = (typeof STYLES)[number]
 
 export const COLORS: Record<string, string> = {
   Schwarz: '#1c1c1c', Weiß: '#f5f5f2', Grau: '#8d9291', Beige: '#d8c7a6', Braun: '#7a5236',
@@ -14,32 +17,43 @@ export interface Item {
   id: string
   name: string
   category: Category
-  color: string
+  color: string // Hauptfarbe
+  color2?: string // Nebenfarbe, falls deutlich vorhanden
   seasons: Season[]
+  styles: Style[]
   image: Blob
   sample?: boolean
   createdAt: number
 }
 
-/** x, y: Mittelpunkt als Anteil der Bühne (0..1). w: Breite als Anteil der Bühnenbreite. */
-export interface Layer {
-  key: string
-  itemId: string
-  x: number
-  y: number
-  w: number
-  rot: number
+/** Körperzonen auf dem Hauptscreen, von oben nach unten. */
+export const ZONES = ['jacket', 'top', 'bottom', 'shoes'] as const
+export type Zone = (typeof ZONES)[number]
+export const ZONE_LABEL: Record<Zone, string> = { jacket: 'Jacke', top: 'Oberteil', bottom: 'Hose', shoes: 'Schuhe' }
+export const ZONE_CATEGORIES: Record<Zone, Category[]> = {
+  jacket: ['Jacken'], top: ['Oberteile', 'Kleider'], bottom: ['Hosen', 'Röcke'], shoes: ['Schuhe'],
 }
 
-export type OutfitMode = 'collage' | 'body'
+/** Welches Teil je Zone getragen wird (Item-ID oder null). */
+export type Slots = Record<Zone, string | null>
+export const EMPTY_SLOTS: Slots = { jacket: null, top: null, bottom: null, shoes: null }
+
+/** Feineinstellung, wie Teile einer Zone auf dem Avatar sitzen. */
+export interface Fit { dy: number; scale: number }
+export type Fits = Record<Zone, Fit>
+export const DEFAULT_FITS: Fits = {
+  jacket: { dy: 0, scale: 1 }, top: { dy: 0, scale: 1 }, bottom: { dy: 0, scale: 1 }, shoes: { dy: 0, scale: 1 },
+}
 
 export interface Outfit {
   id: string
   name: string
-  mode: OutfitMode
-  layers: Layer[]
+  slots: Slots
   preview: Blob
   createdAt: number
 }
+
+/** Was eine Filter-Auswahl auf dem Hauptscreen bedeutet. */
+export type Filter = { season?: Season; style?: Style }
 
 export const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36)

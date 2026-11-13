@@ -1,6 +1,6 @@
 # Clothet
 
-Kleiderschrank-App: Teile fotografieren und freistellen, Schrank verwalten, Outfits als Collage bauen, auf dem eigenen Ganzkörperfoto anprobieren, im Kalender planen. Eigenes Produkt mit eigenem Design.
+Kleiderschrank-App: Teile fotografieren, freistellen und taggen. Hauptscreen ist der Avatar mit einem Karussell je Körperzone, das mittlere Teil wird angezogen. Dazu Filter, Zufalls-Outfits mit Vorgaben, Stil-Wissen für Farbregeln, gespeicherte Outfits und Kalender. Eigenes Produkt mit eigenem Design.
 
 ## Pflicht vor jeder UI-Änderung
 
@@ -10,12 +10,14 @@ Lies `DESIGN.md`. Es ist verbindlich für Design, Bildsprache und Tonalität. Nu
 
 - Vite, React 18, TypeScript. Oberfläche auf Deutsch.
 - Daten liegen lokal im Browser (IndexedDB über `idb-keyval`), siehe `src/store.ts`. Kein Backend.
-- Bildverarbeitung in `src/lib/image.ts` (Freistellen, Farbe erkennen, Outfit-Vorschau).
+- Bildverarbeitung in `src/lib/image.ts` (Freistellen, Farben erkennen, Outfit-Vorschau), Sitz der Teile auf dem Avatar in `src/lib/avatar.ts`.
+- Outfit-Engine in `src/lib/engine.ts`: Bewertung von Kombinationen, Zufalls-Outfit, Auslesen von Farbregeln aus dem Stil-Wissen.
 - `npm run dev` startet lokal, `npm run build` prüft Typen und baut, `npm run build:artifact` baut eine Ein-Datei-Vorschau.
 
 ## Offene Ausbaustufen
 
 - Freistellen mit KI-Modell statt der einfachen Hintergrund-Erkennung
-- Kategorie automatisch erkennen
-- Echte virtuelle Anprobe über ein Try-on-Modell
+- Kategorie, Stil und Jahreszeit per Bildmodell erkennen (bisher nur Farben und eine Vermutung aus der Form)
+- Stil-Wissen als freien Text von einem Sprachmodell verstehen lassen (bisher nur Farbregeln)
+- Echte virtuelle Anprobe über ein Try-on-Modell (bisher liegen die Teile flach auf dem Avatar)
 - Konto und Synchronisierung zwischen Geräten

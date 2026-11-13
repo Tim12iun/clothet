@@ -1,17 +1,21 @@
 import { useSyncExternalStore } from 'react'
 import { createStore, del, entries, set } from 'idb-keyval'
-import type { Item, Outfit } from './types'
+import { DEFAULT_FITS, type Fits, type Item, type Outfit } from './types'
+import { parseKnowledge, type Knowledge } from './lib/engine'
 
 export interface State {
   ready: boolean
   items: Item[]
   outfits: Outfit[]
   calendar: Record<string, string> // Datum (JJJJ-MM-TT) -> Outfit-ID
-  body: Blob | null
+  body: Blob | null // eigenes Avatar-Foto, sonst Standard-Avatar
+  fits: Fits
+  knowledgeText: string
+  knowledge: Knowledge
   persistent: boolean // false, wenn der Browser keinen Speicher erlaubt
 }
 
-let state: State = { ready: false, items: [], outfits: [], calendar: {}, body: null, persistent: true }
+let state: State = { ready: false, items: [], outfits: [], calendar: {}, body: null, fits: DEFAULT_FITS, knowledgeText: '', knowledge: { rules: [], ignored: 0 }, persistent: true }
 const listeners = new Set<() => void>()
 const db = (() => {
   try {
@@ -51,26 +55,37 @@ export async function load(): Promise<boolean> {
   let body: Blob | null = null
   let seeded = false
   let persistent = true
+  let fits = DEFAULT_FITS
+  let knowledgeText = ''
   try {
     if (!db) throw new Error('no db')
     for (const [k, v] of await entries(db)) {
       const key = String(k)
-      if (key.startsWith('item:')) items.push(v as Item)
-      else if (key.startsWith('outfit:')) outfits.push(v as Outfit)
+      if (key.startsWith('item:')) {
+        // Ältere Einträge an das aktuelle Format anpassen; Beispiel-Teile der ersten Version werden ersetzt
+        const it = v as Omit<Item, 'category'> & { category: string }
+        if (it.sample && !it.styles) { del(k, db); continue }
+        items.push({ ...it, styles: it.styles ?? [], category: (it.category === 'Kleider & Röcke' ? 'Kleider' : it.category) as Item['category'] })
+      } else if (key.startsWith('outfit:')) {
+        if ((v as Outfit).slots) outfits.push(v as Outfit)
+        else del(k, db) // Collage-Outfits der ersten Version gibt es nicht mehr
+      }
+      else if (key === 'fits') fits = { ...DEFAULT_FITS, ...(v as Fits) }
+      else if (key === 'knowledge') knowledgeText = v as string
       else if (key === 'calendar') calendar = v as Record<string, string>
       else if (key === 'body') body = v as Blob
-      else if (key === 'seeded') seeded = true
+      else if (key === 'seeded2') seeded = true
     }
   } catch {
     persistent = false
   }
   items.sort((a, b) => b.createdAt - a.createdAt)
   outfits.sort((a, b) => b.createdAt - a.createdAt)
-  update({ ready: true, items, outfits, calendar, body, persistent })
+  update({ ready: true, items, outfits, calendar, body, fits, knowledgeText, knowledge: parseKnowledge(knowledgeText), persistent })
   return !seeded
 }
 
-export const markSeeded = () => put('seeded', true)
+export const markSeeded = () => put('seeded2', true)
 
 export function saveItem(item: Item) {
   const rest = state.items.filter((i) => i.id !== item.id)
@@ -102,6 +117,15 @@ export function planOutfit(date: string, outfitId: string | null) {
 export function setBody(body: Blob | null) {
   update({ body })
   return body ? put('body', body) : remove('body')
+}
+
+export function setFits(fits: Fits) {
+  update({ fits })
+  return put('fits', fits)
+}
+export function setKnowledge(text: string) {
+  update({ knowledgeText: text, knowledge: parseKnowledge(text) })
+  return put('knowledge', text)
 }
 
 export function useStore(): State {

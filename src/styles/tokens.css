@@ -1,14 +1,14 @@
 /*
  * Clothet Design-Tokens. Einzige Quelle für Farben, Schrift, Abstände, Radien, Schatten, Bewegung.
  * Komponenten nutzen ausschließlich diese Variablen, nie feste Werte. Regeln dazu: DESIGN.md.
- * Layout-Idee: ruhige Ablagefläche, auf der die Kleidung liegt. Die Oberfläche tritt zurück.
+ * Layout-Idee: viel Weiß, der Avatar mit der Kleidung steht im Mittelpunkt. Die Oberfläche tritt zurück.
  */
 :root {
   /* Farbe: Flächen */
-  --c-bg: #f2f4f1;          /* Seitenhintergrund, kühles Leinen */
+  --c-bg: #ffffff;          /* Seitenhintergrund, reines Weiß */
   --c-surface: #ffffff;     /* Karten, Sheets, Leisten */
-  --c-tile: #e6eae5;        /* Ablage hinter freigestellter Kleidung */
-  --c-line: #d5dbd5;        /* Trennlinien, Rahmen */
+  --c-tile: #f1f3f0;        /* Ablage hinter Kleidung und Avatar */
+  --c-line: #e1e5e0;        /* Trennlinien, Rahmen */
   /* Farbe: Text */
   --c-ink: #16201c;         /* Haupttext */
   --c-muted: #5f6b65;       /* Nebentext, Beschriftungen */

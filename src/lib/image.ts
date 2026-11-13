@@ -1,4 +1,5 @@
-import type { Item, Layer } from '../types'
+import type { Category, Fits, Item, Slots } from '../types'
+import { DRAW_ORDER, placement } from './avatar'
 
 const MAX_SIDE = 900
 
@@ -150,42 +151,77 @@ function nameColor(r: number, g: number, b: number): string {
   return l > 0.55 ? 'Rosa' : 'Lila'
 }
 
-/** Häufigste Farbe der sichtbaren Pixel als Name aus der festen Farbliste. */
-export function detectColor(c: HTMLCanvasElement): string {
+/** Die häufigste und, falls deutlich vorhanden, zweithäufigste Farbe der sichtbaren Pixel. */
+export function detectColors(c: HTMLCanvasElement): { color: string; color2?: string } {
   const d = c.getContext('2d', { willReadFrequently: true })!.getImageData(0, 0, c.width, c.height).data
   const counts: Record<string, number> = {}
+  let total = 0
   for (let i = 0; i < d.length; i += 4 * 7) {
     if (d[i + 3] < 200) continue
     const name = nameColor(d[i], d[i + 1], d[i + 2])
     counts[name] = (counts[name] || 0) + 1
+    total++
   }
-  const best = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]
-  return best ? best[0] : 'Grau'
+  const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1])
+  if (!sorted.length) return { color: 'Grau' }
+  const second = sorted[1] && sorted[1][1] / total >= 0.2 ? sorted[1][0] : undefined
+  return { color: sorted[0][0], color2: second }
 }
 
-/** Zeichnet ein Outfit im Format 3:4 als Vorschaubild. */
-export async function renderOutfit(layers: Layer[], items: Item[], body: Blob | null, tile: string): Promise<Blob> {
+/** Grobe Vermutung der Kategorie aus der Form des freigestellten Teils. Der Nutzer bestätigt sie. */
+export function guessCategory(c: HTMLCanvasElement): Category {
+  const r = c.height / c.width
+  if (r > 1.45) return 'Hosen'
+  if (r < 0.72) return 'Schuhe'
+  return 'Oberteile'
+}
+
+/** Schneidet durchsichtigen Rand ab. */
+export function trim(src: HTMLCanvasElement): HTMLCanvasElement {
+  const { width: w, height: h } = src
+  const d = src.getContext('2d', { willReadFrequently: true })!.getImageData(0, 0, w, h).data
+  let minX = w, minY = h, maxX = -1, maxY = -1
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (d[(y * w + x) * 4 + 3] > 20) {
+    if (x < minX) minX = x
+    if (x > maxX) maxX = x
+    if (y < minY) minY = y
+    if (y > maxY) maxY = y
+  }
+  if (maxX < 0) return src
+  const c = makeCanvas(maxX - minX + 1, maxY - minY + 1)
+  c.getContext('2d')!.drawImage(src, minX, minY, c.width, c.height, 0, 0, c.width, c.height)
+  return c
+}
+
+/** Zeichnet den Avatar mit dem angezogenen Outfit im Format 3:4 als Vorschaubild. */
+export async function renderOutfit(slots: Slots, items: Item[], fits: Fits, avatar: Blob | string, isPhoto: boolean, tile: string): Promise<Blob> {
   const W = 600, H = 800
   const c = makeCanvas(W, H)
   const ctx = c.getContext('2d')!
   ctx.fillStyle = tile
   ctx.fillRect(0, 0, W, H)
-  if (body) {
-    const bmp = await createImageBitmap(body)
-    const k = Math.max(W / bmp.width, H / bmp.height)
+  if (typeof avatar === 'string') {
+    const img = new Image()
+    img.src = avatar
+    await img.decode()
+    ctx.drawImage(img, 0, 0, W, H)
+  } else {
+    const bmp = await createImageBitmap(avatar)
+    const k = isPhoto ? Math.max(W / bmp.width, H / bmp.height) : Math.min(W / bmp.width, H / bmp.height)
     ctx.drawImage(bmp, (W - bmp.width * k) / 2, (H - bmp.height * k) / 2, bmp.width * k, bmp.height * k)
   }
-  for (const layer of layers) {
-    const item = items.find((i) => i.id === layer.itemId)
+  const top = items.find((i) => i.id === slots.top)
+  const isDress = top?.category === 'Kleider'
+  for (const zone of DRAW_ORDER) {
+    if (zone === 'bottom' && isDress) continue
+    const item = items.find((i) => i.id === slots[zone])
     if (!item) continue
     const bmp = await createImageBitmap(item.image)
-    const w = layer.w * W
+    const p = placement(zone, isDress, fits[zone])
+    const w = p.w * W
     const h = (w * bmp.height) / bmp.width
-    ctx.save()
-    ctx.translate(layer.x * W, layer.y * H)
-    ctx.rotate((layer.rot * Math.PI) / 180)
-    ctx.drawImage(bmp, -w / 2, -h / 2, w, h)
-    ctx.restore()
+    const y = p.anchor === 'top' ? p.y * H : p.y * H - h
+    ctx.drawImage(bmp, (W - w) / 2, y, w, h)
   }
   return toBlob(c, 'image/jpeg', 0.88)
 }

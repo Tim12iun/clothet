@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { IconPlus, IconSearch } from '../icons'
 import { deleteItem, saveItem, urlFor, useStore } from '../store'
-import { CATEGORIES, COLORS, SEASONS, type Category, type Item, type Season } from '../types'
+import { CATEGORIES, COLORS, SEASONS, STYLES, type Category, type Item, type Season } from '../types'
 import { Sheet } from './Sheet'
 
 export function Closet({ onAdd }: { onAdd: () => void }) {
@@ -18,7 +18,7 @@ export function Closet({ onAdd }: { onAdd: () => void }) {
       (!cat || i.category === cat) &&
       (!season || i.seasons.includes(season)) &&
       (!color || i.color === color) &&
-      (!q || (i.name + ' ' + i.category + ' ' + i.color).toLowerCase().includes(q.toLowerCase())),
+      (!q || [i.name, i.category, i.color, i.color2, ...i.seasons, ...i.styles].join(' ').toLowerCase().includes(q.toLowerCase())),
   )
   const samples = items.filter((i) => i.sample)
   const open = items.find((i) => i.id === openId)
@@ -82,7 +82,7 @@ export function Closet({ onAdd }: { onAdd: () => void }) {
                 {i.sample && <span className="badge">Beispiel</span>}
               </span>
               <span className="tile-name">{i.name}</span>
-              <span className="tile-meta">{i.category} · {i.color}</span>
+              <span className="tile-meta">{i.category} · {i.color}{i.color2 ? ` und ${i.color2}` : ''}</span>
             </button>
           ))}
         </div>
@@ -93,7 +93,7 @@ export function Closet({ onAdd }: { onAdd: () => void }) {
   )
 }
 
-export function ItemFields({ value, onChange }: { value: Pick<Item, 'name' | 'category' | 'color' | 'seasons'>; onChange: (v: Partial<Item>) => void }) {
+export function ItemFields({ value, onChange }: { value: Pick<Item, 'name' | 'category' | 'color' | 'seasons' | 'styles'>; onChange: (v: Partial<Item>) => void }) {
   return (
     <>
       <label className="field">
@@ -124,6 +124,17 @@ export function ItemFields({ value, onChange }: { value: Pick<Item, 'name' | 'ca
             const on = value.seasons.includes(s)
             return (
               <button key={s} type="button" className={'chip' + (on ? ' is-on' : '')} onClick={() => onChange({ seasons: on ? value.seasons.filter((x) => x !== s) : [...value.seasons, s] })}>{s}</button>
+            )
+          })}
+        </div>
+      </div>
+      <div className="field">
+        <span>Stil</span>
+        <div className="chips wrap">
+          {STYLES.map((t) => {
+            const on = value.styles.includes(t)
+            return (
+              <button key={t} type="button" className={'chip' + (on ? ' is-on' : '')} onClick={() => onChange({ styles: on ? value.styles.filter((x) => x !== t) : [...value.styles, t] })}>{t}</button>
             )
           })}
         </div>

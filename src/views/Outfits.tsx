@@ -1,56 +1,70 @@
 import { useState } from 'react'
-import { IconChevronLeft, IconChevronRight, IconPlus } from '../icons'
-import { deleteOutfit, planOutfit, urlFor, useStore } from '../store'
+import { IconChevronLeft, IconChevronRight } from '../icons'
+import { deleteOutfit, planOutfit, saveOutfit, urlFor, useStore } from '../store'
 import type { Outfit } from '../types'
 import { Sheet } from './Sheet'
 
-export function Outfits({ onNew, onEdit }: { onNew: () => void; onEdit: (o: Outfit) => void }) {
+export function Outfits({ onWear, onHome }: { onWear: (o: Outfit) => void; onHome: () => void }) {
   const { outfits } = useStore()
+  const [mode, setMode] = useState<'liste' | 'kalender'>('liste')
   const [openId, setOpenId] = useState<string | null>(null)
   const [confirm, setConfirm] = useState(false)
+  const [name, setName] = useState('')
   const open = outfits.find((o) => o.id === openId)
-  const close = () => { setOpenId(null); setConfirm(false) }
+  const close = () => {
+    if (open && name.trim() && name.trim() !== open.name) saveOutfit({ ...open, name: name.trim() })
+    setOpenId(null)
+    setConfirm(false)
+  }
 
   return (
     <section className="view">
       <header className="view-head">
         <div>
           <h1>Outfits</h1>
-          <p className="muted">{outfits.length === 1 ? '1 Outfit' : `${outfits.length} Outfits`}</p>
+          <p className="muted">{outfits.length === 1 ? '1 Outfit gespeichert' : `${outfits.length} Outfits gespeichert`}</p>
         </div>
-        <button className="btn btn-primary" onClick={onNew} id="new-outfit"><IconPlus /> Outfit bauen</button>
+        <div className="segment" role="group" aria-label="Ansicht">
+          <button className={mode === 'liste' ? 'is-on' : ''} onClick={() => setMode('liste')}>Liste</button>
+          <button className={mode === 'kalender' ? 'is-on' : ''} onClick={() => setMode('kalender')}>Kalender</button>
+        </div>
       </header>
-      {outfits.length === 0 ? (
+      {mode === 'kalender' ? (
+        <Calendar onHome={onHome} />
+      ) : outfits.length === 0 ? (
         <div className="empty">
-          <p>Hier hängen bald deine Outfits. Leg Teile aus dem Schrank zusammen oder probier sie auf deinem Foto an.</p>
-          <button className="btn btn-primary" onClick={onNew}><IconPlus /> Outfit bauen</button>
+          <p>Hier hängen bald deine Outfits. Stell auf der Anprobe eins zusammen und tipp auf Speichern.</p>
+          <button className="btn btn-primary" onClick={onHome}>Zur Anprobe</button>
         </div>
       ) : (
         <div className="grid">
           {outfits.map((o) => (
-            <button key={o.id} className="tile" onClick={() => setOpenId(o.id)}>
+            <button key={o.id} className="tile" onClick={() => { setOpenId(o.id); setName(o.name) }}>
               <span className="tile-img is-full"><img src={urlFor(o.preview)} alt="" /></span>
               <span className="tile-name">{o.name}</span>
-              <span className="tile-meta">{o.mode === 'body' ? 'Anprobe' : 'Collage'} · {o.layers.length === 1 ? '1 Teil' : `${o.layers.length} Teile`}</span>
             </button>
           ))}
         </div>
       )}
       {open && (
-        <Sheet title={open.name} onClose={close}>
+        <Sheet title="Outfit" onClose={close}>
           <div className="preview-tile is-full"><img src={urlFor(open.preview)} alt={open.name} /></div>
+          <label className="field">
+            <span>Name</span>
+            <input id="outfit-name" type="text" value={name} onChange={(e) => setName(e.target.value)} />
+          </label>
           <div className="actions">
             {confirm ? (
               <>
                 <span className="muted grow">Outfit wirklich löschen?</span>
                 <button className="btn" onClick={() => setConfirm(false)}>Behalten</button>
-                <button className="btn btn-danger" onClick={() => { deleteOutfit(open.id); close() }}>Löschen</button>
+                <button className="btn btn-danger" onClick={() => { deleteOutfit(open.id); setOpenId(null); setConfirm(false) }}>Löschen</button>
               </>
             ) : (
               <>
                 <button className="btn btn-danger" onClick={() => setConfirm(true)}>Löschen</button>
                 <span className="grow" />
-                <button className="btn btn-primary" onClick={() => { close(); onEdit(open) }}>Bearbeiten</button>
+                <button className="btn btn-primary" id="wear-outfit" onClick={() => { close(); onWear(open) }}>Anziehen</button>
               </>
             )}
           </div>
@@ -63,7 +77,7 @@ export function Outfits({ onNew, onEdit }: { onNew: () => void; onEdit: (o: Outf
 const WEEKDAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
 const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 
-export function CalendarView({ onNew }: { onNew: () => void }) {
+function Calendar({ onHome }: { onHome: () => void }) {
   const { outfits, calendar } = useStore()
   const [month, setMonth] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1) })
   const [day, setDay] = useState<string | null>(null)
@@ -76,18 +90,12 @@ export function CalendarView({ onNew }: { onNew: () => void }) {
   const planned = day ? outfits.find((o) => o.id === calendar[day]) : undefined
 
   return (
-    <section className="view">
-      <header className="view-head">
-        <div>
-          <h1>Kalender</h1>
-          <p className="muted">Plan, was du wann trägst.</p>
-        </div>
-        <div className="month-nav">
-          <button className="icon-btn" onClick={() => shift(-1)} aria-label="Vorheriger Monat"><IconChevronLeft /></button>
-          <strong>{month.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })}</strong>
-          <button className="icon-btn" onClick={() => shift(1)} aria-label="Nächster Monat"><IconChevronRight /></button>
-        </div>
-      </header>
+    <>
+      <div className="month-nav">
+        <button className="icon-btn" onClick={() => shift(-1)} aria-label="Vorheriger Monat"><IconChevronLeft /></button>
+        <strong>{month.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })}</strong>
+        <button className="icon-btn" onClick={() => shift(1)} aria-label="Nächster Monat"><IconChevronRight /></button>
+      </div>
       <div className="cal">
         {WEEKDAYS.map((w) => <span key={w} className="cal-wd">{w}</span>)}
         {cells.map((d, i) => {
@@ -106,7 +114,7 @@ export function CalendarView({ onNew }: { onNew: () => void }) {
           {outfits.length === 0 ? (
             <div className="empty">
               <p>Du hast noch kein Outfit gespeichert, das du einplanen könntest.</p>
-              <button className="btn btn-primary" onClick={() => { setDay(null); onNew() }}><IconPlus /> Outfit bauen</button>
+              <button className="btn btn-primary" onClick={() => { setDay(null); onHome() }}>Zur Anprobe</button>
             </div>
           ) : (
             <>
@@ -128,6 +136,6 @@ export function CalendarView({ onNew }: { onNew: () => void }) {
           )}
         </Sheet>
       )}
-    </section>
+    </>
   )
 }
