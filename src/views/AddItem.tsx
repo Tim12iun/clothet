@@ -1,26 +1,36 @@
 import { useEffect, useRef, useState } from 'react'
 import { IconCamera, IconImage } from '../icons'
-import { coverage, detectColors, guessCategory, loadPhoto, removeBackground, toBlob } from '../lib/image'
+import { GUIDES, type GuideKey } from '../lib/guides'
+import { coverage, detectColors, loadPhoto, removeBackground, toBlob, trim } from '../lib/image'
 import { saveItem } from '../store'
-import { uid, type Category, type Season, type Style } from '../types'
+import { CATEGORIES, uid, type Category, type Season, type Style } from '../types'
+import { Camera } from './Camera'
 import { ItemFields } from './Closet'
 import { Sheet } from './Sheet'
 
+type Which = 'main' | 'wear' // main: Bild für den Schrank, wear: Schuh von vorne für den Avatar
+
 export function AddItem({ onClose }: { onClose: () => void }) {
   const [photo, setPhoto] = useState<HTMLCanvasElement | null>(null)
+  const [wearPhoto, setWearPhoto] = useState<HTMLCanvasElement | null>(null)
   const [cutout, setCutout] = useState(true)
   const [tolerance, setTolerance] = useState(45)
   const [result, setResult] = useState<{ canvas: HTMLCanvasElement; url: string } | null>(null)
+  const [wear, setWear] = useState<{ canvas: HTMLCanvasElement; url: string } | null>(null)
+  const [camera, setCamera] = useState<Which | null>(null)
   const [error, setError] = useState('')
   const [hint, setHint] = useState('')
   const [fields, setFields] = useState({ name: '', category: 'Oberteile' as Category, color: 'Grau', color2: undefined as string | undefined, seasons: ['Frühling', 'Sommer', 'Herbst', 'Winter'] as Season[], styles: [] as Style[] })
-  const touched = useRef({ color: false, category: false })
+  const touched = useRef({ color: false })
+  const native = useRef<Record<Which, HTMLInputElement | null>>({ main: null, wear: null })
+  const isShoe = fields.category === 'Schuhe'
 
-  async function pick(file?: File) {
+  const take = (which: Which, c: HTMLCanvasElement) => (which === 'main' ? setPhoto(c) : setWearPhoto(c))
+  async function pick(which: Which, file?: File) {
     if (!file) return
     setError('')
     try {
-      setPhoto(await loadPhoto(file))
+      take(which, await loadPhoto(file))
     } catch {
       setError('Das Foto ließ sich nicht öffnen. Versuch es mit einem JPG oder PNG.')
     }
@@ -37,40 +47,72 @@ export function AddItem({ onClose }: { onClose: () => void }) {
       else if (cov < 0.08) note = 'Es ist fast nichts übrig geblieben. Stell den Regler weiter nach links.'
     }
     setHint(note)
-    // Automatisch taggen: Farben und eine Vermutung zur Kategorie. Was der Nutzer selbst gewählt hat, bleibt.
+    // Automatisch taggen: Farben erkennen. Was der Nutzer selbst gewählt hat, bleibt.
     const auto = detectColors(canvas)
-    setFields((f) => ({
-      ...f,
-      ...(touched.current.color ? {} : auto),
-      ...(touched.current.category || !cutout ? {} : { category: guessCategory(canvas) }),
-    }))
-    const url = canvas.toDataURL('image/png')
-    setResult({ canvas, url })
+    setFields((f) => ({ ...f, ...(touched.current.color ? {} : auto) }))
+    setResult({ canvas, url: canvas.toDataURL('image/png') })
   }, [photo, cutout, tolerance])
+
+  useEffect(() => {
+    if (!wearPhoto) return setWear(null)
+    const canvas = cutout ? trim(removeBackground(wearPhoto, tolerance)) : wearPhoto
+    setWear({ canvas, url: canvas.toDataURL('image/png') })
+  }, [wearPhoto, cutout, tolerance])
 
   async function save() {
     if (!result) return
     const image = await toBlob(result.canvas)
-    await saveItem({ id: uid(), ...fields, name: fields.name.trim() || 'Neues Teil', image, createdAt: Date.now() })
+    const wearImage = isShoe && wear ? await toBlob(wear.canvas) : undefined
+    await saveItem({ id: uid(), ...fields, name: fields.name.trim() || 'Neues Teil', image, wearImage, createdAt: Date.now() })
     onClose()
   }
+
+  const guideKey: GuideKey = camera === 'wear' ? 'Schuh von vorne' : fields.category
+  if (camera) {
+    return (
+      <Camera
+        title={camera === 'wear' ? 'Schuh von vorne' : isShoe ? 'Schuh von der Seite' : fields.category}
+        guide={GUIDES[guideKey]}
+        onShot={(c) => { take(camera, c); setCamera(null) }}
+        onClose={() => setCamera(null)}
+        onFail={() => { const w = camera; setCamera(null); native.current[w]?.click() }}
+      />
+    )
+  }
+
+  // Zwei Wege zum Foto: eigene Kamera mit Umrisslinie oder ein vorhandenes Bild
+  const sources = (which: Which, primary: boolean) => (
+    <div className="pick">
+      <button className={'btn' + (primary ? ' btn-primary' : '')} onClick={() => setCamera(which)} id={which + '-camera'}><IconCamera /> Foto aufnehmen</button>
+      <label className="btn">
+        <IconImage /> Aus Fotos wählen
+        <input id={which + '-file'} type="file" accept="image/*" hidden onChange={(e) => pick(which, e.target.files?.[0])} />
+      </label>
+      <input ref={(el) => { native.current[which] = el }} type="file" accept="image/*" capture="environment" hidden onChange={(e) => pick(which, e.target.files?.[0])} />
+    </div>
+  )
 
   return (
     <Sheet title="Teil hinzufügen" onClose={onClose}>
       {!photo ? (
         <>
-          <p className="muted">Leg das Teil flach auf eine einfarbige Fläche und fotografier es von oben. Lass rundherum etwas Rand.</p>
-          <p className="note is-block"><strong>Schuhe anders fotografieren</strong>Stell das Paar nebeneinander, die Spitzen zeigen zu dir. Fotografier es von vorne und leicht von oben, so wie man die Schuhe an einer stehenden Person sieht.</p>
-          <div className="pick">
-            <label className="btn btn-primary">
-              <IconCamera /> Foto aufnehmen
-              <input id="item-camera" type="file" accept="image/*" capture="environment" hidden onChange={(e) => pick(e.target.files?.[0])} />
-            </label>
-            <label className="btn">
-              <IconImage /> Aus Fotos wählen
-              <input id="item-file" type="file" accept="image/*" hidden onChange={(e) => pick(e.target.files?.[0])} />
-            </label>
+          <div className="field">
+            <span>Was legst du an?</span>
+            <div className="chips wrap">
+              {CATEGORIES.map((c) => (
+                <button key={c} type="button" className={'chip' + (fields.category === c ? ' is-on' : '')} aria-pressed={fields.category === c} onClick={() => setFields({ ...fields, category: c })}>{c}</button>
+              ))}
+            </div>
           </div>
+          <div className="guide-row">
+            <svg className="guide-thumb" viewBox={GUIDES[fields.category].vb} aria-hidden="true"><path d={GUIDES[fields.category].d} /></svg>
+            {isShoe ? (
+              <p className="muted">Schuhe brauchen zwei Fotos von einem Schuh: zuerst von der Seite für den Schrank, danach von vorne für den Avatar. Die Kamera zeigt dir jeweils eine Umrisslinie.</p>
+            ) : (
+              <p className="muted">Leg das Teil flach auf eine einfarbige Fläche und fotografier es von oben. Die Kamera zeigt dir eine Umrisslinie, an der du es ausrichtest.</p>
+            )}
+          </div>
+          {sources('main', true)}
           {error && <p className="note is-danger">{error}</p>}
         </>
       ) : (
@@ -91,20 +133,35 @@ export function AddItem({ onClose }: { onClose: () => void }) {
             )}
             {hint && <p className="note">{hint}</p>}
           </div>
-          {fields.category === 'Schuhe' && <p className="note">Schuhe sitzen am Avatar am besten, wenn das Paar nebeneinander von vorne und leicht von oben fotografiert ist.</p>}
-          <p className="muted">Farbe und Kategorie sind automatisch erkannt. Prüf sie kurz und ergänz Jahreszeit und Stil.</p>
+          {isShoe && (
+            <div className="field">
+              <span>Am Avatar</span>
+              {wear ? (
+                <>
+                  <div className="preview-tile small is-pair"><img src={wear.url} alt="Schuh von vorne" /><img src={wear.url} alt="" /></div>
+                  <div className="actions"><button className="btn" onClick={() => setWearPhoto(null)}>Anderes Foto von vorne</button></div>
+                </>
+              ) : (
+                <>
+                  <p className="muted">Jetzt denselben Schuh von vorne, die Spitze zeigt zu dir, leicht von oben. Den zweiten Schuh ergänzt Clothet gespiegelt.</p>
+                  {sources('wear', true)}
+                </>
+              )}
+              {error && <p className="note is-danger">{error}</p>}
+            </div>
+          )}
+          <p className="muted">Die Farbe ist automatisch erkannt. Prüf sie kurz und ergänz Jahreszeit und Stil.</p>
           <ItemFields
             value={fields}
             onChange={(v) => {
               if (v.color) touched.current.color = true
-              if (v.category) touched.current.category = true
               setFields({ ...fields, ...v, ...(v.color ? { color2: undefined } : {}) })
             }}
           />
           <div className="actions">
-            <button className="btn" onClick={() => { setPhoto(null); setResult(null) }}>Anderes Foto</button>
+            <button className="btn" onClick={() => { setPhoto(null); setResult(null); setWearPhoto(null) }}>Anderes Foto</button>
             <span className="grow" />
-            <button className="btn btn-primary" onClick={save} id="save-item">Speichern</button>
+            <button className={'btn' + (isShoe && !wear ? '' : ' btn-primary')} onClick={save} id="save-item">{isShoe && !wear ? 'Ohne zweites Foto speichern' : 'Speichern'}</button>
           </div>
         </>
       )}

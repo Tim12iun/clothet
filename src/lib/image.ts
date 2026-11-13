@@ -1,5 +1,5 @@
 import type { Category, Fits, Item, Slots } from '../types'
-import { DRAW_ORDER, placement } from './avatar'
+import { DRAW_ORDER, PAIR_SHOE, placement } from './avatar'
 
 const MAX_SIDE = 900
 
@@ -216,8 +216,21 @@ export async function renderOutfit(slots: Slots, items: Item[], fits: Fits, avat
     if (zone === 'bottom' && isDress) continue
     const item = items.find((i) => i.id === slots[zone])
     if (!item) continue
-    const bmp = await createImageBitmap(item.image)
     const p = placement(zone, isDress, fits[zone])
+    if (zone === 'shoes' && item.wearImage) {
+      // Ein Schuh von vorne: links normal, rechts gespiegelt
+      const one = await createImageBitmap(item.wearImage)
+      const pw = p.w * W, sw = pw * PAIR_SHOE, sh = (sw * one.height) / one.width
+      const x0 = (W - pw) / 2, y0 = p.y * H - sh
+      ctx.drawImage(one, x0, y0, sw, sh)
+      ctx.save()
+      ctx.translate(x0 + pw, y0)
+      ctx.scale(-1, 1)
+      ctx.drawImage(one, 0, 0, sw, sh)
+      ctx.restore()
+      continue
+    }
+    const bmp = await createImageBitmap(item.image)
     const w = p.w * W
     const h = (w * bmp.height) / bmp.width
     const y = p.anchor === 'top' ? p.y * H : p.y * H - h

@@ -21,6 +21,8 @@
   --c-danger: #b3372c;
   --c-danger-soft: #f6e0dd;
   --c-scrim: rgba(16, 24, 20, 0.45);
+  --c-camera: #0b0e0d;      /* Kamera im Vollbild, in beiden Farbmodi dunkel */
+  --c-camera-ink: #ffffff;  /* Text, Umrisslinie und Auslöser in der Kamera */
 
   /* Schrift */
   --font-display: 'Inter', 'Segoe UI', system-ui, sans-serif; /* Titel */

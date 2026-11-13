@@ -95,6 +95,7 @@ Klassen stehen in `src/styles/app.css`. Bestehende Komponenten wiederverwenden, 
 | Zufallsknopf | `.fab` | die eine schwebende Hauptaktion der Anprobe, rechts unten auf der Bühne |
 | Bewertung | `.match` | kleine Karte links oben auf der Bühne: Urteil fett, Grund darunter |
 | Umschalter | `.segment` | zwei bis vier gleichrangige Ansichten, in der Schublade die Körperzonen |
+| Kamera | `.camera` | Vollbild mit Umrisslinie, einem Satz Anleitung und Auslöser. Ersetzt während der Aufnahme das Sheet, liegt also nicht darüber. Immer dunkel (`--c-camera`) |
 | Toast | `.toast` | kurze Bestätigung über der unteren Leiste, verschwindet von selbst |
 | Untere Leiste | `.nav` | drei Bereiche: Anprobe, Schrank, Outfits |
 
@@ -120,7 +121,8 @@ Grundlage ist Entwurf 4A „Klar“ mit dem Zufallsknopf aus 4C.
 ## 8. Bildsprache
 
 - **Kleidung:** von oben fotografiert, flach liegend, freigestellt, vollständig sichtbar, mit etwas Luft zum Rand. Immer `object-fit: contain`, nie beschnitten.
-- **Schuhe** sind die Ausnahme: das Paar steht nebeneinander und ist von vorne und leicht von oben fotografiert (etwa 20 bis 30 Grad), so wie man Schuhe an einer stehenden Person sieht. Am Avatar steht je ein Schuh unter einem Bein, die Hose liegt darüber.
+- **Schuhe** sind die Ausnahme und brauchen zwei Fotos von einem Schuh: von der Seite (Spitze nach rechts) für Schrank und Schublade, und von vorne, leicht von oben (etwa 20 bis 30 Grad), für den Avatar. Am Avatar steht dieses Bild unter dem einen Bein und gespiegelt unter dem anderen, die Hose liegt darüber. Fehlt das zweite Foto, wird das Schrankbild verwendet.
+- **Umrisslinien:** Für jede Kategorie gibt es eine gestrichelte Umrisslinie (`src/lib/guides.ts`). Sie liegt in der Kamera über dem Bild und zeigt, wie das Teil ungefähr liegen soll.
 - **Avatar:** eigenes Ganzkörperfoto, frontal, aufrecht, barfuß, Arme leicht ab, heller ruhiger Hintergrund, füllt die Bühne im Format 3:4. Sonst die Standard-Figur in neutralem Grau ohne Gesicht.
 - **Outfit-Vorschau:** immer aus der Bühne erzeugt, gleiches Format 3:4, gleiche Ablagefarbe.
 - **Beispiel-Teile** sind schlichte Zeichnungen und klar als "Beispiel" markiert.

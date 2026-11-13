@@ -325,3 +325,34 @@ img { max-width: 100%; display: block; }
 
 /* Als eigene Seite oder installierte App: Platz für die Statusleiste (in der Vorschau erledigt das der Rahmen) */
 .standalone #root { padding-top: env(safe-area-inset-top, 0px); }
+
+/* Schuhpaar aus einem Foto: rechts gespiegelt */
+.wear-pair { display: flex; justify-content: space-between; align-items: flex-end; }
+.wear-pair img, .preview-tile.is-pair img { width: 41%; }
+.wear-pair img + img, .preview-tile.is-pair img + img { transform: scaleX(-1); }
+.preview-tile.is-pair { display: flex; justify-content: center; align-items: center; gap: 6%; }
+.preview-tile.is-pair img { position: static; width: auto; height: 100%; max-width: 40%; }
+
+/* Umrisslinie als kleine Vorschau im Sheet */
+.guide-row { display: flex; align-items: center; gap: var(--s-4); }
+.guide-thumb { flex: none; width: 72px; height: 72px; padding: var(--s-2); background: var(--c-tile); border-radius: var(--r-md); overflow: visible; }
+.guide-thumb path { fill: none; stroke: var(--c-muted); stroke-width: 2; stroke-dasharray: 5 4; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+
+/* Kamera im Vollbild mit Umrisslinie */
+.camera {
+  position: fixed; inset: 0; z-index: 40; display: flex; flex-direction: column;
+  background: var(--c-camera); color: var(--c-camera-ink);
+  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+}
+.camera-head { flex: none; display: flex; align-items: center; justify-content: space-between; height: 56px; padding: 0 var(--s-2) 0 var(--s-4); }
+.camera .icon-btn { color: var(--c-camera-ink); }
+.camera .icon-btn:hover { background: none; }
+.camera-frame { position: relative; flex: 1 1 0; min-height: 0; overflow: hidden; }
+.camera-frame video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.camera-guide { position: absolute; inset: 10%; width: 80%; height: 80%; overflow: visible; filter: drop-shadow(0 0 2px var(--c-camera)); }
+.camera-guide path { fill: none; stroke: var(--c-camera-ink); stroke-width: 2.5; stroke-dasharray: 10 7; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.camera-foot { flex: none; display: flex; flex-direction: column; align-items: center; gap: var(--s-4); padding: var(--s-4) var(--s-5) var(--s-5); text-align: center; font-size: var(--fs-sm); }
+.camera-foot p { max-width: 36ch; }
+.shutter { width: 72px; height: 72px; border-radius: var(--r-pill); background: var(--c-camera-ink); box-shadow: 0 0 0 4px var(--c-camera), 0 0 0 7px var(--c-camera-ink); transition: transform var(--t-fast) var(--ease); }
+.shutter:active { transform: scale(0.94); }
+.shutter:disabled { opacity: 0.4; }

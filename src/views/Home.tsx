@@ -107,7 +107,14 @@ export function Home({ slots, setSlots, onSettings, onAdd, fitZone, setFitZone, 
             const p = placement(z, isDress, fits[z])
             return (
               <div key={z} className="wear" style={{ width: p.w * 100 + '%', ...(p.anchor === 'top' ? { top: p.y * 100 + '%' } : { bottom: (1 - p.y) * 100 + '%' }) }}>
-                <img key={item.id} className={'wear-img is-' + dir} src={urlFor(item.image)} alt={`${ZONE_LABEL[z]}: ${item.name}`} draggable={false} />
+                {z === 'shoes' && item.wearImage ? (
+                  <div key={item.id} className={'wear-pair wear-img is-' + dir} role="img" aria-label={`${ZONE_LABEL[z]}: ${item.name}`}>
+                    <img src={urlFor(item.wearImage)} alt="" draggable={false} />
+                    <img src={urlFor(item.wearImage)} alt="" draggable={false} />
+                  </div>
+                ) : (
+                  <img key={item.id} className={'wear-img is-' + dir} src={urlFor(item.image)} alt={`${ZONE_LABEL[z]}: ${item.name}`} draggable={false} />
+                )}
               </div>
             )
           })}

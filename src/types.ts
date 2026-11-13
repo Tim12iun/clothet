@@ -21,7 +21,8 @@ export interface Item {
   color2?: string // Nebenfarbe, falls deutlich vorhanden
   seasons: Season[]
   styles: Style[]
-  image: Blob
+  image: Blob // Bild für den Schrank
+  wearImage?: Blob // nur Schuhe: ein Schuh von vorne, wird am Avatar für beide Füße verwendet (einmal gespiegelt)
   sample?: boolean
   createdAt: number
 }
