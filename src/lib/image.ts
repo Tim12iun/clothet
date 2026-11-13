@@ -27,7 +27,8 @@ export async function loadPhoto(file: Blob, maxSide = MAX_SIDE): Promise<HTMLCan
 
 /**
  * Einfaches Freistellen: Vom Bildrand aus wird alles entfernt, was farblich zum Hintergrund gehört.
- * Funktioniert gut auf ruhigem, einfarbigem Untergrund. tolerance: 0 (streng) bis 100 (großzügig).
+ * Funktioniert auf ruhigem Untergrund. Die Grenze zwischen Hintergrund und Teil wird aus dem Bild gelesen,
+ * tolerance (0 bis 100) setzt nur, wie großzügig sie höchstens sein darf.
  */
 export function removeBackground(src: HTMLCanvasElement, tolerance = 45): HTMLCanvasElement {
   const { width: w, height: h } = src
@@ -47,42 +48,77 @@ export function removeBackground(src: HTMLCanvasElement, tolerance = 45): HTMLCa
   const step = Math.max(1, Math.floor(Math.max(w, h) / 200))
   for (let x = 0; x < w; x += step) { sample(x, 0); sample(x, h - 1) }
   for (let y = 0; y < h; y += step) { sample(0, y); sample(w - 1, y) }
-  const med = (a: number[]) => a.sort((p, q) => p - q)[a.length >> 1]
+  const med = (a: number[]) => [...a].sort((p, q) => p - q)[a.length >> 1]
   const br = med(rs), bg = med(gs), bb = med(bs)
 
-  const tGlobal = 20 + tolerance * 1.6 // Abstand zur Hintergrundfarbe
+  // Wie weit darf eine Farbe vom Hintergrund entfernt sein? Nicht fest, sondern aus dem Bild gelesen: Die Abstände aller
+  // Pixel zur Hintergrundfarbe bilden beim Hintergrund einen Berg nahe null und beim Teil einen zweiten weiter weg.
+  // Die Grenze liegt im Tal dazwischen. So bleibt ein helles Teil auf hellem Grund ganz, und Schatten fallen trotzdem weg.
+  const hist = new Float64Array(256)
+  const dist = (i: number) => Math.min(255, Math.round(Math.hypot(d[i] - br, d[i + 1] - bg, d[i + 2] - bb)))
+  const skip = Math.max(1, Math.floor(Math.sqrt(n / 60000)))
+  for (let y = 0; y < h; y += skip) for (let x = 0; x < w; x += skip) hist[dist((y * w + x) * 4)]++
+  const edge = rs.map((_, k) => Math.round(Math.hypot(rs[k] - br, gs[k] - bg, bs[k] - bb))).sort((p, q) => p - q)
+  const lo = Math.min(92, Math.max(24, edge[Math.floor(edge.length * 0.9)] + 10)), hi = Math.max(lo, 20 + tolerance * 1.6)
+  const density = (t: number) => { let sum = 0; for (let k = Math.max(0, t - 5); k <= Math.min(255, t + 5); k++) sum += hist[k]; return sum }
+  let least = Infinity
+  for (let t = lo; t <= hi; t++) least = Math.min(least, density(t))
+  const valley: number[] = []
+  for (let t = lo; t <= hi; t++) if (density(t) <= least * 1.25 + 1) valley.push(t)
+  const tGlobal = valley[valley.length >> 1] ?? lo
   const tLocal = 6 + tolerance * 0.32 // Sprung zum Nachbarpixel (Kante)
-  const tG2 = tGlobal * tGlobal, tL2 = tLocal * tLocal
+  const tL2 = tLocal * tLocal
 
-  const mask = new Uint8Array(n) // 1 = Hintergrund
-  const queue = new Int32Array(n)
-  let head = 0, tail = 0
-  const tryPush = (p: number, from: number) => {
-    if (mask[p]) return
-    const i = p * 4
-    const dr = d[i] - br, dg = d[i + 1] - bg, db = d[i + 2] - bb
-    if (dr * dr + dg * dg + db * db > tG2) return
-    if (from >= 0) {
-      const j = from * 4
-      const lr = d[i] - d[j], lg = d[i + 1] - d[j + 1], lb = d[i + 2] - d[j + 2]
-      if (lr * lr + lg * lg + lb * lb > tL2) return
+  /** Hintergrund vom Rand her fluten (1 = Hintergrund) und lose Reste dazuzählen. Dazu, wie geschlossen das Teil ist. */
+  const flood = (limit: number) => {
+    const tG2 = limit * limit
+    const mask = new Uint8Array(n)
+    const queue = new Int32Array(n)
+    let head = 0, tail = 0
+    const tryPush = (p: number, from: number) => {
+      if (mask[p]) return
+      const i = p * 4
+      const dr = d[i] - br, dg = d[i + 1] - bg, db = d[i + 2] - bb
+      if (dr * dr + dg * dg + db * db > tG2) return
+      if (from >= 0) {
+        const j = from * 4
+        const lr = d[i] - d[j], lg = d[i + 1] - d[j + 1], lb = d[i + 2] - d[j + 2]
+        if (lr * lr + lg * lg + lb * lb > tL2) return
+      }
+      mask[p] = 1
+      queue[tail++] = p
     }
-    mask[p] = 1
-    queue[tail++] = p
+    for (let x = 0; x < w; x++) { tryPush(x, -1); tryPush((h - 1) * w + x, -1) }
+    for (let y = 0; y < h; y++) { tryPush(y * w, -1); tryPush(y * w + w - 1, -1) }
+    while (head < tail) {
+      const p = queue[head++]
+      const x = p % w
+      if (x > 0) tryPush(p - 1, p)
+      if (x < w - 1) tryPush(p + 1, p)
+      if (p >= w) tryPush(p - w, p)
+      if (p < n - w) tryPush(p + w, p)
+    }
+    // Bildreste (Schrift, Etiketten, Krümel neben dem Teil) zählen zum Hintergrund
+    for (const p of specks(mask, w, h, 0)) mask[p] = 1
+    let x0 = w, y0 = h, x1 = -1, y1 = -1, fg = 0
+    for (let p = 0; p < n; p++) if (!mask[p]) {
+      const x = p % w, y = (p - x) / w
+      fg++
+      if (x < x0) x0 = x
+      if (x > x1) x1 = x
+      if (y < y0) y0 = y
+      if (y > y1) y1 = y
+    }
+    return { mask, share: fg / n, solid: fg ? fg / ((x1 - x0 + 1) * (y1 - y0 + 1)) : 0 }
   }
-  for (let x = 0; x < w; x++) { tryPush(x, -1); tryPush((h - 1) * w + x, -1) }
-  for (let y = 0; y < h; y++) { tryPush(y * w, -1); tryPush(y * w + w - 1, -1) }
-  while (head < tail) {
-    const p = queue[head++]
-    const x = p % w
-    if (x > 0) tryPush(p - 1, p)
-    if (x < w - 1) tryPush(p + 1, p)
-    if (p >= w) tryPush(p - w, p)
-    if (p < n - w) tryPush(p + w, p)
+  // Ein Kleidungsstück füllt seinen Rahmen zu einem guten Teil. Bleiben nur Fetzen, hat die Grenze ins Teil hineingeschnitten:
+  // Dann gilt die strengste Grenze, wenn sie das Teil besser zusammenhält.
+  let best = flood(tGlobal)
+  if (tGlobal > lo && (best.solid < 0.45 || best.share < 0.05)) {
+    const strict = flood(lo)
+    if (strict.share < 0.9 && strict.solid > best.solid * 1.2) best = strict
   }
-
-  // Bildreste (Schrift, Etiketten, Krümel neben dem Teil) zählen zum Hintergrund
-  for (const p of specks(mask, w, h, 0)) mask[p] = 1
+  const mask = best.mask
 
   // Weiche Kante: Deckkraft aus dem Anteil der Vordergrund-Nachbarn (5x5)
   const R = 2
@@ -151,7 +187,7 @@ export function cutArea(src: HTMLCanvasElement, a: Area, tolerance = 45): HTMLCa
   const w = Math.max(8, Math.min(src.width - x, Math.round(a.w * src.width))), h = Math.max(8, Math.min(src.height - y, Math.round(a.h * src.height)))
   const part = makeCanvas(w, h)
   part.getContext('2d')!.drawImage(src, x, y, w, h, 0, 0, w, h)
-  return removeBackground(part, tolerance)
+  return isCutOut(part) ? part : removeBackground(part, tolerance)
 }
 
 function crop(src: HTMLCanvasElement, x: number, y: number, w: number, h: number) {
@@ -159,6 +195,14 @@ function crop(src: HTMLCanvasElement, x: number, y: number, w: number, h: number
   const c = makeCanvas(w + pad * 2, h + pad * 2)
   c.getContext('2d')!.drawImage(src, x, y, w, h, pad, pad, w, h)
   return c
+}
+
+/** Ist das Bild schon freigestellt (durchsichtiger Grund, etwa ein in Fotos kopiertes Motiv)? Dann wird nichts mehr geschnitten. */
+export function isCutOut(c: HTMLCanvasElement): boolean {
+  const d = c.getContext('2d', { willReadFrequently: true })!.getImageData(0, 0, c.width, c.height).data
+  let clear = 0
+  for (let i = 3; i < d.length; i += 16) if (d[i] < 16) clear++
+  return clear / (d.length / 16) > 0.03
 }
 
 /** Anteil der sichtbaren Pixel, um ein misslungenes Freistellen zu erkennen. */

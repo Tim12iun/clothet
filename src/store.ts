@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from 'react'
 import { createStore, del, entries, set, setMany } from 'idb-keyval'
 import { DEFAULT_FITS, type AvatarMode, type Figure, type Fits, type Item, type Outfit } from './types'
+import { attach, touch } from './lib/cloud'
 import { parseKnowledge, type Knowledge } from './lib/engine'
 
 export interface State {
@@ -37,6 +38,7 @@ async function put(key: string, value: unknown) {
   if (!db || !state.persistent) return
   try {
     await set(key, value, db)
+    touch(key)
   } catch {
     update({ persistent: false })
   }
@@ -45,13 +47,16 @@ async function remove(key: string) {
   if (!db || !state.persistent) return
   try {
     await del(key, db)
+    touch(key, true)
   } catch {
     update({ persistent: false })
   }
 }
 
 /** Lädt alles aus dem Browser-Speicher. Gibt true zurück, wenn der Schrank noch nie befüllt wurde. */
+let attached = false
 export async function load(): Promise<boolean> {
+  if (db && !attached) { attached = true; attach(db, load) }
   const items: Item[] = []
   const outfits: Outfit[] = []
   let calendar: Record<string, string> = {}
@@ -120,6 +125,7 @@ export async function addItems(list: Item[]) {
   if (!db || !state.persistent) return
   try {
     await setMany(list.map((i) => ['item:' + i.id, i]), db)
+    for (const i of list) touch('item:' + i.id)
   } catch {
     update({ persistent: false })
   }

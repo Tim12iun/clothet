@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { IconDown, IconMinus, IconPlus, IconSearch, IconSort, IconUp } from '../icons'
 import { avatarOf } from '../lib/avatar'
 import { fitKind } from '../lib/fitting'
@@ -139,32 +139,35 @@ export function Closet({ hidden, onAdd, toast, note }: { hidden: boolean; onAdd:
 }
 
 export function ItemFields({ value, onChange }: { value: Pick<Item, 'name' | 'category' | 'color' | 'seasons' | 'styles'>; onChange: (v: Partial<Item>) => void }) {
+  // Jede Gruppe ist eine Zeile zum seitlichen Wischen, damit alles auf eine Seite passt. Das Gewählte steht beim Öffnen im Blick
+  const rows = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    rows.current?.querySelectorAll<HTMLElement>('.chips').forEach((row) => {
+      const on = row.querySelector<HTMLElement>('.is-on')
+      if (on) row.scrollLeft = Math.max(0, on.offsetLeft - row.offsetLeft - row.clientWidth / 2 + on.offsetWidth / 2)
+    })
+  }, [])
   return (
-    <>
-      <label className="field">
-        <span>Name</span>
-        <input id="item-name" type="text" value={value.name} onChange={(e) => onChange({ name: e.target.value })} placeholder="z. B. Weißes T-Shirt" enterKeyHint="done" autoComplete="off" autoCapitalize="sentences" />
-      </label>
+    <div className="item-rows" ref={rows}>
       <div className="field">
         <span>Kategorie</span>
-        <div className="chips wrap">
+        <div className="chips">
           {CATEGORIES.map((c) => (
             <button key={c} type="button" className={'chip' + (value.category === c ? ' is-on' : '')} aria-pressed={value.category === c} onClick={() => onChange({ category: c })}>{c}</button>
           ))}
         </div>
       </div>
       <div className="field">
-        <span>Farbe</span>
-        <div className="chips wrap">
+        <span>Farbe: {value.color}</span>
+        <div className="chips">
           {Object.keys(COLORS).map((c) => (
             <button key={c} type="button" className={'dot' + (value.color === c ? ' is-on' : '')} style={{ ['--dot' as string]: COLORS[c] }} onClick={() => onChange({ color: c })} aria-label={c} aria-pressed={value.color === c} title={c} />
           ))}
-          <span className="muted">{value.color}</span>
         </div>
       </div>
       <div className="field">
         <span>Jahreszeit</span>
-        <div className="chips wrap">
+        <div className="chips">
           {SEASONS.map((s) => {
             const on = value.seasons.includes(s)
             return (
@@ -175,7 +178,7 @@ export function ItemFields({ value, onChange }: { value: Pick<Item, 'name' | 'ca
       </div>
       <div className="field">
         <span>Stil</span>
-        <div className="chips wrap">
+        <div className="chips">
           {STYLES.map((t) => {
             const on = value.styles.includes(t)
             return (
@@ -184,7 +187,7 @@ export function ItemFields({ value, onChange }: { value: Pick<Item, 'name' | 'ca
           })}
         </div>
       </div>
-    </>
+    </div>
   )
 }
 
@@ -200,34 +203,41 @@ function ItemSheet({ item, onClose, onDelete }: { item: Item; onClose: () => voi
   const change = (v: Partial<Item>) => setDraft({ ...draft, ...v, ...(v.category && v.category !== draft.category ? { fit: undefined } : {}) })
   return (
     <Sheet title="Teil bearbeiten" onClose={onClose}>
-      {zone ? (
-        <div className="field">
-          <span>Sitz am Avatar</span>
-          <div className="fit-row">
-            <div className="stage is-mini" id="fit-stage">
-              <img className={'avatar' + (av.photo ? ' is-photo' : '')} src={av.photo ? urlFor(av.photo) : av.url} alt="" draggable={false} />
-              <Wear item={draft} zone={zone} isDress={draft.category === 'Kleider'} wide={av.wide} photo={!!av.photo} sex={figure?.sex} />
-            </div>
-            <div className="fit-side">
+      <div className="item-edit">
+      <div className="fit-row">
+        {zone ? (
+          <div className="stage is-mini" id="fit-stage">
+            <img className={'avatar' + (av.photo ? ' is-photo' : '')} src={av.photo ? urlFor(av.photo) : av.url} alt="" draggable={false} />
+            <Wear item={draft} zone={zone} isDress={draft.category === 'Kleider'} wide={av.wide} photo={!!av.photo} sex={figure?.sex} />
+          </div>
+        ) : (
+          <div className="stage is-mini is-plain"><img src={urlFor(item.image)} alt={item.name} /></div>
+        )}
+        <div className="fit-side">
+          <label className="field">
+            <span>Name</span>
+            <input id="item-name" type="text" value={draft.name} onChange={(e) => change({ name: e.target.value })} placeholder="z. B. Weißes T-Shirt" enterKeyHint="done" autoComplete="off" autoCapitalize="sentences" />
+          </label>
+          {zone && (
+            <div className="field">
+              <span>Sitz am Avatar</span>
               <div className="pad" role="group" aria-label="Sitz dieses Teils">
                 <button className="icon-btn is-outlined" id="fit-up" onClick={() => setFit({ ...fit, dy: fit.dy - 0.01 })} aria-label="Höher"><IconUp /></button>
                 <button className="icon-btn is-outlined" id="fit-down" onClick={() => setFit({ ...fit, dy: fit.dy + 0.01 })} aria-label="Tiefer"><IconDown /></button>
                 <button className="icon-btn is-outlined" id="fit-smaller" onClick={() => setFit({ ...fit, scale: fit.scale / 1.04 })} aria-label="Kleiner"><IconMinus /></button>
                 <button className="icon-btn is-outlined" id="fit-bigger" onClick={() => setFit({ ...fit, scale: fit.scale * 1.04 })} aria-label="Größer"><IconPlus /></button>
               </div>
-              {draft.fit && <button className="link" onClick={() => setDraft({ ...draft, fit: undefined })}>Zurücksetzen</button>}
-              <p className="muted">Gilt nur für dieses Teil.</p>
+              {draft.fit && <button className="link" onClick={() => setDraft({ ...draft, fit: undefined })}>Sitz zurücksetzen</button>}
             </div>
-          </div>
+          )}
         </div>
-      ) : (
-        <div className="preview-tile small"><img src={urlFor(item.image)} alt={item.name} /></div>
-      )}
+      </div>
       <ItemFields value={draft} onChange={change} />
       <div className="actions">
         <button className="btn btn-danger" onClick={onDelete} id="delete-item">Löschen</button>
         <span className="grow" />
         <button className="btn btn-primary" id="save-edit" onClick={() => { saveItem({ ...draft, name: draft.name.trim() || item.name, sample: false }); onClose() }}>Speichern</button>
+      </div>
       </div>
     </Sheet>
   )

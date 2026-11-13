@@ -124,7 +124,42 @@ export function judge(items: Item[], k: Knowledge): Verdict | null {
 
 // ---------- Zufalls-Outfit ----------
 
-export interface RandomPrefs { mainColor: string | null; keep: Zone[] }
+/** Normal: ruhige, klassische Kombinationen. Speziell: ungewöhnliche Paare, die auf den zweiten Blick passen. */
+export type RandomMode = 'normal' | 'special'
+export interface RandomPrefs { mainColor: string | null; keep: Zone[]; mode: RandomMode }
+
+// Neutrale Paare, die lange als Fehler galten und heute bewusst getragen werden
+const ODD_NEUTRALS = new Set(['Marine+Schwarz', 'Braun+Schwarz', 'Braun+Marine', 'Braun+Grau', 'Beige+Grau'])
+/**
+ * Wie spannend ein Farbpaar ist, nach den Schemata des Farbkreises: Komplementär (gegenüber), Triade (ein Drittel
+ * weiter) und zwei eng benachbarte kräftige Farben (Rot zu Rosa, Blau zu Türkis) fallen auf und halten trotzdem zusammen.
+ * Der Bereich dazwischen (etwa 50 bis 100 Grad) hat kein Schema und wirkt meist zufällig.
+ */
+function tension(a: string, b: string): number {
+  if (a === b) return 0
+  if (NEUTRAL.has(a) && NEUTRAL.has(b)) return ODD_NEUTRALS.has([a, b].sort().join('+')) ? 0.8 : 0
+  if (NEUTRAL.has(a) || NEUTRAL.has(b)) return 0
+  const d = Math.abs(HUE[a] - HUE[b]), diff = Math.min(d, 360 - d)
+  return diff >= 150 ? 1.2 : diff >= 105 && diff <= 135 ? 0.9 : diff <= 45 ? 1 : -1
+}
+/**
+ * Bewertung für den Zufall. Normal folgt der Drei-Farben-Regel im strengen Sinn: Neutrale Farben tragen das Outfit,
+ * dazu höchstens eine kräftige Farbe, Ton in Ton oder Nachbarfarben. Speziell verlangt genau ein spannendes Paar und
+ * lässt den Rest ruhig, damit es gewollt aussieht und nicht bunt.
+ */
+function rate(items: Item[], mode: RandomMode, k: Knowledge): number {
+  const base = judge(items, k)?.score ?? 0
+  const loud = new Set(items.map((i) => i.color).filter((c) => !NEUTRAL.has(c)))
+  const colors = [...new Set(items.map((i) => i.color))]
+  let odd = 0, clash = false
+  for (let i = 0; i < colors.length; i++) for (let j = i + 1; j < colors.length; j++) {
+    const t = tension(colors[i], colors[j])
+    if (t > 0) odd = Math.max(odd, t)
+    if (t < 0) clash = true
+  }
+  if (mode === 'normal') return base + (loud.size <= 1 ? 0.5 : 0) - (odd >= 1.2 || loud.size > 2 ? 1 : 0) - (clash ? 1 : 0)
+  return base * 0.5 + (odd ? 1 + odd : -1.5) - (clash ? 1.5 : 0) - (loud.size > 2 ? 1 : 0)
+}
 export type Pools = Record<Zone, Item[]>
 
 const pick = <T,>(a: T[]): T => a[Math.floor(Math.random() * a.length)]
@@ -148,7 +183,7 @@ export function randomOutfit(pools: Pools, current: Slots, prefs: RandomPrefs, k
     const top = byId('top', slots.top)
     const worn = ZONES.filter((z) => !(z === 'bottom' && top?.category === 'Kleider')).map((z) => byId(z, slots[z])).filter((i): i is Item => !!i)
     if (prefs.mainColor && !worn.some((i) => i.color === prefs.mainColor)) continue
-    candidates.push({ slots, items: worn, score: judge(worn, k)?.score ?? 0 })
+    candidates.push({ slots, items: worn, score: rate(worn, prefs.mode, k) })
   }
   if (!candidates.length) return `Kein passendes Teil in ${prefs.mainColor} gefunden. Wähl eine andere Hauptfarbe oder einen anderen Filter.`
   candidates.sort((a, b) => b.score - a.score)

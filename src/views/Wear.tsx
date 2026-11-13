@@ -15,14 +15,15 @@ function useFitted(item: Item, sex: Sex | undefined, on: boolean) {
     fittedUrl(item, sex).then((url) => { if (!gone) setHit({ key, url }) })
     return () => { gone = true }
   }, [key, on]) // eslint-disable-line react-hooks/exhaustive-deps
-  return !on ? null : hit?.key === key ? hit.url : undefined
+  // Solange das neue Teil gerechnet wird, bleibt das vorige stehen: kein Moment ohne Kleidung
+  return !on ? null : hit ? hit.url : undefined
 }
 
 /**
  * Ein Teil auf der Bühne (Anprobe und Vorschau beim Bearbeiten): an die Figur angepasst, wo das geht, sonst flach an
  * seiner Zone. Die Feineinstellung des Sitzes gehört zum Teil selbst (item.fit).
  */
-export function Wear({ item, zone, isDress, wide, photo, sex, dir = 'next' }: { item: Item; zone: Zone; isDress: boolean; wide: number; photo: boolean; sex: Sex | undefined; dir?: 'next' | 'prev' }) {
+export function Wear({ item, zone, isDress, wide, photo, sex, dir = null }: { item: Item; zone: Zone; isDress: boolean; wide: number; photo: boolean; sex: Sex | undefined; dir?: 'next' | 'prev' | null }) {
   const kind = fitKind(item.category)
   const full = useFitted(item, sex, !photo && !!kind)
   const f = item.fit ?? NO_FIT
@@ -31,7 +32,7 @@ export function Wear({ item, zone, isDress, wide, photo, sex, dir = 'next' }: { 
   if (full && kind) {
     return (
       <div className="wear is-full" data-zone={zone} style={{ transformOrigin: `50% ${FIT_ORIGIN[kind] * 100}%`, transform: `translateY(${f.dy * 100}%) scale(${wide * f.scale}, ${f.scale})` }}>
-        <img key={item.id} className={'wear-img is-' + dir} src={full} alt={label} draggable={false} />
+        <img key={full} className={'wear-img' + (dir ? ' is-' + dir : '')} src={full} alt={label} draggable={false} />
       </div>
     )
   }
@@ -39,12 +40,12 @@ export function Wear({ item, zone, isDress, wide, photo, sex, dir = 'next' }: { 
   return (
     <div className="wear" data-zone={zone} style={{ width: p.w * 100 + '%', ...(p.anchor === 'top' ? { top: p.y * 100 + '%' } : { bottom: (1 - p.y) * 100 + '%' }) }}>
       {zone === 'shoes' && item.wearImage ? (
-        <div key={item.id} className={'wear-pair wear-img is-' + dir} role="img" aria-label={label}>
+        <div key={item.id} className={'wear-pair wear-img' + (dir ? ' is-' + dir : '')} role="img" aria-label={label}>
           <img src={urlFor(item.wearImage)} alt="" draggable={false} />
           <img src={urlFor(item.wearImage)} alt="" draggable={false} />
         </div>
       ) : (
-        <img key={item.id} className={'wear-img is-' + dir} src={urlFor(item.image)} alt={label} draggable={false} />
+        <img key={item.id} className={'wear-img' + (dir ? ' is-' + dir : '')} src={urlFor(item.image)} alt={label} draggable={false} />
       )}
     </div>
   )

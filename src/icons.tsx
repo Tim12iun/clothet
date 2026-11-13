@@ -13,6 +13,7 @@ export const IconCalendar = () => <I><rect x="3.500" y="5" width="17" height="15
 export const IconPlus = () => <I><path d="M12 5v14M5 12h14" /></I>
 export const IconClose = () => <I><path d="M6 6l12 12M18 6 6 18" /></I>
 export const IconCamera = () => <I><path d="M4 8.500A1.500 1.500 0 0 1 5.500 7H8l1.500-2.500h5L16 7h2.500A1.500 1.500 0 0 1 20 8.500v9a1.500 1.500 0 0 1-1.500 1.500h-13A1.500 1.500 0 0 1 4 17.500z" /><circle cx="12" cy="13" r="3.500" /></I>
+export const IconPaste = () => <I><rect x="5.500" y="5" width="13" height="15.500" rx="2" /><path d="M9 5V4.500A1 1 0 0 1 10 3.500h4a1 1 0 0 1 1 1V5M9 11h6M9 15h4" /></I>
 export const IconImage = () => <I><rect x="3.500" y="4.500" width="17" height="15" rx="2.500" /><circle cx="9" cy="10" r="1.500" /><path d="m4 17 5-4.500 4 3.500 3-2.500 4 3.500" /></I>
 export const IconTrash = () => <I><path d="M4.500 7h15M9.500 7V4.500h5V7M6.500 7l.8 12a1.500 1.500 0 0 0 1.500 1.500h6.400a1.500 1.500 0 0 0 1.500-1.500l.8-12" /></I>
 export const IconUp = () => <I><path d="M12 19V5M6 11l6-6 6 6" /></I>

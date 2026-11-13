@@ -86,7 +86,7 @@ function App() {
       <main className="app-main" ref={main}>
         <Home hidden={tab !== 'anprobe'} slots={slots} setSlots={setSlots} onSettings={() => setSheet('settings')} onAdd={() => setSheet('add')} toast={toast} />
         <Closet hidden={tab !== 'schrank'} onAdd={() => setSheet('add')} toast={toast} note={storageNote} />
-        <Outfits hidden={tab !== 'outfits'} slots={slots} onHome={() => go('anprobe')} onWear={(o) => { setSlots(o.slots); go('anprobe') }} toast={toast} note={storageNote} />
+        <Outfits hidden={tab !== 'outfits'} slots={slots} onHome={() => go('anprobe')} onWear={(o) => { setSlots(o.slots); go('anprobe'); toast(`„${o.name}“ ist geladen. Tausch Teile aus, das gespeicherte Outfit bleibt.`) }} toast={toast} note={storageNote} />
         {update && (
           <div className="toast" role="status">
             <span>Eine neue Version ist da.</span>

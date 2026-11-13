@@ -112,6 +112,8 @@ export function Outfits({ hidden, slots, onWear, onHome, toast, note }: Props) {
       {open && (
         <Sheet title="Outfit" onClose={close}>
           <div className="preview-tile is-full"><img src={urlFor(open.preview)} alt={open.name} /></div>
+          <button className="btn btn-primary" id="wear-outfit" onClick={() => { close(); onWear(open) }}>In der Anprobe öffnen</button>
+          <p className="muted">Dort kannst du einzelne Teile tauschen. Dieses Outfit bleibt gespeichert, wie es ist.</p>
           <label className="field">
             <span>Name</span>
             <input id="outfit-name" type="text" value={name} onChange={(e) => setName(e.target.value)} enterKeyHint="done" autoComplete="off" />
@@ -120,8 +122,6 @@ export function Outfits({ hidden, slots, onWear, onHome, toast, note }: Props) {
           <button className={'btn' + (worn[today] === open.id ? ' is-on' : '')} aria-pressed={worn[today] === open.id} onClick={() => toggleWorn(today, open.id)} id="outfit-worn-today"><IconCheck /> Heute getragen</button>
           <div className="actions">
             <button className="btn btn-danger" onClick={() => remove(open)} id="delete-outfit">Löschen</button>
-            <span className="grow" />
-            <button className="btn btn-primary" id="wear-outfit" onClick={() => { close(); onWear(open) }}>Anziehen</button>
           </div>
         </Sheet>
       )}

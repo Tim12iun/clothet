@@ -50,7 +50,7 @@ Regeln:
 - Tannengrün ist die einzige Schmuckfarbe und markiert nur die Hauptaktion und den aktiven Zustand.
 - Rot bedeutet ausschließlich Löschen oder Fehler.
 - Der Seitenhintergrund ist reines Weiß. Kleidung und Avatar liegen auf `--c-tile`.
-- Bewertungen von Outfits nutzen Worte plus Farbe: „Stimmig“ in Akzentgrün, „Passt“ neutral, „Gewagt“ in Rot.
+- Die Anprobe bewertet Outfits nicht sichtbar („Stimmig“ gibt es nicht mehr). Farbregeln wirken nur im Zufall.
 
 Zusätzlich gibt es `--c-guide` (Tannengrün, in beiden Farbmodi gleich) für Hilfslinien beim Ausrichten am Avatar: das Oval um das Gesicht.
 
@@ -93,6 +93,10 @@ Klassen stehen in `src/styles/app.css`. Bestehende Komponenten wiederverwenden, 
 | Leerer Zustand | `.empty` | ein Satz, was hier erscheint, plus die eine Aktion |
 | Hinweis | `.note` | kurze Rückmeldung in einem Satz |
 | Bühne | `.stage` | Avatar-Fläche 3:4 ohne eigene Kachel, steht auf `--c-stage` und füllt die freie Höhe |
+| Art des Zufalls | `.roll-mode` | kleiner Umschalter oben links auf der Bühne: „Normal“ (klassische Kombinationen) oder „Speziell“ (ungewöhnliche, die auf den zweiten Blick passen). Gilt für den Zufallsknopf |
+| Teil bearbeiten | `.item-edit` | alles auf einer Seite: oben Vorschau am Avatar, Name und Sitz, darunter je Gruppe (Kategorie, Farbe, Jahreszeit, Stil) eine Zeile zum seitlichen Wischen |
+| Wege zum Bild | `.add-ways` | drei gleich große Knöpfe: Kamera, Aus Galerie, Einfügen (übernimmt ein kopiertes, schon freigestelltes Motiv) |
+| Markierrahmen | `.mark-box` | Rahmen mit vier runden Griffen an den Ecken. Ecken ziehen, Rahmen verschieben oder daneben neu aufziehen |
 | Schublade | `.drawer` | weiße Fläche unter der Bühne mit Griff, Umschalter und Auswahl-Raster. Zwei Größen (klein ist Standard), Griff antippen oder wischen. Sie gibt nach, bevor die Bühne zu klein wird, ragt nie über die untere Leiste und ist nach einem Bereichswechsel wieder klein |
 | Auswahl-Kachel | `.pick-tile` | ein Teil im Raster der Schublade, angezogen mit grünem Rahmen und Haken (`.check`) |
 | Zufallsknopf | `.fab` | die eine schwebende Hauptaktion der Anprobe, rechts unten auf der Bühne |
@@ -193,3 +197,7 @@ Grundlage ist Entwurf 4A „Klar“ mit dem Zufallsknopf aus 4C.
 4. Hell und dunkel geprüft, bei 390 px Breite ohne Querscrollen?
 5. Texte in Du-Form, Buttons als Verben, feste Begriffe eingehalten?
 6. Alles Antippbare mindestens 48 px, mit sichtbarem Fokus?
+
+## Bewegung an der Figur
+
+Ein Teil wechselt ohne Bewegung, die Puppe steht nie kurz ohne Kleidung da. Nur beim Wischen an der Figur gleitet das gewischte Teil kurz herein, alle anderen Teile bleiben stehen.

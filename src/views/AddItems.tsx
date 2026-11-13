@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
-import { IconCamera, IconClose, IconImage } from '../icons'
+import { IconCamera, IconClose, IconImage, IconPaste } from '../icons'
 import { GUIDES } from '../lib/guides'
-import { coverage, cutArea, detectColors, guessCategory, loadPhoto, removeBackground, toBlob, trim, type Area } from '../lib/image'
+import { coverage, cutArea, detectColors, guessCategory, isCutOut, loadPhoto, removeBackground, toBlob, trim, type Area } from '../lib/image'
 import type { Toast } from '../main'
 import { addItems } from '../store'
 import { uid, type Category, type Item } from '../types'
@@ -34,18 +34,35 @@ export function AddItems({ onClose, toast }: { onClose: () => void; toast: Toast
   const [progress, setProgress] = useState('')
   const [failed, setFailed] = useState(0)
   const [marking, setMarking] = useState<string | null>(null)
+  const [pasteNote, setPasteNote] = useState('')
   const [camera, setCamera] = useState<'new' | string | null>(null) // 'new': neues Teil, sonst Zeile, deren Schuh von vorne aufgenommen wird
   const native = useRef<HTMLInputElement>(null)
 
   function addPhoto(photo: HTMLCanvasElement, kind?: Category) {
-    const cut = usable(removeBackground(photo, 45), photo)
+    // Schon freigestellte Bilder (durchsichtiger Grund, etwa ein in Fotos kopiertes Motiv) bleiben, wie sie sind
+    const cut = isCutOut(photo) ? trim(photo) : usable(removeBackground(photo, 45), photo)
     const base = cut ?? photo
     const row: Row = { id: uid(), photo, cut, area: null, url: base.toDataURL('image/png'), category: kind ?? (cut ? guessCategory(cut) : 'Oberteile'), ...detectColors(base), more: false, picked: !!kind, wear: null }
     setRows((all) => [...all, row])
     return row
   }
-  const front = (id: string, photo: HTMLCanvasElement) => patch(id, { wear: usable(removeBackground(photo, 45), photo) ?? photo })
-  async function add(files: FileList | null, target: 'new' | string = 'new') {
+  const front = (id: string, photo: HTMLCanvasElement) => patch(id, { wear: isCutOut(photo) ? trim(photo) : usable(removeBackground(photo, 45), photo) ?? photo })
+  /** Übernimmt ein kopiertes Bild aus der Zwischenablage, zum Beispiel ein in Fotos freigestelltes Motiv. */
+  async function paste() {
+    setPasteNote('')
+    try {
+      const found: Blob[] = []
+      for (const entry of await navigator.clipboard.read()) {
+        const type = entry.types.find((t) => t === 'image/png') ?? entry.types.find((t) => t.startsWith('image/'))
+        if (type) found.push(await entry.getType(type))
+      }
+      if (found.length) return add(found)
+      setPasteNote('In der Zwischenablage liegt kein Bild. Halt in Fotos das Teil gedrückt, wähl „Kopieren“ und tipp dann hier auf „Einfügen“.')
+    } catch {
+      setPasteNote('Der Browser hat das Einfügen nicht erlaubt. Tipp noch einmal auf „Einfügen“ und bestätige die Nachfrage.')
+    }
+  }
+  async function add(files: FileList | Blob[] | null, target: 'new' | string = 'new') {
     if (!files?.length) return
     const list = [...files].slice(0, target === 'new' ? MAX - rows.length : 1)
     setBusy('load')
@@ -69,7 +86,7 @@ export function AddItems({ onClose, toast }: { onClose: () => void; toast: Toast
   function mark(r: Row, area: Area) {
     const part = cutArea(r.photo, area)
     // Ließ sich im Rahmen nichts trennen, bleibt der Ausschnitt selbst: Alles außerhalb ist trotzdem weg
-    const cut = usable(part, part) ?? part
+    const cut = isCutOut(part) ? trim(part) : part
     patch(r.id, { cut, area, url: cut.toDataURL('image/png'), ...detectColors(cut), ...(r.picked ? {} : { category: guessCategory(cut) }) })
     setMarking(null)
   }
@@ -116,7 +133,7 @@ export function AddItems({ onClose, toast }: { onClose: () => void; toast: Toast
   return (
     <Sheet title="Kleidung hinzufügen" onClose={onClose}>
       {rows.length === 0 ? (
-        <p className="muted">Fotografier ein Teil mit Umrisslinie oder wähl Bilder aus deiner Galerie, auch mehrere auf einmal. Clothet schneidet es aus und erkennt Farbe und Art. Du korrigierst nur, was nicht stimmt.</p>
+        <p className="muted">Fotografier ein Teil mit Umrisslinie oder wähl Bilder aus deiner Galerie, auch mehrere auf einmal. Clothet schneidet es aus und erkennt Farbe und Art. Am saubersten wird es so: In Fotos das Teil gedrückt halten, „Kopieren“ wählen und hier einfügen.</p>
       ) : (
         <>
           <p className="muted">Stimmt die Art? Sonst antippen. Ist ein Teil nicht sauber ausgeschnitten, tipp auf „Zuschnitt“ unter dem Bild.</p>
@@ -144,6 +161,7 @@ export function AddItems({ onClose, toast }: { onClose: () => void; toast: Toast
       )}
       {progress && <p className="muted" role="status">{progress}</p>}
       {failed > 0 && <p className="note is-danger" role="alert">{failed === 1 ? '1 Bild ließ sich nicht öffnen.' : `${failed} Bilder ließen sich nicht öffnen.`} Versuch es mit JPG oder PNG.</p>}
+      {pasteNote && <p className="note" role="status">{pasteNote}</p>}
       {full && <p className="note">Mehr als {MAX} Bilder auf einmal gehen nicht. Speicher diese zuerst.</p>}
       <div className={'add-ways' + (rows.length ? ' is-small' : '')}>
         <button className={'btn' + (rows.length ? '' : ' btn-primary')} onClick={() => setCamera('new')} disabled={!!busy || full} id="add-camera"><IconCamera /> Kamera</button>
@@ -151,6 +169,7 @@ export function AddItems({ onClose, toast }: { onClose: () => void; toast: Toast
           <IconImage /> Aus Galerie
           <input id="import-files" type="file" accept="image/*" multiple hidden disabled={!!busy || full} onChange={(e) => { add(e.target.files); e.target.value = '' }} />
         </label>
+        <button className="btn" onClick={paste} disabled={!!busy || full} id="add-paste"><IconPaste /> Einfügen</button>
         <input ref={native} type="file" accept="image/*" capture="environment" hidden onChange={(e) => { add(e.target.files, target.current); e.target.value = '' }} />
       </div>
       {rows.length > 0 && <button className={'btn btn-primary' + (busy === 'save' ? ' is-busy' : '')} onClick={save} disabled={busy === 'load'} id="import-save">{rows.length === 1 ? '1 Teil speichern' : `${rows.length} Teile speichern`}</button>}

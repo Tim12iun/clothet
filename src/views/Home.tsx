@@ -26,17 +26,20 @@ export function Home({ hidden, slots, setSlots, onSettings, onAdd, toast }: Prop
   const { items, body, figure, avatarMode, knowledge, outfits, worn: wornDays } = useStore()
   const av = useMemo(() => avatarOf(body, figure, avatarMode), [body, figure, avatarMode])
   const [filter, setFilter] = useState<Filter>({})
-  const [prefs, setPrefs] = useState<RandomPrefs>({ mainColor: null, keep: [] })
+  const [prefs, setPrefs] = useState<RandomPrefs>({ mainColor: null, keep: [], mode: 'normal' })
   const [prefsOpen, setPrefsOpen] = useState(false)
   const [zone, setZone] = useState<Zone>('top')
   const [open, setOpen] = useState(false)
   const grip = useRef<number | null>(null), swiped = useRef(false)
   // Die große Schublade gilt nur für den Moment: Wer den Bereich verlässt, findet sie danach wieder klein vor
   useEffect(() => { if (hidden) setOpen(false) }, [hidden])
-  const [dir, setDir] = useState<'next' | 'prev'>('next')
+  // Nur beim Wischen an der Figur gleitet das gewischte Teil herein, alles andere wechselt und steht still
+  const [slide, setSlide] = useState<{ zone: Zone; dir: 'next' | 'prev' } | null>(null)
   const swipe = useRef<{ x: number } | null>(null)
   const [busy, setBusy] = useState<'save' | 'worn' | 'seed' | null>(null)
 
+  // Zonen, die mit Absicht leer sind: ein zweiter Tipp auf das angezogene Teil zieht es wieder aus
+  const [bare, setBare] = useState<Zone[]>([])
   const pools = useMemo(() => {
     const ok = (i: Item) => (!filter.season || i.seasons.includes(filter.season)) && (!filter.style || i.styles.includes(filter.style))
     return Object.fromEntries(ZONES.map((z) => [z, items.filter((i) => ZONE_CATEGORIES[z].includes(i.category) && ok(i))])) as Pools
@@ -45,18 +48,19 @@ export function Home({ hidden, slots, setSlots, onSettings, onAdd, toast }: Prop
   // Was wirklich getragen wird: die Auswahl, sofern sie zum Filter passt, sonst das erste passende Teil.
   const worn = useMemo(() => {
     const w = {} as Record<Zone, Item | null>
-    for (const z of ZONES) w[z] = pools[z].find((i) => i.id === slots[z]) ?? (z === 'jacket' ? null : pools[z][0] ?? null)
+    for (const z of ZONES) w[z] = pools[z].find((i) => i.id === slots[z]) ?? (z === 'jacket' || bare.includes(z) ? null : pools[z][0] ?? null)
     return w
-  }, [pools, slots])
+  }, [pools, slots, bare])
   const isDress = worn.top?.category === 'Kleider'
   const sex = figure?.sex
   const wornList = ZONES.filter((z) => !(z === 'bottom' && isDress)).map((z) => worn[z]).filter((i): i is Item => !!i)
-  const verdict = judge(wornList, knowledge)
   const wornSlots = Object.fromEntries(ZONES.map((z) => [z, worn[z]?.id ?? null])) as Slots
 
   // Auswahl mit dem abgleichen, was zu sehen ist (z. B. nach einem Filterwechsel)
   useEffect(() => {
     if (ZONES.some((z) => wornSlots[z] !== slots[z])) setSlots(wornSlots)
+    // Kommt von anderswo wieder ein Teil in die Zone (Zufall, Wischen, geladenes Outfit), gilt sie nicht mehr als leer
+    if (bare.some((z) => slots[z])) setBare(bare.filter((z) => !slots[z]))
   })
 
   function step(z: Zone, d: 1 | -1) {
@@ -64,18 +68,20 @@ export function Home({ hidden, slots, setSlots, onSettings, onAdd, toast }: Prop
     const ids: (string | null)[] = z === 'jacket' ? [null, ...pools[z].map((i) => i.id)] : pools[z].map((i) => i.id)
     if (ids.length < 2) return
     const at = ids.indexOf(wornSlots[z])
-    setDir(d === 1 ? 'next' : 'prev')
+    setSlide({ zone: z, dir: d === 1 ? 'next' : 'prev' })
     setSlots({ ...wornSlots, [z]: ids[(at + d + ids.length) % ids.length] })
   }
   function wear(z: Zone, id: string | null) {
-    setDir('next')
-    setSlots({ ...wornSlots, [z]: id })
+    setSlide(null)
+    const off = id !== null && wornSlots[z] === id
+    setBare((b) => (off ? [...b.filter((x) => x !== z), z] : b.filter((x) => x !== z)))
+    setSlots({ ...wornSlots, [z]: off ? null : id })
   }
 
   function roll() {
     const result = randomOutfit(pools, wornSlots, prefs, knowledge)
     if (typeof result === 'string') return toast(result)
-    setDir('next')
+    setSlide(null)
     setSlots(result)
   }
 
@@ -140,7 +146,7 @@ export function Home({ hidden, slots, setSlots, onSettings, onAdd, toast }: Prop
           {DRAW_ORDER.map((z) => {
             const item = worn[z]
             if (!item || (z === 'bottom' && isDress)) return null
-            return <Wear key={z} item={item} zone={z} isDress={isDress} wide={av.wide} photo={!!av.photo} sex={sex} dir={dir} />
+            return <Wear key={z} item={item} zone={z} isDress={isDress} wide={av.wide} photo={!!av.photo} sex={sex} dir={slide?.zone === z ? slide.dir : null} />
           })}
           {ZONES.map((z) => (
             <div
@@ -169,9 +175,10 @@ export function Home({ hidden, slots, setSlots, onSettings, onAdd, toast }: Prop
           </div>
         ) : (
           <>
-            {verdict && (
-              <p className={'match is-' + verdict.level} aria-live="polite"><strong>{verdict.label}</strong><span>{verdict.reason}</span></p>
-            )}
+            <div className="segment roll-mode" role="group" aria-label="Art des Zufalls">
+              <button className={prefs.mode === 'normal' ? 'is-on' : ''} aria-pressed={prefs.mode === 'normal'} onClick={() => setPrefs({ ...prefs, mode: 'normal' })} title="Klassische Kombinationen">Normal</button>
+              <button className={prefs.mode === 'special' ? 'is-on' : ''} aria-pressed={prefs.mode === 'special'} onClick={() => setPrefs({ ...prefs, mode: 'special' })} title="Ungewöhnliche Kombinationen, die auf den zweiten Blick passen">Speziell</button>
+            </div>
             <button className="fab" onClick={roll} id="roll" aria-label="Zufall: Outfit würfeln">
               <IconDice /> Zufall
               {prefs.mainColor && <span className="dot is-small" style={{ ['--dot' as string]: COLORS[prefs.mainColor] }} title={'Hauptfarbe ' + prefs.mainColor} />}
@@ -213,7 +220,7 @@ export function Home({ hidden, slots, setSlots, onSettings, onAdd, toast }: Prop
                   {list.map((i) => {
                     const on = wornSlots[zone] === i.id
                     return (
-                      <button key={i.id} className={'pick-tile' + (on ? ' is-on' : '')} aria-pressed={on} aria-label={i.name + (on ? ', angezogen' : ' anziehen')} title={i.name} onClick={() => wear(zone, i.id)}>
+                      <button key={i.id} className={'pick-tile' + (on ? ' is-on' : '')} aria-pressed={on} aria-label={i.name + (on ? ', angezogen, ausziehen' : ' anziehen')} title={i.name} onClick={() => wear(zone, i.id)}>
                         <img src={urlFor(i.image)} alt="" draggable={false} />
                         {on && <span className="check"><IconCheck /></span>}
                       </button>
@@ -267,7 +274,7 @@ export function Home({ hidden, slots, setSlots, onSettings, onAdd, toast }: Prop
             </div>
           </div>
           <div className="actions">
-            <button className="btn" onClick={() => { setFilter({}); setPrefs({ mainColor: null, keep: [] }) }}>Zurücksetzen</button>
+            <button className="btn" onClick={() => { setFilter({}); setPrefs({ ...prefs, mainColor: null, keep: [] }) }}>Zurücksetzen</button>
             <span className="grow" />
             <button className="btn btn-primary" id="roll-prefs" onClick={() => { setPrefsOpen(false); roll() }}><IconDice /> Würfeln</button>
           </div>

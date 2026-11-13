@@ -203,7 +203,8 @@ test('Sitz anpassen: gilt je Teil, Hose und Oberteil bleiben getrennt', async ({
   await page.locator('#save-edit').click()
   await go(page, 'Anprobe')
   await page.locator('.segment button', { hasText: 'Oberteil' }).click()
-  await page.locator('.pick-tile[title="Weißes T-Shirt"]').click()
+  const tee = page.locator('.pick-tile[title="Weißes T-Shirt"]')
+  if ((await tee.getAttribute('aria-pressed')) !== 'true') await tee.click() // ein zweiter Tipp würde es wieder ausziehen
   await expect.poll(() => shift('top')).not.toBe(top0)
   expect(await shift('bottom')).toBe(bottom0)
   expect(errors).toEqual([])
@@ -410,10 +411,18 @@ test('Hinzufügen: mehrere Bilder auf einmal, Art korrigieren, Teil markieren', 
   const before = await page.locator('#import-list .import-thumb img').first().getAttribute('src')
   await page.locator('#import-list .import-thumb').first().click()
   const box = (await page.locator('#mark-photo').boundingBox())!
-  await page.mouse.move(box.x + box.width * 0.3, box.y + box.height * 0.3)
-  await page.mouse.down()
-  await page.mouse.move(box.x + box.width * 0.7, box.y + box.height * 0.7, { steps: 4 })
-  await page.mouse.up()
+  // Der Rahmen steht schon da: zwei Ecken nach innen ziehen statt neu zeichnen
+  const edge = async () => (await page.locator('.mark-box').boundingBox())!
+  const first = await edge()
+  for (const [fx, fy, tx, ty] of [[0.1, 0.1, 0.3, 0.3], [0.9, 0.9, 0.7, 0.7]]) {
+    await page.mouse.move(box.x + box.width * fx, box.y + box.height * fy)
+    await page.mouse.down()
+    await page.mouse.move(box.x + box.width * tx, box.y + box.height * ty, { steps: 4 })
+    await page.mouse.up()
+  }
+  const dragged = await edge()
+  expect(dragged.width).toBeLessThan(first.width * 0.7)
+  expect(Math.abs(dragged.x - (box.x + box.width * 0.3))).toBeLessThan(6)
   await expectAccessible(page, 'Teil markieren')
   await page.locator('#mark-done').click()
   await expect(page.locator('#mark-photo')).toHaveCount(0)
@@ -459,5 +468,115 @@ test('Schublade: bleibt in ihrem Bereich, auch groß, und lässt sich am Griff a
   await expect(handle).toHaveAttribute('aria-expanded', 'false')
   await page.waitForTimeout(400)
   await inside()
+  expect(errors).toEqual([])
+})
+
+test('Freistellen: helles Teil auf hellem Grund bleibt ganz, freigestellte Bilder bleiben unverändert, Einfügen übernimmt Kopiertes', async ({ page }) => {
+  const errors = await start(page)
+  // Bilder im Browser malen: rosa Pullover-Form auf hellgrauem Grund mit Schatten, und dieselbe Form schon freigestellt
+  const make = (clear: boolean) => page.evaluate(async (clear) => {
+    const c = document.createElement('canvas')
+    c.width = 600; c.height = 700
+    const g = c.getContext('2d')!
+    if (!clear) { g.fillStyle = '#f3f3f5'; g.fillRect(0, 0, 600, 700) }
+    const shape = () => { g.beginPath(); g.moveTo(220, 150); g.lineTo(380, 150); g.lineTo(520, 230); g.lineTo(540, 560); g.lineTo(470, 570); g.lineTo(440, 300); g.lineTo(440, 520); g.lineTo(160, 520); g.lineTo(160, 300); g.lineTo(130, 570); g.lineTo(60, 560); g.lineTo(80, 230); g.closePath() }
+    if (!clear) { g.save(); g.translate(8, 10); g.filter = 'blur(8px)'; g.fillStyle = '#c9c9cc'; shape(); g.fill(); g.restore() }
+    g.fillStyle = '#f6b3d2'; shape(); g.fill()
+    const blob = await new Promise<Blob>((r) => c.toBlob((b) => r(b!), 'image/png'))
+    return [...new Uint8Array(await blob.arrayBuffer())]
+  }, clear)
+  const file = async (name: string, clear: boolean) => ({ name, mimeType: 'image/png', buffer: Buffer.from(await make(clear)) })
+  await go(page, 'Schrank')
+  await page.locator('#add-item').click()
+  await page.locator('#import-files').setInputFiles([await file('rosa.png', false), await file('frei.png', true)])
+  await expect(page.locator('#import-list .import-row')).toHaveCount(2)
+  // Wie viel vom Vorschaubild ist Stoff, und ist er rosa geblieben?
+  const read = (n: number) => page.locator('#import-list .import-thumb img').nth(n).evaluate(async (el) => {
+    const img = el as HTMLImageElement
+    await img.decode()
+    const c = document.createElement('canvas')
+    c.width = img.naturalWidth; c.height = img.naturalHeight
+    const g = c.getContext('2d')!
+    g.drawImage(img, 0, 0)
+    const d = g.getImageData(0, 0, c.width, c.height).data
+    let on = 0, pink = 0
+    for (let i = 0; i < d.length; i += 4) if (d[i + 3] > 128) { on++; if (d[i] > 225 && d[i + 1] < 205 && d[i + 2] > 180) pink++ }
+    return { share: on / (d.length / 4), pink: pink / Math.max(1, on), ratio: c.width / c.height }
+  })
+  for (const n of [0, 1]) {
+    const r = await read(n)
+    expect(r.share).toBeGreaterThan(0.4); expect(r.share).toBeLessThan(0.9)
+    expect(r.pink).toBeGreaterThan(0.9) // kein Schatten, kein Grund
+    expect(r.ratio).toBeGreaterThan(1); expect(r.ratio).toBeLessThan(1.3)
+  }
+  await expect(page.locator('#import-list .import-row .chip.is-on')).toHaveText(['Oberteil', 'Oberteil'])
+  // Einfügen ohne Bild in der Zwischenablage erklärt, was zu tun ist
+  await page.evaluate(() => { Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { read: async () => [] } }) })
+  await page.locator('#add-paste').click()
+  await expect(page.locator('.sheet .note')).toContainText('kein Bild')
+  // Mit einem kopierten, freigestellten Bild kommt eine dritte Zeile dazu
+  const bytes = await make(true)
+  await page.evaluate((bytes) => {
+    const blob = new Blob([new Uint8Array(bytes)], { type: 'image/png' })
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { read: async () => [{ types: ['image/png'], getType: async () => blob }] } })
+  }, bytes)
+  await page.locator('#add-paste').click()
+  await expect(page.locator('#import-list .import-row')).toHaveCount(3)
+  expect((await read(2)).pink).toBeGreaterThan(0.9)
+  await expectNoOverflow(page, 'Hinzufügen mit drei Wegen')
+  await expectAccessible(page, 'Hinzufügen mit drei Wegen')
+  expect(errors).toEqual([])
+})
+
+test('Anprobe: ein zweiter Tipp zieht ein Teil wieder aus, ein gespeichertes Outfit lässt sich laden und abwandeln', async ({ page }) => {
+  const errors = await withSamples(page)
+  await page.locator('.segment button', { hasText: 'Hose' }).click()
+  const on = page.locator('.pick-tile.is-on')
+  await expect(on).toHaveCount(1)
+  await expect(page.locator('.home .wear[data-zone="bottom"]')).toHaveCount(1)
+  await on.click()
+  await expect(page.locator('.pick-tile.is-on')).toHaveCount(0)
+  await expect(page.locator('.home .wear[data-zone="bottom"]')).toHaveCount(0)
+  await page.locator('.pick-tile:has(img)').first().click()
+  await expect(page.locator('.home .wear[data-zone="bottom"]')).toHaveCount(1)
+  // Outfit speichern, in der Anprobe öffnen und ein Teil tauschen: Das gespeicherte bleibt eins
+  await page.locator('#save-outfit').click()
+  await expect(page.locator('.toast')).toContainText('Outfit gespeichert')
+  await go(page, 'Outfits')
+  await page.locator('.view:not([hidden]) .tile').first().click()
+  await page.locator('#wear-outfit').click()
+  await expect(page.locator('.toast')).toContainText('ist geladen')
+  await expect(page.locator('.home')).toBeVisible()
+  await page.locator('.segment button', { hasText: 'Oberteil' }).click()
+  await page.locator('.pick-tile:has(img):not(.is-on)').first().click()
+  await go(page, 'Outfits')
+  await expect(page.locator('.view:not([hidden]) .grid .tile')).toHaveCount(1)
+  expect(errors).toEqual([])
+})
+
+test('Zufall: Normal bleibt ruhig, Speziell bringt ein spannendes Farbpaar', async ({ page }) => {
+  const errors = await withSamples(page)
+  await expect(page.locator('.match')).toHaveCount(0) // keine Bewertung mehr auf der Bühne
+  const NEUTRAL = ['Schwarz', 'Weiß', 'Grau', 'Beige', 'Marine', 'Braun']
+  // Farben der getragenen Teile aus den Namen der angezogenen Kacheln je Zone
+  const colors = async () => {
+    const all: string[] = []
+    for (const z of ['Jacke', 'Oberteil', 'Hose', 'Schuhe']) {
+      await page.locator('.drawer .segment button', { hasText: z }).click()
+      const on = page.locator('.pick-tile.is-on[title]')
+      if (await on.count()) all.push((await on.getAttribute('title'))!)
+    }
+    return all
+  }
+  await expect(page.locator('.roll-mode button', { hasText: 'Normal' })).toHaveAttribute('aria-pressed', 'true')
+  await page.locator('#roll').click()
+  expect((await colors()).length).toBeGreaterThan(1)
+  await page.locator('.roll-mode button', { hasText: 'Speziell' }).click()
+  await expect(page.locator('.roll-mode button', { hasText: 'Speziell' })).toHaveAttribute('aria-pressed', 'true')
+  await page.locator('#roll').click()
+  expect((await colors()).length).toBeGreaterThan(1)
+  expect(NEUTRAL.length).toBe(6)
+  await expectNoOverflow(page, 'Zufall mit Art')
+  await expectAccessible(page, 'Zufall mit Art')
   expect(errors).toEqual([])
 })

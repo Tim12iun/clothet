@@ -274,10 +274,8 @@ button, label.btn, .nav, .home-head, .view-head, .segment, .chips, .sheet-head, 
 .avatar { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
 .avatar.is-photo { object-fit: cover; }
 .wear { position: absolute; left: 50%; transform: translateX(-50%); pointer-events: none; }
-.wear-img { width: 100%; max-width: none; animation: wear-next var(--t-base) var(--ease); }
-.wear-img.is-prev { animation-name: wear-prev; }
-@keyframes wear-next { from { transform: translateX(28%); opacity: 0; } }
-@keyframes wear-prev { from { transform: translateX(-28%); opacity: 0; } }
+/* Ein Teil wechselt ohne Bewegung: Die Puppe steht nie kurz ohne da. */
+.wear-img { width: 100%; max-width: none; }
 .strip { position: absolute; left: 0; right: 0; touch-action: pan-y; cursor: ew-resize; }
 .stage-empty {
   position: absolute; z-index: 2; left: 50%; top: 50%; transform: translate(-50%, -50%);
@@ -286,14 +284,9 @@ button, label.btn, .nav, .home-head, .view-head, .segment, .chips, .sheet-head, 
   background: var(--c-surface); border-radius: var(--r-lg); box-shadow: var(--sh-2);
   text-align: center; color: var(--c-muted);
 }
-.match {
-  position: absolute; z-index: 2; top: var(--s-2); left: max(var(--gutter), var(--sl)); max-width: 132px;
-  padding: var(--s-2) var(--s-3); background: var(--c-surface); border-radius: var(--r-sm); box-shadow: var(--sh-1);
-  font-size: var(--fs-xs); line-height: 1.35; color: var(--c-muted);
-}
-.match strong { display: block; font-size: var(--fs-sm); color: var(--c-ink); }
-.match.is-good strong { color: var(--c-accent); }
-.match.is-bold strong { color: var(--c-danger); }
+/* Art des Zufalls: steht sichtbar auf der Bühne, oben links, und gilt für den Zufallsknopf */
+.roll-mode { position: absolute; z-index: 2; top: var(--s-2); left: max(var(--gutter), var(--sl)); background: var(--c-surface); box-shadow: var(--sh-1); }
+.roll-mode button { padding: 0 var(--s-3); font-size: var(--fs-xs); }
 .fab {
   position: absolute; z-index: 3; right: max(var(--gutter), var(--safe-right)); bottom: var(--s-4);
   display: inline-flex; align-items: center; gap: var(--s-3); min-height: 56px; padding: 0 20px 0 16px;
@@ -352,8 +345,7 @@ button, label.btn, .nav, .home-head, .view-head, .segment, .chips, .sheet-head, 
   .home-head h1, .home-head .btn.is-compact span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .home-head .btn.is-compact { width: var(--tap); padding: 0; }
   .stage-wrap { grid-column: 1; min-height: 0; }
-  .match { max-width: 96px; padding: var(--s-1) var(--s-2); }
-  .match strong + span { display: none; }
+  .roll-mode { top: auto; bottom: var(--s-2); left: var(--s-2); }
   .fab { min-height: var(--tap); padding: 0 var(--s-3); gap: var(--s-2); right: var(--s-2); bottom: var(--s-2); }
   .drawer, .home.is-open .drawer { grid-column: 2; grid-row: 1 / span 2; height: 100%; max-height: none; border-radius: var(--r-lg) 0 0 var(--r-lg); padding-right: var(--safe-right); }
   .drawer-handle { display: none; }
@@ -559,13 +551,37 @@ noscript { display: block; padding: var(--s-6) var(--s-4); text-align: center; }
 .import-kinds { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-2); min-width: 0; }
 .import-ask { flex: 1 1 100%; }
 .import-kinds { flex-basis: 0; }
-.add-ways { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-3); }
+.add-ways { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-2); }
+.add-ways .btn { padding-inline: var(--s-2); }
 .add-ways:not(.is-small) .btn { min-height: 96px; flex-direction: column; font-size: var(--fs-md, inherit); }
 .add-ways:not(.is-small) .btn svg { width: 28px; height: 28px; }
 .import-kinds .chip { padding: 0 var(--s-2); }
 .import-thumb img { width: 64px; height: 72px; object-fit: contain; }
 .mark-frame { flex: 1 1 0; min-height: 0; display: grid; place-items: center; padding: var(--s-3); container-type: size; }
-.mark-photo { position: relative; width: min(100cqw, 100cqh * var(--ar)); aspect-ratio: var(--ar); overflow: hidden; touch-action: none; user-select: none; cursor: crosshair; }
+.mark-photo { position: relative; width: min(100cqw, 100cqh * var(--ar)); aspect-ratio: var(--ar); touch-action: none; user-select: none; cursor: crosshair; }
 .mark-photo img { display: block; width: 100%; height: 100%; pointer-events: none; }
 .mark-box { position: absolute; border: 2px dashed var(--c-camera-ink); border-radius: var(--r-sm); box-shadow: 0 0 0 200vmax color-mix(in srgb, var(--c-camera) 60%, transparent); pointer-events: none; }
 .grid .tile { border-radius: var(--r-md) var(--r-md) 0 0; }
+/* Ecken des Markierrahmens: sichtbare Griffe, gegriffen wird großzügig um sie herum */
+.mark-box i { position: absolute; width: 22px; height: 22px; margin: -11px; border-radius: var(--r-pill); background: var(--c-camera-ink); box-shadow: var(--sh-1); }
+.mark-box i:nth-child(1) { left: 0; top: 0; }
+.mark-box i:nth-child(2) { left: 100%; top: 0; }
+.mark-box i:nth-child(3) { left: 0; top: 100%; }
+.mark-box i:nth-child(4) { left: 100%; top: 100%; }
+/* Teil bearbeiten: alles auf einer Seite. Oben Vorschau, Name und Sitz, darunter je Gruppe eine Zeile zum seitlichen Wischen */
+.item-edit, .item-rows { display: flex; flex-direction: column; gap: var(--s-3); min-width: 0; }
+.item-edit .fit-row { gap: var(--s-3); align-items: stretch; }
+.item-edit .stage.is-mini { width: 120px; height: 160px; }
+.stage.is-mini.is-plain img { position: absolute; inset: 8%; width: 84%; height: 84%; object-fit: contain; }
+.item-edit .fit-side { flex: 1 1 0; gap: var(--s-3); align-items: stretch; }
+.item-edit .fit-side .pad { grid-template-columns: repeat(4, var(--tap)); gap: var(--s-1); }
+.item-edit .field { gap: var(--s-1); }
+.item-edit .chips > * { flex: none; }
+/* Wischen an der Figur: Nur das gewischte Teil gleitet kurz herein */
+.wear-img.is-next { animation: wear-next var(--t-fast, 160ms) var(--ease); }
+.wear-img.is-prev { animation: wear-prev var(--t-fast, 160ms) var(--ease); }
+@keyframes wear-next { from { transform: translateX(14%); opacity: 0.4; } }
+@keyframes wear-prev { from { transform: translateX(-14%); opacity: 0.4; } }
+@media (max-width: 359px) {
+  .item-edit .fit-side .pad { grid-template-columns: repeat(2, var(--tap)); }
+}
