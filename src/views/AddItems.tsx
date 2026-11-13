@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { IconCamera, IconClose, IconImage, IconPaste } from '../icons'
+import { IconCamera, IconClose, IconImage, IconPaste, IconPlus } from '../icons'
 import { GUIDES } from '../lib/guides'
 import { coverage, cutArea, detectColors, guessCategory, isCutOut, loadPhoto, removeBackground, toBlob, trim, type Area } from '../lib/image'
 import type { Toast } from '../main'
@@ -37,6 +37,7 @@ export function AddItems({ onClose, toast }: { onClose: () => void; toast: Toast
   const [pasteNote, setPasteNote] = useState('')
   const [camera, setCamera] = useState<'new' | string | null>(null) // 'new': neues Teil, sonst Zeile, deren Schuh von vorne aufgenommen wird
   const native = useRef<HTMLInputElement>(null)
+  const gallery = useRef<HTMLInputElement>(null) // ein Bild aus der Galerie für den Schuh von vorne
 
   function addPhoto(photo: HTMLCanvasElement, kind?: Category) {
     // Schon freigestellte Bilder (durchsichtiger Grund, etwa ein in Fotos kopiertes Motiv) bleiben, wie sie sind
@@ -48,7 +49,7 @@ export function AddItems({ onClose, toast }: { onClose: () => void; toast: Toast
   }
   const front = (id: string, photo: HTMLCanvasElement) => patch(id, { wear: isCutOut(photo) ? trim(photo) : usable(removeBackground(photo, 45), photo) ?? photo })
   /** Übernimmt ein kopiertes Bild aus der Zwischenablage, zum Beispiel ein in Fotos freigestelltes Motiv. */
-  async function paste() {
+  async function paste(target: 'new' | string = 'new') {
     setPasteNote('')
     try {
       const found: Blob[] = []
@@ -56,7 +57,7 @@ export function AddItems({ onClose, toast }: { onClose: () => void; toast: Toast
         const type = entry.types.find((t) => t === 'image/png') ?? entry.types.find((t) => t.startsWith('image/'))
         if (type) found.push(await entry.getType(type))
       }
-      if (found.length) return add(found)
+      if (found.length) return add(found, target)
       setPasteNote('In der Zwischenablage liegt kein Bild. Halt in Fotos das Teil gedrückt, wähl „Kopieren“ und tipp dann hier auf „Einfügen“.')
     } catch {
       setPasteNote('Der Browser hat das Einfügen nicht erlaubt. Tipp noch einmal auf „Einfügen“ und bestätige die Nachfrage.')
@@ -92,7 +93,7 @@ export function AddItems({ onClose, toast }: { onClose: () => void; toast: Toast
   }
 
   async function save() {
-    if (!rows.length || busy) return
+    if (!rows.length || busy || missing) return
     setBusy('save')
     try {
       const now = Date.now()
@@ -129,6 +130,8 @@ export function AddItems({ onClose, toast }: { onClose: () => void; toast: Toast
     />
   )
   const full = rows.length >= MAX
+  // Schuhe brauchen vor dem Speichern ihr Bild von vorne
+  const missing = rows.filter((r) => r.category === 'Schuhe' && !r.wear).length
 
   return (
     <Sheet title="Kleidung hinzufügen" onClose={onClose}>
@@ -146,14 +149,20 @@ export function AddItems({ onClose, toast }: { onClose: () => void; toast: Toast
                   {!r.more && !REST.includes(r.category) && <button className="chip" onClick={() => patch(r.id, { more: true })} aria-label={`Mehr Arten für Bild ${n + 1}`}>Mehr</button>}
                 </div>
                 <button className="icon-btn" onClick={() => setRows((all) => all.filter((x) => x.id !== r.id))} aria-label={`Bild ${n + 1} entfernen`}><IconClose /></button>
-                {r.category === 'Schuhe' && (r.wear ? (
-                  <p className="import-ask muted">Das Foto von vorne ist da. <button className="link" onClick={() => setCamera(r.id)}>Neu aufnehmen</button></p>
-                ) : (
-                  <div className="import-ask note is-block">
-                    <span>Für den Avatar fehlt noch ein Foto von vorne: derselbe Schuh, die Spitze zeigt zu dir.</span>
-                    <button className="btn btn-primary" onClick={() => setCamera(r.id)}><IconCamera /> Schuh von vorne fotografieren</button>
+                {r.category === 'Schuhe' && (
+                  <div className={'import-ask import-front' + (r.wear ? '' : ' is-missing')}>
+                    <span className="import-front-img">{r.wear ? <img src={r.wear.toDataURL('image/png')} alt="Schuh von vorne" /> : <IconPlus />}</span>
+                    <div className="import-front-text">
+                      <strong>{r.wear ? 'Bild von vorne ist da' : 'Bild von vorne fehlt noch'}</strong>
+                      <span className="muted">{r.wear ? 'Du kannst es ersetzen.' : 'Derselbe Schuh, die Spitze zeigt zu dir. So steht er am Avatar.'}</span>
+                    </div>
+                    <div className="import-front-ways" role="group" aria-label={`Bild von vorne für Bild ${n + 1}`}>
+                      <button className="icon-btn is-outlined" onClick={() => paste(r.id)} disabled={!!busy} aria-label="Bild von vorne einfügen" title="Einfügen"><IconPaste /></button>
+                      <button className="icon-btn is-outlined" onClick={() => { target.current = r.id; gallery.current?.click() }} disabled={!!busy} aria-label="Bild von vorne aus der Galerie wählen" title="Aus Galerie"><IconImage /></button>
+                      <button className="icon-btn is-outlined" onClick={() => setCamera(r.id)} disabled={!!busy} aria-label="Schuh von vorne fotografieren" title="Kamera"><IconCamera /></button>
+                    </div>
                   </div>
-                ))}
+                )}
               </li>
             ))}
           </ul>
@@ -166,13 +175,15 @@ export function AddItems({ onClose, toast }: { onClose: () => void; toast: Toast
       <div className={'add-ways' + (rows.length ? ' is-small' : '')}>
         <button className={'btn' + (rows.length ? '' : ' btn-primary')} onClick={() => setCamera('new')} disabled={!!busy || full} id="add-camera"><IconCamera /> Kamera</button>
         <label className={'btn' + (busy === 'load' ? ' is-busy' : '')}>
-          <IconImage /> Aus Galerie
+          <IconImage /> Galerie
           <input id="import-files" type="file" accept="image/*" multiple hidden disabled={!!busy || full} onChange={(e) => { add(e.target.files); e.target.value = '' }} />
         </label>
-        <button className="btn" onClick={paste} disabled={!!busy || full} id="add-paste"><IconPaste /> Einfügen</button>
+        <button className="btn" onClick={() => paste()} disabled={!!busy || full} id="add-paste"><IconPaste /> Einfügen</button>
+        <input ref={gallery} id="front-file" type="file" accept="image/*" hidden onChange={(e) => { add(e.target.files, target.current); e.target.value = '' }} />
         <input ref={native} type="file" accept="image/*" capture="environment" hidden onChange={(e) => { add(e.target.files, target.current); e.target.value = '' }} />
       </div>
-      {rows.length > 0 && <button className={'btn btn-primary' + (busy === 'save' ? ' is-busy' : '')} onClick={save} disabled={busy === 'load'} id="import-save">{rows.length === 1 ? '1 Teil speichern' : `${rows.length} Teile speichern`}</button>}
+      {missing > 0 && <p className="note" role="status" id="front-missing">{missing === 1 ? 'Bei einem Schuh fehlt noch das Bild von vorne.' : `Bei ${missing} Schuhen fehlt noch das Bild von vorne.`} Erst dann lässt sich speichern.</p>}
+      {rows.length > 0 && <button className={'btn btn-primary' + (busy === 'save' ? ' is-busy' : '')} onClick={save} disabled={busy === 'load' || missing > 0} id="import-save">{rows.length === 1 ? '1 Teil speichern' : `${rows.length} Teile speichern`}</button>}
       {cam}
       {open && <MarkArea photo={open.photo} area={open.area} onDone={(a) => mark(open, a)} onClose={() => setMarking(null)} />}
     </Sheet>

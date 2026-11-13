@@ -603,3 +603,10 @@ noscript { display: block; padding: var(--s-6) var(--s-4); text-align: center; }
 .card .facts dd { font-size: var(--fs-lg); white-space: nowrap; }
 .rules-read { display: flex; flex-direction: column; gap: var(--s-2); }
 .muted.is-center { text-align: center; }
+/* Schuh: das Bild von vorne gehört zur Zeile. Links die Vorschau, rechts drei Wege: einfügen, Galerie, Kamera */
+.import-front { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2) var(--s-3); padding-top: var(--s-3); border-top: 1px solid var(--c-line); }
+.import-front-img { flex: none; width: 56px; height: 56px; display: grid; place-items: center; border-radius: var(--r-sm); background: var(--c-tile); color: var(--c-muted); }
+.import-front.is-missing .import-front-img { background: none; border: 1px dashed var(--c-accent); color: var(--c-accent); }
+.import-front-img img { width: 100%; height: 100%; object-fit: contain; padding: 4px; }
+.import-front-text { flex: 1 1 140px; display: flex; flex-direction: column; gap: 2px; font-size: var(--fs-sm); }
+.import-front-ways { flex: none; display: flex; gap: var(--s-1); }
