@@ -22,7 +22,7 @@ function serviceWorker(): Plugin {
 // "artifact" mode bundles everything into one HTML file for a shareable preview page.
 export default defineConfig(({ mode }) => ({
   base: './',
-  define: { __APP_VERSION__: JSON.stringify(pkg.version) },
+  define: { __APP_VERSION__: JSON.stringify(`${pkg.version} (Stand ${new Date().toLocaleString('de-DE', { timeZone: 'Europe/Berlin', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })})`) },
   plugins: [react(), ...(mode === 'artifact' ? [viteSingleFile()] : [serviceWorker()])],
   build: { outDir: mode === 'artifact' ? 'dist-artifact' : 'dist' },
 }))

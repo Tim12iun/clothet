@@ -36,7 +36,8 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (req.mode === 'navigate') {
-    event.respondWith(fetch(req).then(store).catch(() => caches.match(req, { ignoreVary: true }).then((r) => r || caches.match('./', { ignoreVary: true }))))
+    // Am HTTP-Cache vorbei, sonst zeigt die Seite bis zu zehn Minuten lang den alten Stand
+    event.respondWith(fetch(req.url, { cache: 'no-cache' }).then(store).catch(() => caches.match(req, { ignoreVary: true }).then((r) => r || caches.match('./', { ignoreVary: true }))))
     return
   }
   event.respondWith(caches.match(req, { ignoreVary: true }).then((hit) => hit || fetch(req).then(store)))

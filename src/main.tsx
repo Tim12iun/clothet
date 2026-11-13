@@ -167,6 +167,8 @@ if (import.meta.env.PROD && import.meta.env.MODE !== 'artifact' && 'serviceWorke
         const w = reg.installing
         w?.addEventListener('statechange', () => w.state === 'installed' && announce(w))
       })
+      // Installierte Apps werden selten neu gestartet: bei jeder Rückkehr in die App nach einer neuen Version sehen
+      document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') reg.update().catch(() => {}) })
       // Neu laden nur bei einem Update. Beim ersten Besuch übernimmt der Service Worker still, ohne die Seite zu unterbrechen.
       let reloaded = !navigator.serviceWorker.controller
       navigator.serviceWorker.addEventListener('controllerchange', () => { if (!reloaded) { reloaded = true; location.reload() } })
