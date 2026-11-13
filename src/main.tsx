@@ -70,4 +70,12 @@ function App() {
   )
 }
 
+// Als installierte App: offline nutzbar machen und den Browser bitten, die Daten nicht zu räumen.
+if (import.meta.env.PROD && import.meta.env.MODE !== 'artifact' && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {})
+    navigator.storage?.persist?.().catch(() => {})
+  })
+}
+
 createRoot(document.getElementById('root')!).render(<App />)

@@ -292,3 +292,6 @@ img { max-width: 100%; display: block; }
 .sheet-body > * { flex: none; }
 
 .dot.is-small { width: 14px; height: 14px; border-color: var(--c-accent-ink); }
+
+/* Als eigene Seite oder installierte App: Platz für die Statusleiste (in der Vorschau erledigt das der Rahmen) */
+.standalone #root { padding-top: env(safe-area-inset-top, 0px); }
