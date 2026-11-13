@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import { IconCamera, IconImage } from '../icons'
 import { GUIDES, type GuideKey } from '../lib/guides'
-import { coverage, detectColors, loadPhoto, removeBackground, toBlob, trim } from '../lib/image'
+import { coverage, cutArea, detectColors, loadPhoto, removeBackground, toBlob, trim, type Area } from '../lib/image'
 import type { Toast } from '../main'
 import { saveItem } from '../store'
 import { CATEGORIES, uid, type Category, type Season, type Style } from '../types'
 import { Camera } from './Camera'
 import { ItemFields } from './Closet'
+import { MarkArea } from './MarkArea'
+import { Range } from './Range'
 import { Sheet } from './Sheet'
 
 type Which = 'main' | 'wear' // main: Bild für den Schrank, wear: Schuh von vorne für den Avatar
@@ -15,6 +17,8 @@ export function AddItem({ onClose, onImport, toast }: { onClose: () => void; onI
   const [photo, setPhoto] = useState<HTMLCanvasElement | null>(null)
   const [wearPhoto, setWearPhoto] = useState<HTMLCanvasElement | null>(null)
   const [cutout, setCutout] = useState(true)
+  const [area, setArea] = useState<Area | null>(null) // von Hand markierter Bereich des Teils
+  const [marking, setMarking] = useState(false)
   const [tolerance, setTolerance] = useState(45)
   const [result, setResult] = useState<{ canvas: HTMLCanvasElement; url: string } | null>(null)
   const [wear, setWear] = useState<{ canvas: HTMLCanvasElement; url: string } | null>(null)
@@ -27,7 +31,7 @@ export function AddItem({ onClose, onImport, toast }: { onClose: () => void; onI
   const native = useRef<Record<Which, HTMLInputElement | null>>({ main: null, wear: null })
   const isShoe = fields.category === 'Schuhe'
 
-  const take = (which: Which, c: HTMLCanvasElement) => (which === 'main' ? setPhoto(c) : setWearPhoto(c))
+  const take = (which: Which, c: HTMLCanvasElement) => { if (which === 'main') { setArea(null); setPhoto(c) } else setWearPhoto(c) }
   async function pick(which: Which, file?: File) {
     if (!file) return
     setError('')
@@ -43,9 +47,9 @@ export function AddItem({ onClose, onImport, toast }: { onClose: () => void; onI
     let canvas = photo
     let note = ''
     if (cutout) {
-      canvas = removeBackground(photo, tolerance)
+      canvas = area ? cutArea(photo, area, tolerance) : removeBackground(photo, tolerance)
       const cov = canvas === photo ? 1 : coverage(canvas)
-      if (canvas === photo || cov > 0.97) note = 'Der Hintergrund ließ sich nicht sauber trennen. Am besten klappt es auf einer einfarbigen Fläche mit etwas Rand um das Teil.'
+      if (canvas === photo || cov > 0.97) note = 'Der Hintergrund ließ sich nicht sauber trennen. Markier das Teil im Foto, dann wird nur dort ausgeschnitten.'
       else if (cov < 0.08) note = 'Es ist fast nichts übrig geblieben. Stell den Regler weiter nach links.'
     }
     setHint(note)
@@ -53,7 +57,7 @@ export function AddItem({ onClose, onImport, toast }: { onClose: () => void; onI
     const auto = detectColors(canvas)
     setFields((f) => ({ ...f, ...(touched.current.color ? {} : auto) }))
     setResult({ canvas, url: canvas.toDataURL('image/png') })
-  }, [photo, cutout, tolerance])
+  }, [photo, cutout, tolerance, area])
 
   useEffect(() => {
     if (!wearPhoto) return setWear(null)
@@ -134,13 +138,10 @@ export function AddItem({ onClose, onImport, toast }: { onClose: () => void; onI
               <button type="button" className={'chip' + (!cutout ? ' is-on' : '')} onClick={() => setCutout(false)}>Behalten</button>
             </div>
             {cutout && (
-              <label className="range">
-                <span className="muted">weniger</span>
-                <input id="cutout-tolerance" type="range" min={5} max={100} value={tolerance} onChange={(e) => setTolerance(+e.target.value)} aria-label="Wie viel Hintergrund entfernt wird" />
-                <span className="muted">mehr</span>
-              </label>
+              <Range id="cutout-tolerance" label="Wie viel Hintergrund entfernt wird" min={5} max={100} step={5} value={tolerance} onChange={setTolerance} low="weniger" high="mehr" />
             )}
             {hint && <p className="note">{hint}</p>}
+            {cutout && <button className="link" onClick={() => setMarking(true)} id="mark-area">{area ? 'Markierung ändern' : 'Teil im Foto markieren'}</button>}
           </div>
           {isShoe && (
             <div className="field">
@@ -175,6 +176,7 @@ export function AddItem({ onClose, onImport, toast }: { onClose: () => void; onI
         </>
       )}
       {cam}
+      {marking && photo && <MarkArea photo={photo} area={area} onDone={(a) => { setArea(a); setMarking(false) }} onClose={() => setMarking(false)} />}
     </Sheet>
   )
 }

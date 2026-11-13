@@ -1,11 +1,12 @@
 import type { Category, Item, Sex } from '../types'
 import { bodyTargets } from './avatar'
+import { specks } from './image'
 
 /**
- * Passform ohne KI: Aus dem freigestellten Umriss eines Teils werden Ankerpunkte gelesen (Schulternaht, Achsel,
- * Ärmelende, Saum bzw. Bund, Schritt, Beinenden). Damit wird das Bild auf die Körperpunkte der Figur gezogen:
- * Der Rumpf folgt zeilenweise der Körperlinie, Ärmel werden um die Schulter entlang der Arme gedreht, jedes Hosenbein
- * folgt einem Bein. Es wird nur verschoben, gedreht und leicht gestreckt, Farbe und Muster bleiben, wie sie sind.
+ * Passform ohne KI: Aus dem freigestellten Umriss eines Teils werden wenige Ankerpunkte gelesen (Schulternaht, Rumpfkante,
+ * Ärmelende, Bund, Mitte der Hosenbeine). Damit wird das ganze Bild in einem Stück stufenlos auf die Körperpunkte der
+ * Figur gelegt: skaliert, ausgerichtet und leicht gedehnt. Das Teil bleibt, wie es fotografiert wurde, es wird nicht
+ * zerschnitten und bekommt keine Körperform und keine Schatten.
  * Ergebnis ist ein Bild in Bühnengröße (3:4) für die Figur in Normalbreite.
  */
 const U = 2, W = 300 * U, H = 400 * U, CX = W / 2
@@ -100,174 +101,117 @@ export function readTop(m: Mask): TopShape | null {
   return { cx, bh, seamY, hem, sleeves }
 }
 
-function shade(ctx: CanvasRenderingContext2D, half: number, strength: number) {
-  // Leichter Schatten zu den Rändern hin, nur auf dem Stoff: lässt das Teil rund um den Körper wirken
-  const g = ctx.createLinearGradient(CX - half, 0, CX + half, 0)
-  g.addColorStop(0, `rgba(0,0,0,${strength})`)
-  g.addColorStop(0.2, 'rgba(0,0,0,0)')
-  g.addColorStop(0.8, 'rgba(0,0,0,0)')
-  g.addColorStop(1, `rgba(0,0,0,${strength})`)
-  ctx.globalCompositeOperation = 'source-atop'
-  ctx.fillStyle = g
-  ctx.fillRect(0, 0, W, H)
-  ctx.globalCompositeOperation = 'source-over'
+const smooth = (k: number) => { const c = clamp(k, 0, 1); return c * c * (3 - 2 * c) }
+function stage() {
+  const out = document.createElement('canvas')
+  out.width = W
+  out.height = H
+  const ctx = out.getContext('2d')!
+  ctx.imageSmoothingQuality = 'high'
+  return { out, ctx }
 }
 
+/**
+ * Oberteil: ein Maßstab für das ganze Teil (Rumpfbreite auf Schulterbreite, Naht auf Schulterhöhe). Der Rumpf bleibt,
+ * wie er fotografiert wurde. Nur jenseits der Rumpfkante wird das Bild stufenlos nach unten geschert und etwas
+ * zusammengeschoben, damit die Ärmel den Armen folgen. Nichts wird ausgeschnitten oder einzeln gedreht.
+ */
 function warpTop(src: HTMLCanvasElement, m: Mask, sex: Sex | undefined, jacket: boolean): HTMLCanvasElement | null {
   const t = bodyTargets(sex), sh = readTop(m)
   if (!sh) return null
-  const ease = jacket ? 5 : 3
-  const s = ((t.shoulderHalf + ease) * U) / sh.bh
-  const seamT = (t.shoulderY - 1.5) * U
-  const yT = (y: number) => seamT + (y - sh.seamY) * s
-  const natural = sh.bh * s
-  /** Halbe Breite des Rumpfs in Zielhöhe: folgt der Körperlinie, bleibt aber nah an der eigenen Breite des Teils. */
-  const half = (ty: number) => {
-    const yu = ty / U
-    if (yu <= t.shoulderY + 4) return natural
-    const k = clamp((yu - t.shoulderY - 4) / 14, 0, 1)
-    return natural + k * (clamp(t.torsoHalf(yu) * U + ease * 1.4 * U, natural * 0.9, natural * 1.06) - natural)
-  }
-  const out = document.createElement('canvas')
-  out.width = W
-  out.height = H
-  const ctx = out.getContext('2d')!
-  ctx.imageSmoothingQuality = 'high'
-
-  // Ärmel zuerst, der Rumpf liegt danach darüber und deckt die Naht
+  const s = ((t.shoulderHalf + (jacket ? 5 : 3)) * U) / sh.bh
+  const top = (t.shoulderY - 1.5) * U + (m.top - sh.seamY) * s
+  const edge = sh.bh * s, onset = edge * 0.2
+  const arm = Math.atan2(t.armTo[1] - t.armFrom[1], Math.max(1, t.armTo[0] - t.armFrom[0]))
+  const bend = { 1: { squeeze: 1, shear: 0 }, [-1]: { squeeze: 1, shear: 0 } } as Record<1 | -1, { squeeze: number; shear: number }>
   for (const side of [1, -1] as const) {
     const sl = sh.sleeves[side]
     if (!sl) continue
-    const part = document.createElement('canvas')
-    part.width = m.w
-    part.height = m.h
-    const pc = part.getContext('2d')!
-    pc.drawImage(src, 0, 0)
-    // Nur der Ärmel: alles innerhalb der Rumpfkante weg, unter der Achsel auch den Rumpf selbst
-    // Etwas Stoff vom Rumpf bleibt am Ärmel: Er füllt nach dem Drehen die Schulter und verschwindet sonst unter dem Rumpf
-    const edge = sh.cx + side * sh.bh * 0.5
-    if (side > 0) pc.clearRect(0, 0, edge, m.h)
-    else pc.clearRect(edge, 0, m.w - edge, m.h)
-    for (let y = sl.armpit; y <= sh.hem; y++) {
-      const r = centerRun(m, y, sh.cx)
-      if (r) pc.clearRect(r[0] - 1, y, r[1] - r[0] + 3, 1)
+    const dx = Math.abs(sl.ex - sl.ax) * s, dy = (sl.ey - sl.ay) * s
+    if (dx < edge * 0.15) continue
+    // Der Ärmel dreht sich nur einen Teil des Wegs zum Arm: Er soll fallen, aber seine Form behalten
+    const from = Math.atan2(dy, dx), to = from + Math.max(0, arm - from) * 0.6, len = Math.hypot(dx, dy)
+    const squeeze = clamp((len * Math.cos(to)) / dx, 0.6, 1)
+    bend[side] = { squeeze, shear: clamp((len * Math.sin(to) - dy) / dx, 0, 1) }
+  }
+  const { out, ctx } = stage()
+  const sh0 = m.bottom - m.top + 1
+  for (let tx = 0; tx < W; tx++) {
+    const side = tx >= CX ? 1 : -1, ud = Math.abs(tx + 0.5 - CX), b = bend[side]
+    let u = ud / s, drop = 0, step = 1 / s
+    if (ud > edge) {
+      const v = (ud - edge) / b.squeeze // Weg jenseits der Rumpfkante, im Maßstab des Teils
+      u = (edge + v) / s
+      step /= b.squeeze
+      // Weicher Einsatz der Scherung, damit an der Naht kein Knick entsteht
+      drop = (v < onset ? (v * v) / (2 * onset) : v - onset / 2) * b.shear
     }
-    const from = [CX + side * t.armFrom[0] * U, t.armFrom[1] * U], to = [CX + side * t.armTo[0] * U, t.armTo[1] * U]
-    const aT = Math.atan2(to[1] - from[1], to[0] - from[0]), aS = Math.atan2(sl.ey - sl.ay, sl.ex - sl.ax)
-    // Die Ärmelachse liegt auf der Armachse, der obere Nahtpunkt auf Schulterhöhe
-    const turn = aT - aS, d = (sl.ay - sl.top) * s
-    const ty = yT(sl.top) + 2 * U + d * Math.cos(turn)
-    const tx = from[0] + ((ty - from[1]) * (to[0] - from[0])) / (to[1] - from[1])
-    const len = Math.hypot(sl.ex - sl.ax, sl.ey - sl.ay) * s, reach = Math.hypot(to[0] - tx, to[1] - ty)
-    // Lange Ärmel enden am Handgelenk, damit die Hand frei bleibt; kurze behalten ihre Länge
-    const kLen = len > reach * 0.72 ? clamp((reach * 0.97) / len, 0.75, 1.3) : 1
-    ctx.save()
-    // Schulterlinie: Über der abfallenden Schulter bleibt nichts stehen, sonst wirkt sie gepolstert
-    const y0 = yT(sl.top) - U, x0 = CX + side * natural * 0.8
-    ctx.beginPath()
-    ctx.moveTo(CX, y0)
-    ctx.lineTo(x0, y0)
-    ctx.lineTo(x0 + side * W, y0 + W * 0.2)
-    ctx.lineTo(x0 + side * W, H)
-    ctx.lineTo(CX, H)
-    ctx.closePath()
-    ctx.clip()
-    ctx.translate(tx, ty)
-    ctx.rotate(aT)
-    ctx.scale(s * kLen, s)
-    ctx.rotate(-aS)
-    ctx.translate(-sl.ax, -sl.ay)
-    ctx.drawImage(part, 0, 0)
-    ctx.restore()
+    const sx = sh.cx + side * u - step / 2
+    if (sx + step < m.left || sx > m.right + 1) continue
+    ctx.drawImage(src, clamp(sx, 0, m.w - step), m.top, step, sh0, tx, top + drop, 1, sh0 * s)
   }
-  // Ärmel liegen seitlich im Schatten des Rumpfs
-  ctx.globalCompositeOperation = 'source-atop'
-  ctx.fillStyle = 'rgba(0,0,0,0.07)'
-  ctx.fillRect(0, 0, W, H)
-  ctx.globalCompositeOperation = 'source-over'
-
-  // Rumpf zeilenweise: gleiche Höhe im Teil, Breite an die Körperlinie angenähert
-  const body = document.createElement('canvas')
-  body.width = W
-  body.height = H
-  const bc = body.getContext('2d')!
-  bc.imageSmoothingQuality = 'high'
-  const armpit = Math.min(sh.sleeves[1]?.armpit ?? m.top, sh.sleeves[-1]?.armpit ?? m.top)
-  let widest = natural
-  for (let ty = Math.max(0, Math.floor(yT(m.top))); ty < Math.min(H, yT(sh.hem) + 1); ty++) {
-    const sy = sh.seamY + (ty - seamT) / s
-    if (sy < m.top || sy > sh.hem) continue
-    const h = half(ty), k = h / sh.bh
-    // Unter den Ärmeln zählt die echte Kante des Rumpfs, darüber die Rumpfbreite (der Rest gehört zum Ärmel)
-    const r = sy > armpit || (!sh.sleeves[1] && !sh.sleeves[-1]) ? centerRun(m, Math.round(sy), sh.cx) : null
-    const l = r && !sh.sleeves[-1] ? r[0] : Math.max(r?.[0] ?? 0, sh.cx - sh.bh), rr = r && !sh.sleeves[1] ? r[1] + 1 : Math.min((r?.[1] ?? m.w) + 1, sh.cx + sh.bh)
-    if (rr <= l) continue
-    bc.drawImage(src, l, sy, rr - l, Math.max(1, 1 / s), CX + (l - sh.cx) * k, ty, (rr - l) * k, 1.4)
-    widest = Math.max(widest, (sh.cx - l) * k, (rr - sh.cx) * k)
-  }
-  shade(bc, widest, 0.13)
-  ctx.drawImage(body, 0, 0)
   return out
 }
 
+/** Erster und letzter Stoffpunkt einer Zeile. */
+function span(m: Mask, y: number): [number, number] | null {
+  let l = m.left, r = m.right
+  while (l <= r && !m.on(l, y)) l++
+  while (r >= l && !m.on(r, y)) r--
+  return r > l ? [l, r] : null
+}
+
+/**
+ * Hose: ein Maßstab für das ganze Teil (Bundbreite auf Hüftbreite), der Bund sitzt an der Hüfte, lange Hosen enden am
+ * Knöchel. Jede Zeile wird als Ganzes um die Mitte gedehnt oder gestaucht, sodass die Mitte jedes Hosenbeins über dem
+ * Bein der Figur liegt. Der Übergang ist stufenlos, die Hose wird nirgends zerschnitten.
+ */
 function warpBottom(src: HTMLCanvasElement, m: Mask, sex: Sex | undefined): HTMLCanvasElement | null {
   const t = bodyTargets(sex), hgt = m.bottom - m.top
   const rows: [number, number][] = []
-  for (let y = Math.round(m.top + hgt * 0.02); y <= m.top + hgt * 0.07; y++) { const r = centerRun(m, y, (m.left + m.right) / 2); if (r) rows.push(r) }
+  for (let y = Math.round(m.top + hgt * 0.02); y <= m.top + hgt * 0.07; y++) { const r = span(m, y); if (r) rows.push(r) }
   if (rows.length < 2) return null
   const cx = median(rows.map((r) => (r[0] + r[1]) / 2)), wh = median(rows.map((r) => (r[1] - r[0]) / 2))
-  // Schritt: die erste Zeile, ab der die Mitte frei bleibt (Lücke zwischen den Beinen)
-  let crotch = -1
-  for (let y = Math.round(m.top + hgt * 0.12); y < m.bottom - hgt * 0.1; y++) {
-    if (m.on(cx, y)) continue
-    let free = true
-    for (let k = y; k < Math.min(m.bottom, y + hgt * 0.5) && free; k += 3) free = !m.on(cx, k)
-    if (free) { crotch = y; break }
-  }
-  if (wh < 10 || crotch < 0) return null
+  if (wh < 10) return null
   const s = ((t.torsoHalf(t.waistY) + 2.5) * U) / wh
-  const waistT = t.waistY * U
-  const kRise = clamp(((t.crotchY + 3 - t.waistY) * U) / ((crotch - m.top) * s), 0.8, 1.25)
-  const crotchT = waistT + (crotch - m.top) * s * kRise
-  const legLen = m.bottom - crotch, ankleT = t.ankleY * U
+  const waistT = t.waistY * U, full = (t.ankleY - t.waistY) * U
   // Lange Hosen enden am Knöchel, kurze behalten ihre Länge
-  const kLeg = crotchT + legLen * s > ankleT * 0.9 ? clamp((ankleT - crotchT) / (legLen * s), 0.8, 1.25) : 1
-  const out = document.createElement('canvas')
-  out.width = W
-  out.height = H
-  const ctx = out.getContext('2d')!
-  ctx.imageSmoothingQuality = 'high'
-  let widest = wh * s
-  for (let ty = Math.floor(waistT); ty < Math.min(H, crotchT + legLen * s * kLeg + 1); ty++) {
-    const upper = ty <= crotchT
-    const sy = upper ? m.top + (ty - waistT) / (s * kRise) : crotch + (ty - crotchT) / (s * kLeg)
-    const y = Math.round(sy), sh = Math.max(1, 1 / (s * (upper ? kRise : kLeg)))
-    if (y > m.bottom) break
-    if (upper) {
-      const r = centerRun(m, y, cx)
-      if (!r) continue
-      const nat = ((r[1] - r[0]) / 2) * s, h = clamp(t.torsoHalf(ty / U) * U + 2.5 * U, nat * 0.92, nat * 1.08), k = h / ((r[1] - r[0]) / 2)
-      const c = CX + ((r[0] + r[1]) / 2 - cx) * s
-      ctx.drawImage(src, r[0], sy, r[1] - r[0] + 1, sh, c - h, ty, 2 * h, 1.4)
-      widest = Math.max(widest, h)
-      continue
-    }
-    const blend = clamp((sy - crotch) / (legLen * 0.3), 0, 1), b = blend * blend * (3 - 2 * blend)
+  const sy = hgt * s > full * 0.8 ? s * clamp(full / (hgt * s), 0.75, 1.35) : s
+  // Je Zeile und Seite: Faktor, der die Mitte des Hosenbeins auf die Mitte des Beins legt
+  const k: Record<1 | -1, Float32Array> = { 1: new Float32Array(hgt + 1).fill(1), [-1]: new Float32Array(hgt + 1).fill(1) }
+  for (let i = 0; i <= hgt; i++) {
+    const y = m.top + i, on = smooth((i / hgt - 0.3) / 0.25)
+    if (!on) continue
     for (const side of [1, -1] as const) {
-      let a = Math.round(cx), e: number
-      // Bein dieser Seite: vom ersten bis zum letzten Stoffpunkt neben der Mitte
       const lim = side > 0 ? m.right : m.left
+      let a = Math.round(cx), e = lim
       while (a !== lim && !m.on(a, y)) a += side
-      if (!m.on(a, y)) continue
-      e = lim
       while (e !== a && !m.on(e, y)) e -= side
-      const l = Math.min(a, e), w = Math.abs(e - a) + 1
-      const nat = ((l + w / 2) - cx) * s, c = CX + nat * (1 - b) + side * t.leg(ty / U) * U * b
-      ctx.drawImage(src, l, sy, w, sh, c - (w * s) / 2, ty, w * s, 1.4)
-      widest = Math.max(widest, Math.abs(c - CX) + (w * s) / 2)
+      const mid = Math.abs((a + e) / 2 - cx) * s
+      if (a === e || mid < 2) continue
+      k[side][i] = 1 + on * (clamp((t.leg((waistT + i * sy) / U) * U) / mid, 0.7, 1.3) - 1)
     }
   }
-  shade(ctx, widest, 0.1)
+  const blur = Math.max(2, Math.round(hgt * 0.04))
+  for (const side of [1, -1] as const) {
+    const raw = k[side].slice()
+    for (let i = 0; i <= hgt; i++) {
+      let sum = 0, n = 0
+      for (let j = Math.max(0, i - blur); j <= Math.min(hgt, i + blur); j++) { sum += raw[j]; n++ }
+      k[side][i] = sum / n
+    }
+  }
+  const { out, ctx } = stage()
+  const step = 1 / sy
+  for (let ty = Math.floor(waistT); ty < Math.min(H, waistT + hgt * sy + 1); ty++) {
+    const f = (ty + 0.5 - waistT) / sy, i = clamp(Math.round(f), 0, hgt), y = m.top + f - step / 2
+    if (f > hgt) break
+    for (const side of [1, -1] as const) {
+      const w = side > 0 ? m.right + 1 - cx : cx - m.left, tw = w * s * k[side][i]
+      if (w < 1) continue
+      ctx.drawImage(src, side > 0 ? cx : m.left, clamp(y, 0, m.h - step), w, step, side > 0 ? CX : CX - tw, ty, tw, 1)
+    }
+  }
   return out
 }
 
@@ -286,6 +230,15 @@ export function fittedUrl(item: Item, sex: Sex | undefined): Promise<string | nu
       src.height = bmp.height
       src.getContext('2d', { willReadFrequently: true })!.drawImage(bmp, 0, 0)
       bmp.close?.()
+      // Bildreste neben dem Teil würden die Ankerpunkte verfälschen
+      const sc = src.getContext('2d')!, img = sc.getImageData(0, 0, src.width, src.height)
+      const solid = new Uint8Array(src.width * src.height)
+      for (let p = 0; p < solid.length; p++) solid[p] = img.data[p * 4 + 3] > 60 ? 1 : 0
+      const loose = specks(solid, src.width, src.height, 1)
+      if (loose.length) {
+        for (const p of loose) img.data[p * 4 + 3] = 0
+        sc.putImageData(img, 0, 0)
+      }
       const m = maskOf(src)
       const out = m && (kind === 'top' ? warpTop(src, m, sex, item.category === 'Jacken') : warpBottom(src, m, sex))
       if (!out) return null

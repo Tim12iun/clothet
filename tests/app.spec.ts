@@ -359,6 +359,18 @@ test('Import: mehrere Bilder auf einmal, je Bild die Art wählen', async ({ page
   await page.locator('#import-list .import-row').nth(1).locator('.chip', { hasText: 'Hose' }).click()
   await page.locator('#import-list .import-row').nth(2).locator('.icon-btn').click()
   await expect(page.locator('#import-list .import-row')).toHaveCount(2)
+  // Teil von Hand markieren: Rahmen ziehen, dann wird nur dort ausgeschnitten
+  const before = await page.locator('#import-list .import-thumb img').first().getAttribute('src')
+  await page.locator('#import-list .import-thumb').first().click()
+  const box = (await page.locator('#mark-photo').boundingBox())!
+  await page.mouse.move(box.x + box.width * 0.3, box.y + box.height * 0.3)
+  await page.mouse.down()
+  await page.mouse.move(box.x + box.width * 0.7, box.y + box.height * 0.7, { steps: 4 })
+  await page.mouse.up()
+  await expectAccessible(page, 'Teil markieren')
+  await page.locator('#mark-done').click()
+  await expect(page.locator('#mark-photo')).toHaveCount(0)
+  expect(await page.locator('#import-list .import-thumb img').first().getAttribute('src')).not.toBe(before)
   await expectNoOverflow(page, 'Import')
   await expectAccessible(page, 'Import')
   await page.locator('#import-save').click()

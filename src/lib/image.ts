@@ -81,6 +81,9 @@ export function removeBackground(src: HTMLCanvasElement, tolerance = 45): HTMLCa
     if (p < n - w) tryPush(p + w, p)
   }
 
+  // Bildreste (Schrift, Etiketten, Krümel neben dem Teil) zählen zum Hintergrund
+  for (const p of specks(mask, w, h, 0)) mask[p] = 1
+
   // Weiche Kante: Deckkraft aus dem Anteil der Vordergrund-Nachbarn (5x5)
   const R = 2
   let minX = w, minY = h, maxX = -1, maxY = -1
@@ -107,6 +110,47 @@ export function removeBackground(src: HTMLCanvasElement, tolerance = 45): HTMLCa
   ctx.putImageData(img, 0, 0)
   if (maxX < 0) return src // nichts übrig: Original behalten
   return crop(out, minX, minY, maxX - minX + 1, maxY - minY + 1)
+}
+
+/**
+ * Kleine, lose Flecken neben dem eigentlichen Teil: alle zusammenhängenden Flächen, die deutlich kleiner sind als die größte.
+ * cells[p] === fg markiert Vordergrund. Zwei ähnlich große Flächen (ein Paar Schuhe) bleiben beide.
+ */
+export function specks(cells: Uint8Array, w: number, h: number, fg: number): number[] {
+  const n = w * h, label = new Int32Array(n), stack = new Int32Array(n), sizes: number[] = [0]
+  for (let p0 = 0; p0 < n; p0++) {
+    if (cells[p0] !== fg || label[p0]) continue
+    const id = sizes.length
+    let top = 0, size = 0
+    stack[top++] = p0
+    label[p0] = id
+    while (top) {
+      const p = stack[--top], x = p % w
+      size++
+      if (x > 0 && cells[p - 1] === fg && !label[p - 1]) { label[p - 1] = id; stack[top++] = p - 1 }
+      if (x < w - 1 && cells[p + 1] === fg && !label[p + 1]) { label[p + 1] = id; stack[top++] = p + 1 }
+      if (p >= w && cells[p - w] === fg && !label[p - w]) { label[p - w] = id; stack[top++] = p - w }
+      if (p < n - w && cells[p + w] === fg && !label[p + w]) { label[p + w] = id; stack[top++] = p + w }
+    }
+    sizes.push(size)
+  }
+  const limit = Math.max(...sizes) * 0.05
+  const out: number[] = []
+  for (let p = 0; p < n; p++) if (label[p] && sizes[label[p]] < limit) out.push(p)
+  return out
+}
+
+export interface Area { x: number; y: number; w: number; h: number } // Anteile des Bildes, 0 bis 1
+/**
+ * Freistellen nur im markierten Bereich: Was außerhalb liegt, fällt weg, die Hintergrundfarbe wird am Rand des Bereichs
+ * gelesen. Lässt sich auch dort nichts trennen, bleibt der Ausschnitt, wie er ist.
+ */
+export function cutArea(src: HTMLCanvasElement, a: Area, tolerance = 45): HTMLCanvasElement {
+  const x = Math.round(a.x * src.width), y = Math.round(a.y * src.height)
+  const w = Math.max(8, Math.min(src.width - x, Math.round(a.w * src.width))), h = Math.max(8, Math.min(src.height - y, Math.round(a.h * src.height)))
+  const part = makeCanvas(w, h)
+  part.getContext('2d')!.drawImage(src, x, y, w, h, 0, 0, w, h)
+  return removeBackground(part, tolerance)
 }
 
 function crop(src: HTMLCanvasElement, x: number, y: number, w: number, h: number) {

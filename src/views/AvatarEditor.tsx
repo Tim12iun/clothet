@@ -10,6 +10,7 @@ import type { Toast } from '../main'
 import { setAvatarMode, setFigure, useStore } from '../store'
 import { BUILDS, DEFAULT_FIGURE, SEXES, type Figure } from '../types'
 import { Camera } from './Camera'
+import { Range } from './Range'
 
 // Hauttöne zur Auswahl von hell nach dunkel (Bildinhalt der Figur, keine Oberflächenfarbe)
 const SKINS = ['#f6dcc6', '#eac4a4', '#d9a67e', '#b98058', '#8d5a3b', '#5c3a25']
@@ -212,10 +213,7 @@ export function AvatarEditor({ onClose, toast }: { onClose: () => void; toast: T
             </div>
             <div className="field">
               <span>Körpergröße</span>
-              <label className="range">
-                <input id="fig-height" type="range" min={140} max={210} value={fig.height} onChange={(e) => patch({ height: +e.target.value })} aria-label="Körpergröße in Zentimetern" />
-                <output>{fig.height} cm</output>
-              </label>
+              <Range id="fig-height" label="Körpergröße in Zentimetern" min={140} max={210} value={fig.height} onChange={(v) => patch({ height: v })} low="kleiner" high="größer" output={`${fig.height} cm`} />
             </div>
             <div className="field">
               <span>Hautton</span>
@@ -226,10 +224,7 @@ export function AvatarEditor({ onClose, toast }: { onClose: () => void; toast: T
                   return <button key={c} className={'dot' + (on ? ' is-on' : '')} style={{ ['--dot' as string]: c }} aria-pressed={on} aria-label={`Hautton ${i + 1} von ${SKINS.length}`} onClick={() => patch({ skin: c, skinAuto: false, tone: 0 })} />
                 })}
               </div>
-              <label className="range"><span className="muted">dunkler</span>
-                <input id="skin-tone" type="range" min={-25} max={25} value={(fig.tone ?? 0) * 100} onChange={(e) => patch({ tone: +e.target.value / 100 })} aria-label="Hautton heller oder dunkler" />
-                <span className="muted">heller</span>
-              </label>
+              <Range id="skin-tone" label="Hautton" min={-25} max={25} step={5} value={Math.round((fig.tone ?? 0) * 100)} onChange={(v) => patch({ tone: v / 100 })} low="dunkler" high="heller" />
             </div>
           </>
         )}

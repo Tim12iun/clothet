@@ -92,7 +92,7 @@ button, label.btn, .nav, .home-head, .view-head, .segment, .chips, .sheet-head, 
 .chips.wrap { flex-wrap: wrap; overflow: visible; }
 .chips-gap { width: var(--s-2); flex: none; }
 .chip {
-  flex: none; min-height: 36px; padding: 0 var(--s-3);
+  flex: none; min-height: 44px; padding: 0 var(--s-4);
   border: 1px solid var(--c-line); border-radius: var(--r-pill);
   background: var(--c-surface); font-size: var(--fs-sm); font-weight: 500;
   transition: background var(--t-fast) var(--ease);
@@ -204,9 +204,15 @@ button, label.btn, .nav, .home-head, .view-head, .segment, .chips, .sheet-head, 
   background: var(--c-tile); border: 1px solid var(--c-line); border-radius: var(--r-sm);
 }
 .field input[type='text']:focus { outline: none; border-color: var(--c-accent); }
-.range { display: flex; align-items: center; gap: var(--s-3); }
-.range input { flex: 1; min-width: 0; accent-color: var(--c-accent); height: var(--tap); }
-.range .muted { min-width: 4.5em; }
+.range { display: flex; align-items: flex-start; gap: var(--s-3); }
+.range-main { flex: 1; min-width: 0; }
+.range input { display: block; width: 100%; height: var(--tap); margin: 0; background: transparent; appearance: none; -webkit-appearance: none; cursor: pointer; touch-action: pan-y; }
+.range input::-webkit-slider-runnable-track { height: 12px; border-radius: var(--r-pill); background: var(--c-line); }
+.range input::-moz-range-track { height: 12px; border-radius: var(--r-pill); background: var(--c-line); }
+.range input::-webkit-slider-thumb { -webkit-appearance: none; width: 36px; height: 36px; margin-top: -12px; border-radius: var(--r-pill); background: var(--c-accent); border: 3px solid var(--c-surface); box-shadow: var(--sh-1); }
+.range input::-moz-range-thumb { width: 30px; height: 30px; border-radius: var(--r-pill); background: var(--c-accent); border: 3px solid var(--c-surface); box-shadow: var(--sh-1); }
+.range-ends { display: flex; justify-content: space-between; font-size: var(--fs-sm); color: var(--c-muted); }
+.range-ends output { margin-inline: auto; font-variant-numeric: tabular-nums; color: var(--c-ink); font-weight: 600; }
 .actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2); }
 .pick { display: flex; flex-wrap: wrap; gap: var(--s-2); }
 .pick .btn { flex: 1; }
@@ -240,7 +246,7 @@ button, label.btn, .nav, .home-head, .view-head, .segment, .chips, .sheet-head, 
 
 /* Segment-Umschalter */
 .segment { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; padding: 4px; background: var(--c-tile); border-radius: var(--r-pill); }
-.segment button { min-height: 36px; padding: 0 var(--s-4); border-radius: var(--r-pill); font-weight: 500; font-size: var(--fs-sm); color: var(--c-muted); white-space: nowrap; }
+.segment button { min-height: 44px; padding: 0 var(--s-4); border-radius: var(--r-pill); font-weight: 500; font-size: var(--fs-sm); color: var(--c-muted); white-space: nowrap; }
 .segment button.is-on { background: var(--c-surface); color: var(--c-ink); font-weight: 600; box-shadow: var(--sh-1); }
 
 /* Anprobe (Entwurf 4A): Avatar oben auf ruhigem Grund, darunter die Schublade mit der Kleidung */
@@ -422,7 +428,6 @@ button, label.btn, .nav, .home-head, .view-head, .segment, .chips, .sheet-head, 
 .shutter:disabled { opacity: 0.4; }
 
 .camera-frame video.is-mirrored { transform: scaleX(-1); }
-.range output { min-width: 4.5em; text-align: right; font-size: var(--fs-sm); font-variant-numeric: tabular-nums; }
 
 /* Kompakter Button und gedrückter Zustand (Umschalter wie "Heute getragen") */
 .btn.is-compact { padding-inline: var(--s-3); font-size: var(--fs-sm); white-space: nowrap; }
@@ -546,8 +551,13 @@ noscript { display: block; padding: var(--s-6) var(--s-4); text-align: center; }
 .wear.is-full .wear-img { width: 100%; height: 100%; }
 
 /* Import: ein Bild je Zeile, darunter die Art zum Antippen */
-.import-row { display: flex; flex-direction: column; gap: var(--s-2); padding: var(--s-3); background: var(--c-surface); border: 1px solid var(--c-line); border-radius: var(--r-md); }
-.import-top { display: flex; align-items: flex-end; gap: var(--s-3); }
-.import-thumb { flex: none; width: 64px; height: 80px; display: grid; place-items: center; padding: 4px; background: var(--c-tile); border-radius: var(--r-sm); }
-.import-thumb img { width: 100%; height: 100%; object-fit: contain; }
+.import-row { display: flex; align-items: center; gap: var(--s-3); padding: var(--s-3); background: var(--c-surface); border: 1px solid var(--c-line); border-radius: var(--r-md); }
+.import-thumb { flex: none; width: 64px; height: 80px; display: grid; place-items: center; padding: 4px; background: var(--c-tile); border: 0; border-radius: var(--r-sm); cursor: pointer; }
+.import-kinds { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-2); min-width: 0; }
+.import-kinds .chip { padding: 0 var(--s-2); }
+.import-thumb img { width: 56px; height: 72px; object-fit: contain; }
+.mark-frame { flex: 1 1 0; min-height: 0; display: grid; place-items: center; padding: var(--s-3); container-type: size; }
+.mark-photo { position: relative; width: min(100cqw, 100cqh * var(--ar)); aspect-ratio: var(--ar); overflow: hidden; touch-action: none; user-select: none; cursor: crosshair; }
+.mark-photo img { display: block; width: 100%; height: 100%; pointer-events: none; }
+.mark-box { position: absolute; border: 2px dashed var(--c-camera-ink); border-radius: var(--r-sm); box-shadow: 0 0 0 200vmax color-mix(in srgb, var(--c-camera) 60%, transparent); pointer-events: none; }
 .grid .tile { border-radius: var(--r-md) var(--r-md) 0 0; }

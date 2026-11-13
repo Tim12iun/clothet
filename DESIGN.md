@@ -85,7 +85,8 @@ Klassen stehen in `src/styles/app.css`. Bestehende Komponenten wiederverwenden, 
 | Nebenbutton | `.btn` | neutral mit Rahmen |
 | Löschbutton | `.btn.btn-danger` | rot, nur für Unwiderrufliches, immer mit Rückfrage |
 | Icon-Button | `.icon-btn` | 48 px, immer mit `aria-label` |
-| Chip | `.chip`, aktiv `.chip.is-on` | Filter und Mehrfachauswahl |
+| Chip | `.chip`, aktiv `.chip.is-on` | Filter und Mehrfachauswahl, 44 px hoch |
+| Regler | `.range` (Komponente `Range`) | Dicke Spur (12 px), Griff 36 px, links und rechts Tasten für einzelne Stufen, darunter die Enden in Worten oder der Wert |
 | Kachel | `.tile` | Kleidung 3:4 auf `--c-tile`, Name darunter |
 | Sheet | `.sheet` | Formulare und Details, von unten, am Desktop mittig |
 | Feld | `.field` | Beschriftung über der Eingabe |
@@ -134,7 +135,8 @@ Grundlage ist Entwurf 4A „Klar“ mit dem Zufallsknopf aus 4C.
 | Heute-Karte | `.today` | oben in Outfits: was heute geplant oder getragen ist, mit der einen Aktion |
 | Wochenliste | `.days`, `.day-row`, `.day-check` | sieben Tage, rechts der Haken für „getragen“ |
 | Kennzahlen, Karte, Balken | `.facts`, `.card`, `.bars` | Statistik |
-| Import | `.import-row` | Sheet „Kleidung importieren“: mehrere Bilder wählen, je Bild die Art antippen (Oberteil, Hose, Schuhe zuerst), Freistellen und Farbe laufen automatisch |
+| Import | `.import-row`, `.import-kinds` | Sheet „Kleidung importieren“: Bilder wählen, je Bild nur die Art antippen (Oberteil, Hose, Schuhe, Rest hinter „Mehr“, als Raster `.import-kinds`), speichern. Freistellen, Farbe und Name laufen automatisch |
+| Teil markieren | `.mark-frame`, `.mark-photo`, `.mark-box` | Vollbild im Stil der Kamera: Rahmen mit dem Finger um das Teil ziehen, freigestellt wird nur im Rahmen |
 | Sortieren | `.sort` | Auswahl über dem Raster im Schrank |
 | Schritte | `.steps` | nummerierte Anleitung, z. B. Installation |
 
