@@ -1,14 +1,14 @@
-import { COLORS, SEASONS, ZONES, type Item, type Slots, type Zone } from '../types'
+import { COLORS, ZONES, type Item, type Slots, type Zone } from '../types'
 
 /*
  * Outfit-Engine: bewertet, wie gut Teile zusammenpassen, und würfelt stimmige Outfits.
- * Grundlage sind die Tags der Teile (Farben, Jahreszeit, Stil) plus das hochgeladene Stil-Wissen.
+ * Grundlage sind die Farben der Teile plus die eigenen Farbregeln.
  */
 
 const NEUTRAL = new Set(['Schwarz', 'Weiß', 'Grau', 'Beige', 'Marine', 'Braun'])
 const HUE: Record<string, number> = { Rot: 0, Orange: 30, Gelb: 55, Grün: 120, Türkis: 175, Blau: 220, Lila: 275, Rosa: 335 }
 
-// ---------- Stil-Wissen ----------
+// ---------- Farbregeln ----------
 
 export interface Rule {
   a: string
@@ -91,7 +91,7 @@ export function judge(items: Item[], k: Knowledge): Verdict | null {
       const { score, learned } = pairScore(a, b, k)
       sum += score
       n++
-      const note = learned ? ' (aus deinem Stil-Wissen)' : ''
+      const note = learned ? ' (aus deinen Farbregeln)' : ''
       if (score > best.s) best = { s: score, text: (a === b ? `Ton in Ton in ${a}` : `${a} und ${b} passen gut`) + note }
       if (score < worst.s) worst = { s: score, text: `${a} und ${b} beißen sich` + note }
     }
@@ -102,20 +102,6 @@ export function judge(items: Item[], k: Knowledge): Verdict | null {
   if (loud.size > 2) {
     score -= 1.2
     reason = `${loud.size} kräftige Farben auf einmal`
-  }
-  const season = SEASONS.filter((s) => items.every((i) => i.seasons.length === 0 || i.seasons.includes(s)))
-  if (season.length === 0) {
-    score -= 0.8
-    reason ||= 'Die Teile sind für verschiedene Jahreszeiten'
-  }
-  const tagged = items.filter((i) => i.styles.length)
-  if (tagged.length > 1) {
-    const common = tagged[0].styles.filter((s) => tagged.every((i) => i.styles.includes(s)))
-    if (common.length) score += 0.3
-    else {
-      score -= 0.4
-      reason ||= 'Die Stile mischen sich'
-    }
   }
   if (!reason) reason = worst.s < 0 ? worst.text : best.text
   const level = score >= 0.7 ? 'good' : score >= 0 ? 'ok' : 'bold'

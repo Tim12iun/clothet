@@ -11,7 +11,7 @@ const mb = (n: number) => (n < 1048576 ? `${Math.max(1, Math.round(n / 1024))} K
 const standalone = () => window.matchMedia('(display-mode: standalone)').matches || (navigator as { standalone?: boolean }).standalone === true
 const isIos = () => /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
 
-/** Einstellungen: Avatar, Stil-Wissen, Sicherung, Installation und Version. Alles, was man selten braucht. */
+/** Einstellungen: Avatar, Farbregeln, Sicherung, Installation und Version. Alles, was man selten braucht. */
 export function Settings({ online, onClose, toast }: { online: boolean; onClose: () => void; toast: Toast }) {
   const { items, outfits, body, figure, avatarMode, knowledgeText, knowledge, persistent } = useStore()
   const [editor, setEditor] = useState(false)
@@ -77,8 +77,8 @@ export function Settings({ online, onClose, toast }: { online: boolean; onClose:
 
   return (
     <Sheet title="Einstellungen" onClose={onClose}>
-      <div className="field">
-        <span>Avatar</span>
+      <section className="card" aria-labelledby="set-avatar">
+        <h3 id="set-avatar">Avatar</h3>
         <div className="segment" role="tablist" aria-label="Art des Avatars">
           <button role="tab" aria-selected={avatarMode === 'figure'} className={avatarMode === 'figure' ? 'is-on' : ''} onClick={() => setAvatarMode('figure')}>Figur aus Selfie</button>
           <button role="tab" aria-selected={avatarMode === 'photo'} className={avatarMode === 'photo' ? 'is-on' : ''} onClick={() => setAvatarMode('photo')}>Ganzkörperfoto</button>
@@ -87,58 +87,63 @@ export function Settings({ online, onClose, toast }: { online: boolean; onClose:
           <div className="avatar-thumb"><img className={av.photo ? 'is-photo' : ''} src={av.photo ? urlFor(av.photo) : av.url} alt="Aktueller Avatar" /></div>
           {avatarMode === 'figure' ? (
             <div className="avatar-side">
-              <p className="muted">{figure?.face ? 'Dein Gesicht sitzt auf einem Körpermodell. Gesicht, Körperform, Größe und Hautton passt du im Vollbild direkt am Avatar an.' : 'Aus einem Selfie und ein paar Angaben entsteht dein Avatar: weiblich oder männlich, in deiner Größe und deinem Hautton.'}</p>
+              <p className="muted">{figure?.face ? 'Gesicht, Körperform, Größe und Hautton passt du direkt am Avatar an.' : 'Aus einem Selfie und ein paar Angaben entsteht dein Avatar in deiner Größe und deinem Hautton.'}</p>
               <button className={'btn' + (figure?.face ? '' : ' btn-primary')} onClick={() => setEditor(true)} id="open-editor">{figure ? 'Avatar anpassen' : 'Avatar einrichten'}</button>
             </div>
           ) : (
             <div className="avatar-side">
-              <p className="muted">Nimm ein Ganzkörperfoto von dir: frontal, aufrecht, barfuß, Arme leicht ab, von Kopf bis Fuß. Es bleibt auf deinem Gerät.</p>
+              <p className="muted">Ein Foto von dir von Kopf bis Fuß: frontal, aufrecht, Arme leicht ab. Es bleibt auf deinem Gerät.</p>
               <div className="actions">
                 <label className="btn">
                   <IconImage /> Foto wählen
                   <input id="body-file" type="file" accept="image/*" hidden onChange={(e) => { pickBody(e.target.files?.[0]); e.target.value = '' }} />
                 </label>
-                {body && <button className="btn" onClick={() => setBody(null)}>Foto entfernen</button>}
+                {body && <button className="btn" onClick={() => setBody(null)}>Entfernen</button>}
               </div>
             </div>
           )}
         </div>
         {error && <p className="note is-danger" role="alert">{error}</p>}
-      </div>
+      </section>
 
-      <div className="field">
-        <span>Stil-Wissen</span>
-        <p className="muted">Schreib oder lad hoch, welche Farben für dich zusammenpassen. Eine Regel pro Zeile, zum Beispiel „Marine passt zu Beige“ oder „Rot und Rosa vermeiden“. Die Vorschläge richten sich danach.</p>
-        <textarea id="knowledge" rows={5} value={text} onChange={(e) => setText(e.target.value)} onBlur={() => setKnowledge(text)} placeholder={'Marine passt zu Beige\nGrün und Braun passen gut\nRot und Rosa vermeiden'} aria-label="Stil-Wissen" />
-        <div className="actions">
-          <label className="btn">
-            Textdatei laden
-            <input id="knowledge-file" type="file" accept=".txt,.md,text/plain,text/markdown" hidden onChange={(e) => { pickText(e.target.files?.[0]); e.target.value = '' }} />
-          </label>
-          <span className="grow" />
-          <button className="btn btn-primary" id="save-knowledge" onClick={() => { setKnowledge(text); toast('Stil-Wissen gespeichert.') }}>Wissen speichern</button>
+      <section className="card" aria-labelledby="set-rules">
+        <h3 id="set-rules">Farbregeln</h3>
+        <p className="muted">Welche Farben passen für dich zusammen? Eine Regel pro Zeile. Der Zufall hält sich daran.</p>
+        <div className="field">
+          <textarea id="knowledge" rows={4} value={text} onChange={(e) => setText(e.target.value)} onBlur={() => setKnowledge(text)} placeholder={'Marine passt zu Beige\nGrün und Braun passen gut\nRot und Rosa vermeiden'} aria-label="Farbregeln" />
         </div>
         {(pairs.length > 0 || knowledge.ignored > 0) && (
-          <div className="note is-block">
-            <strong>{pairs.length === 1 ? '1 Regel verstanden' : `${pairs.length} Regeln verstanden`}</strong>
+          <div className="rules-read">
+            <span className="muted">{pairs.length === 1 ? '1 Regel verstanden' : `${pairs.length} Regeln verstanden`}{knowledge.ignored > 0 ? `, ${knowledge.ignored === 1 ? '1 Zeile' : `${knowledge.ignored} Zeilen`} übersprungen` : ''}</span>
             {pairs.length > 0 && (
               <ul className="rules">
                 {pairs.slice(0, 12).map((r, i) => (
                   <li key={i} className={r.weight > 0 ? 'is-good' : 'is-bad'}>{r.a} {r.b === '*' ? 'zu allem' : '+ ' + r.b}: {r.weight > 0 ? 'passt' : 'vermeiden'}</li>
                 ))}
+                {pairs.length > 12 && <li className="is-plain">und {pairs.length - 12} weitere</li>}
               </ul>
             )}
-            {pairs.length > 12 && <span>und {pairs.length - 12} weitere</span>}
-            {knowledge.ignored > 0 && <span>{knowledge.ignored === 1 ? '1 Zeile' : `${knowledge.ignored} Zeilen`} ohne erkennbare Farbregel übersprungen.</span>}
           </div>
         )}
-      </div>
+        <div className="pick">
+          <label className="btn">
+            Textdatei laden
+            <input id="knowledge-file" type="file" accept=".txt,.md,text/plain,text/markdown" hidden onChange={(e) => { pickText(e.target.files?.[0]); e.target.value = '' }} />
+          </label>
+          <button className="btn" id="save-knowledge" onClick={() => { setKnowledge(text); toast('Farbregeln gespeichert.') }}>Speichern</button>
+        </div>
+      </section>
 
-      <div className="field">
-        <span>Deine Daten</span>
+      <section className="card" aria-labelledby="set-data">
+        <h3 id="set-data">Deine Daten</h3>
+        <dl className="facts">
+          <div><dt>{items.length === 1 ? 'Teil' : 'Teile'}</dt><dd>{items.length}</dd></div>
+          <div><dt>{outfits.length === 1 ? 'Outfit' : 'Outfits'}</dt><dd>{outfits.length}</dd></div>
+          <div><dt>Speicher</dt><dd>{usage ? mb(usage.used) : '–'}</dd></div>
+        </dl>
         <p className="muted">
-          {items.length === 1 ? '1 Teil' : `${items.length} Teile`} und {outfits.length === 1 ? '1 Outfit' : `${outfits.length} Outfits`} liegen nur auf diesem Gerät{usage ? `, zusammen etwa ${mb(usage.used)}` : ''}.
-          {!persistent ? ' Dieser Browser speichert gerade nichts dauerhaft.' : usage && !usage.safe ? ' Der Browser darf sie bei knappem Speicher löschen. Als installierte App sind sie besser geschützt, eine Sicherung schützt sie ganz.' : ' Eine Sicherung schützt sie, falls du das Gerät wechselst.'}
+          Alles liegt nur auf diesem Gerät.
+          {!persistent ? ' Dieser Browser speichert gerade nichts dauerhaft.' : usage && !usage.safe ? ' Bei knappem Speicher darf der Browser es löschen. Eine Sicherung schützt davor.' : ' Eine Sicherung schützt es, falls du das Gerät wechselst.'}
         </p>
         {pending ? (
           <div className="note is-block" role="alert">
@@ -158,11 +163,11 @@ export function Settings({ online, onClose, toast }: { online: boolean; onClose:
             </label>
           </div>
         )}
-      </div>
+      </section>
 
       {!standalone() && (
-        <div className="field">
-          <span>Als App installieren</span>
+        <section className="card" aria-labelledby="set-install">
+          <h3 id="set-install">Als App installieren</h3>
           {isIos() ? (
             <ol className="steps">
               <li>Öffne Clothet in Safari.</li>
@@ -175,11 +180,11 @@ export function Settings({ online, onClose, toast }: { online: boolean; onClose:
               <li>Wähl „App installieren“ oder „Zum Startbildschirm hinzufügen“.</li>
             </ol>
           )}
-          <p className="muted">Danach startet Clothet wie eine App im Vollbild und läuft auch ohne Netz.</p>
-        </div>
+          <p className="muted">Danach startet Clothet im Vollbild und läuft auch ohne Netz.</p>
+        </section>
       )}
 
-      <p className="muted" id="app-version">Clothet {__APP_VERSION__} · {online ? 'online' : 'offline, alles Gespeicherte bleibt nutzbar'}</p>
+      <p className="muted is-center" id="app-version">Clothet {__APP_VERSION__} · {online ? 'online' : 'offline, alles Gespeicherte bleibt nutzbar'}</p>
       {editor && <AvatarEditor onClose={() => setEditor(false)} toast={toast} />}
     </Sheet>
   )

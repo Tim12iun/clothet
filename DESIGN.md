@@ -62,7 +62,7 @@ Zusätzlich gibt es `--c-guide` (Tannengrün, in beiden Farbmodi gleich) für Hi
 | Sheet-Titel | Inter | `--fs-lg` 20 | 700 |
 | Text, Eingaben, Buttons | Inter | `--fs-md` 16 | 400 / 600 |
 | Nebentext, Chips | Inter | `--fs-sm` 14 | 400 / 500 |
-| Beschriftung, Tabs | Inter | `--fs-xs` 12 | 600, Großbuchstaben mit 0.06em Sperrung nur bei Feld-Beschriftungen |
+| Beschriftung, Tabs | Inter | `--fs-xs` 12 | 600. Feld-Beschriftungen und Kartentitel sind gleich: `--fs-md`, 600, normale Schreibung, keine Großbuchstaben |
 
 Es gibt nur eine Schrift, Inter. Sie liegt als Variable Font in der App selbst (`@font-face` in `tokens.css`), nichts wird von fremden Servern geladen, damit die App offline gleich aussieht. Rangfolge entsteht über Gewicht (400, 500, 600, 700) und Farbe (`--c-ink`, `--c-muted`). Zahlen in Rastern stehen mit `tabular-nums`.
 
@@ -93,14 +93,15 @@ Klassen stehen in `src/styles/app.css`. Bestehende Komponenten wiederverwenden, 
 | Leerer Zustand | `.empty` | ein Satz, was hier erscheint, plus die eine Aktion |
 | Hinweis | `.note` | kurze Rückmeldung in einem Satz |
 | Bühne | `.stage` | Avatar-Fläche 3:4 ohne eigene Kachel, steht auf `--c-stage` und füllt die freie Höhe |
-| Art des Zufalls | `.roll-mode` | kleiner Umschalter oben links auf der Bühne: „Normal“ (klassische Kombinationen) oder „Speziell“ (ungewöhnliche, die auf den zweiten Blick passen). Gilt für den Zufallsknopf |
-| Teil bearbeiten | `.item-edit` | alles auf einer Seite: oben Vorschau am Avatar, Name und Sitz, darunter je Gruppe (Kategorie, Farbe, Jahreszeit, Stil) eine Zeile zum seitlichen Wischen |
+| Zufall | `.roll`, `.fab`, `.icon-btn.is-float` | unten rechts auf der Bühne: der grüne Zufallsknopf, links daneben der Knopf für das Sheet „Zufall“. Ist dort etwas eingestellt, ist er grün hinterlegt |
+| Seitenkopf | `.view-head`, `.view-title` | in allen drei Bereichen gleich: links Titel und eine Zeile Stand, rechts die Aktionen, ganz rechts das Zahnrad |
+| Karte | `.card` | Titel (h3) und Inhalt. Gliedert Statistik und Einstellungen, Kennzahlen darin als `.facts` |
+| Teil bearbeiten | `.item-edit` | alles auf einer Seite: oben Vorschau am Avatar, Name und Sitz, darunter Kategorie und Farbe, alle Werte sichtbar |
 | Wege zum Bild | `.add-ways` | drei gleich große Knöpfe: Kamera, Aus Galerie, Einfügen (übernimmt ein kopiertes, schon freigestelltes Motiv) |
 | Markierrahmen | `.mark-box` | Rahmen mit vier runden Griffen an den Ecken. Ecken ziehen, Rahmen verschieben oder daneben neu aufziehen |
 | Schublade | `.drawer` | weiße Fläche unter der Bühne mit Griff, Umschalter und Auswahl-Raster. Zwei Größen (klein ist Standard), Griff antippen oder wischen. Sie gibt nach, bevor die Bühne zu klein wird, ragt nie über die untere Leiste und ist nach einem Bereichswechsel wieder klein |
 | Auswahl-Kachel | `.pick-tile` | ein Teil im Raster der Schublade, angezogen mit grünem Rahmen und Haken (`.check`) |
 | Zufallsknopf | `.fab` | die eine schwebende Hauptaktion der Anprobe, rechts unten auf der Bühne |
-| Bewertung | `.match` | kleine Karte links oben auf der Bühne: Urteil fett, Grund darunter |
 | Umschalter | `.segment` | zwei bis vier gleichrangige Ansichten, in der Schublade die Körperzonen |
 | Kamera | `.camera` | Vollbild mit Umrisslinie, einem Satz Anleitung und Auslöser. Ersetzt während der Aufnahme das Sheet, liegt also nicht darüber. Immer dunkel (`--c-camera`) |
 | Toast | `.toast` | kurze Bestätigung über der unteren Leiste, verschwindet von selbst |
@@ -111,12 +112,11 @@ Klassen stehen in `src/styles/app.css`. Bestehende Komponenten wiederverwenden, 
 Grundlage ist Entwurf 4A „Klar“ mit dem Zufallsknopf aus 4C.
 
 - **Oben die Bühne** auf `--c-stage`: Titel „Anprobe“, rechts „Heute getragen“ (ein Tipp speichert das Outfit, falls nötig, und trägt es für heute ein), Speichern als Lesezeichen und Einstellungen als Zahnrad. Auf schmalen Telefonen und im Querformat zeigt „Heute getragen“ nur den Haken. Der Avatar steht mittig, die Bühne ist immer 3:4. Ohne eigenes Selfie ist es das neutrale graue Körpermodell.
-- **Links oben auf der Bühne** steht die Bewertung des Outfits als kleine Karte.
 - **Rechts unten auf der Bühne** schwebt der Zufallsknopf („Zufall“ mit Würfel). Er ist die einzige grüne Fläche des Screens. Ist eine Hauptfarbe vorgegeben, zeigt er sie als Punkt.
-- **Unten die Schublade:** Griff, Umschalter für Jacke, Oberteil, Hose, Schuhe und daneben der Filter-Knopf. Darunter das Raster der Teile dieser Zone, drei pro Reihe. Ein Tipp zieht das Teil an. Bei der Jacke steht zuerst „Ohne“, am Ende des Rasters immer „Neues Teil“.
+- **Unten die Schublade:** Griff, Umschalter für Jacke, Oberteil, Hose, Schuhe über die ganze Breite. Darunter das Raster der Teile dieser Zone, drei pro Reihe. Ein Tipp zieht das Teil an. Bei der Jacke steht zuerst „Ohne“, am Ende des Rasters immer „Neues Teil“.
 - Ein Tipp auf den Griff vergrößert oder verkleinert die Schublade. Nur das Raster scrollt, der Screen selbst nicht.
 - Ein Tipp auf eine Körperzone des Avatars zeigt diese Zone in der Schublade, ein Wisch darüber wechselt direkt zum nächsten Teil.
-- Der Filter-Knopf öffnet das eine Sheet „Filter und Zufall“: Jahreszeit, Stil, Hauptfarbe und was beim Würfeln bleibt. Ist etwas gesetzt, trägt der Knopf einen grünen Punkt.
+- Die Anprobe hat keinen Filter. Der Knopf neben „Zufall“ öffnet das Sheet „Zufall“: Art (Normal oder Speziell), Hauptfarbe und welche Teile bleiben. Gefiltert wird nur im Schrank: Suche, Kategorie, Farbe, Sortierung.
 - **Sitz am Avatar** (in „Teil bearbeiten“, ganz oben): kleine Bühne mit dem Avatar und dem Teil, daneben vier Knöpfe (höher, tiefer, kleiner, größer). Die Einstellung gilt nur für dieses Teil. Oberteile werden nie verzerrt, nur skaliert. Einen eigenen Modus dafür gibt es nicht.
 - Im Querformat am Telefon stehen Bühne und Schublade nebeneinander, die Bereiche wandern als schmale Leiste an die linke Seite.
 
@@ -174,7 +174,7 @@ Grundlage ist Entwurf 4A „Klar“ mit dem Zufallsknopf aus 4C.
 
 - **Du-Form**, kurz, freundlich, konkret. So wie eine Freundin mit gutem Ordnungssinn spricht.
 - Buttons sind Verben und sagen genau, was passiert: "Teil hinzufügen", "Outfit speichern", "Löschen".
-- Dinge heißen so, wie man sie zu Hause nennt: **Teil**, **Schrank**, **Outfit**, **Anprobe**, **Avatar**, **Stil-Wissen**, **Zufalls-Outfit**. Nicht "Item", "Asset", "Look-Generator".
+- Dinge heißen so, wie man sie zu Hause nennt: **Teil**, **Schrank**, **Outfit**, **Anprobe**, **Avatar**, **Farbregeln**, **Zufalls-Outfit**. Nicht "Item", "Asset", "Look-Generator".
 - Keine Ausrufezeichen, keine Werbe-Wörter ("smart", "magisch", "KI-powered"), keine Entschuldigungen.
 - Fehler sagen, was passiert ist und was hilft: "Das Foto ließ sich nicht öffnen. Versuch es mit einem JPG oder PNG."
 - Leere Zustände laden ein: "Hier hängen bald deine Outfits."
@@ -183,10 +183,9 @@ Grundlage ist Entwurf 4A „Klar“ mit dem Zufallsknopf aus 4C.
 
 - **Kategorien:** Oberteile, Hosen, Röcke, Kleider, Jacken, Schuhe, Accessoires
 - **Körperzonen:** Jacke, Oberteil, Hose, Schuhe
-- **Stile:** Lässig, Business, Sport, Elegant
-- **Jahreszeiten:** Frühling, Sommer, Herbst, Winter
+- Ein Teil hat nur Art und Farbe. Stile und Jahreszeiten gibt es nicht mehr.
 - **Farben:** Schwarz, Weiß, Grau, Beige, Braun, Rot, Orange, Gelb, Grün, Türkis, Blau, Marine, Lila, Rosa
-- **Bereiche:** Anprobe, Schrank, Outfits. Outfits hat die Ansichten Liste, Woche, Monat und Statistik. Avatar, Stil-Wissen, Sicherung und Installation liegen in den Einstellungen (Zahnrad), es gibt keinen vierten Bereich.
+- **Bereiche:** Anprobe, Schrank, Outfits. Outfits hat die Ansichten Liste, Woche, Monat und Statistik. Avatar, Farbregeln, Sicherung und Installation liegen in den Einstellungen, es gibt keinen vierten Bereich. Das Zahnrad steht in jedem Bereich oben rechts.
 - **Getragen und geplant:** Für heute und frühere Tage heißt ein gewähltes Outfit „getragen“, für kommende Tage „geplant“.
 
 ## 12. Checkliste vor jedem neuen Screen

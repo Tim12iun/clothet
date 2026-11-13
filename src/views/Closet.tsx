@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { IconDown, IconMinus, IconPlus, IconSearch, IconSort, IconUp } from '../icons'
+import { useMemo, useState, type ReactNode } from 'react'
+import { IconDown, IconGear, IconMinus, IconPlus, IconSearch, IconSort, IconUp } from '../icons'
 import { avatarOf } from '../lib/avatar'
 import { fitKind } from '../lib/fitting'
 import { seedSamples } from '../lib/samples'
 import type { Toast } from '../main'
 import { deleteItem, markSeeded, saveItem, urlFor, useStore } from '../store'
-import { CATEGORIES, COLORS, NO_FIT, SEASONS, STYLES, zoneOf, type Category, type Fit, type Item, type Season } from '../types'
+import { CATEGORIES, COLORS, NO_FIT, zoneOf, type Category, type Fit, type Item } from '../types'
 import { Sheet } from './Sheet'
 import { Wear } from './Wear'
 
@@ -13,10 +13,9 @@ const SORTS = { neu: 'Neueste zuerst', alt: 'Älteste zuerst', name: 'Name', kat
 type Sort = keyof typeof SORTS
 const PAGE = 120 // so viele Kacheln auf einmal, damit auch ein sehr großer Schrank flüssig bleibt
 
-export function Closet({ hidden, onAdd, toast, note }: { hidden: boolean; onAdd: () => void; toast: Toast; note: ReactNode }) {
+export function Closet({ hidden, onAdd, onSettings, toast, note }: { hidden: boolean; onAdd: () => void; onSettings: () => void; toast: Toast; note: ReactNode }) {
   const { items } = useStore()
   const [cat, setCat] = useState<Category | null>(null)
-  const [season, setSeason] = useState<Season | null>(null)
   const [color, setColor] = useState<string | null>(null)
   const [q, setQ] = useState('')
   const [openId, setOpenId] = useState<string | null>(null)
@@ -30,9 +29,8 @@ export function Closet({ hidden, onAdd, toast, note }: { hidden: boolean; onAdd:
     const list = items.filter(
       (i) =>
         (!cat || i.category === cat) &&
-        (!season || i.seasons.includes(season)) &&
         (!color || i.color === color) &&
-        (!needle || [i.name, i.category, i.color, i.color2, ...i.seasons, ...i.styles].join(' ').toLowerCase().includes(needle)),
+        (!needle || [i.name, i.category, i.color, i.color2].join(' ').toLowerCase().includes(needle)),
     )
     const by: Record<Sort, (a: Item, b: Item) => number> = {
       neu: (a, b) => b.createdAt - a.createdAt,
@@ -42,9 +40,9 @@ export function Closet({ hidden, onAdd, toast, note }: { hidden: boolean; onAdd:
       farbe: (a, b) => a.color.localeCompare(b.color, 'de') || a.name.localeCompare(b.name, 'de'),
     }
     return list.sort(by[sort])
-  }, [items, cat, season, color, q, sort])
-  const filtered = !!cat || !!season || !!color || !!q.trim()
-  const reset = () => { setCat(null); setSeason(null); setColor(null); setQ('') }
+  }, [items, cat, color, q, sort])
+  const filtered = !!cat || !!color || !!q.trim()
+  const reset = () => { setCat(null); setColor(null); setQ('') }
   function remove(list: Item[], text: string) {
     list.forEach((i) => deleteItem(i.id))
     toast(text, () => list.forEach((i) => saveItem(i)))
@@ -61,12 +59,13 @@ export function Closet({ hidden, onAdd, toast, note }: { hidden: boolean; onAdd:
   return (
     <section className="view" hidden={hidden} aria-label="Schrank">
       <header className="view-head">
-        <div>
+        <div className="view-title">
           <h1>Schrank</h1>
           <p className="muted" aria-live="polite">{filtered ? `${shown.length} von ${items.length} Teilen` : items.length === 1 ? '1 Teil' : `${items.length} Teile`}</p>
         </div>
         <div className="actions">
-          <button className="btn btn-primary" onClick={onAdd} id="add-item"><IconPlus /> Hinzufügen</button>
+          <button className="btn btn-primary is-compact" onClick={onAdd} id="add-item"><IconPlus /> Hinzufügen</button>
+          <button className="icon-btn" onClick={onSettings} aria-label="Einstellungen"><IconGear /></button>
         </div>
       </header>
 
@@ -90,15 +89,12 @@ export function Closet({ hidden, onAdd, toast, note }: { hidden: boolean; onAdd:
               <button key={c} className={'chip' + (cat === c ? ' is-on' : '')} aria-pressed={cat === c} onClick={() => setCat(cat === c ? null : c)}>{c}</button>
             ))}
           </div>
-          <div className="chips" role="group" aria-label="Jahreszeit und Farbe">
-            {SEASONS.map((s) => (
-              <button key={s} className={'chip' + (season === s ? ' is-on' : '')} aria-pressed={season === s} onClick={() => setSeason(season === s ? null : s)}>{s}</button>
-            ))}
-            <span className="chips-gap" />
-            {usedColors.map((c) => (
-              <button key={c} className={'dot' + (color === c ? ' is-on' : '')} style={{ ['--dot' as string]: COLORS[c] }} onClick={() => setColor(color === c ? null : c)} aria-label={c} aria-pressed={color === c} title={c} />
-            ))}
-          </div>
+          <div className="filter-row">
+            <div className="chips" role="group" aria-label="Farbe">
+              {usedColors.map((c) => (
+                <button key={c} className={'dot' + (color === c ? ' is-on' : '')} style={{ ['--dot' as string]: COLORS[c] }} onClick={() => setColor(color === c ? null : c)} aria-label={c} aria-pressed={color === c} title={c} />
+              ))}
+            </div>
           <label className="sort">
             <IconSort />
             <span>Sortieren</span>
@@ -106,6 +102,7 @@ export function Closet({ hidden, onAdd, toast, note }: { hidden: boolean; onAdd:
               {(Object.keys(SORTS) as Sort[]).map((k) => <option key={k} value={k}>{SORTS[k]}</option>)}
             </select>
           </label>
+          </div>
         </div>
       )}
 
@@ -138,20 +135,12 @@ export function Closet({ hidden, onAdd, toast, note }: { hidden: boolean; onAdd:
   )
 }
 
-export function ItemFields({ value, onChange }: { value: Pick<Item, 'name' | 'category' | 'color' | 'seasons' | 'styles'>; onChange: (v: Partial<Item>) => void }) {
-  // Jede Gruppe ist eine Zeile zum seitlichen Wischen, damit alles auf eine Seite passt. Das Gewählte steht beim Öffnen im Blick
-  const rows = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    rows.current?.querySelectorAll<HTMLElement>('.chips').forEach((row) => {
-      const on = row.querySelector<HTMLElement>('.is-on')
-      if (on) row.scrollLeft = Math.max(0, on.offsetLeft - row.offsetLeft - row.clientWidth / 2 + on.offsetWidth / 2)
-    })
-  }, [])
+export function ItemFields({ value, onChange }: { value: Pick<Item, 'category' | 'color'>; onChange: (v: Partial<Item>) => void }) {
   return (
-    <div className="item-rows" ref={rows}>
+    <div className="item-rows">
       <div className="field">
         <span>Kategorie</span>
-        <div className="chips">
+        <div className="chips wrap">
           {CATEGORIES.map((c) => (
             <button key={c} type="button" className={'chip' + (value.category === c ? ' is-on' : '')} aria-pressed={value.category === c} onClick={() => onChange({ category: c })}>{c}</button>
           ))}
@@ -159,32 +148,10 @@ export function ItemFields({ value, onChange }: { value: Pick<Item, 'name' | 'ca
       </div>
       <div className="field">
         <span>Farbe: {value.color}</span>
-        <div className="chips">
+        <div className="chips wrap">
           {Object.keys(COLORS).map((c) => (
             <button key={c} type="button" className={'dot' + (value.color === c ? ' is-on' : '')} style={{ ['--dot' as string]: COLORS[c] }} onClick={() => onChange({ color: c })} aria-label={c} aria-pressed={value.color === c} title={c} />
           ))}
-        </div>
-      </div>
-      <div className="field">
-        <span>Jahreszeit</span>
-        <div className="chips">
-          {SEASONS.map((s) => {
-            const on = value.seasons.includes(s)
-            return (
-              <button key={s} type="button" className={'chip' + (on ? ' is-on' : '')} aria-pressed={on} onClick={() => onChange({ seasons: on ? value.seasons.filter((x) => x !== s) : [...value.seasons, s] })}>{s}</button>
-            )
-          })}
-        </div>
-      </div>
-      <div className="field">
-        <span>Stil</span>
-        <div className="chips">
-          {STYLES.map((t) => {
-            const on = value.styles.includes(t)
-            return (
-              <button key={t} type="button" className={'chip' + (on ? ' is-on' : '')} aria-pressed={on} onClick={() => onChange({ styles: on ? value.styles.filter((x) => x !== t) : [...value.styles, t] })}>{t}</button>
-            )
-          })}
         </div>
       </div>
     </div>

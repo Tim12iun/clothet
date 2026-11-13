@@ -47,7 +47,7 @@ Rahmen
 Tastatur
 - [ ] Schrank, Suchfeld: Das Feld bleibt über der Tastatur sichtbar.
 - [ ] Teil hinzufügen, Name: Feld sichtbar, „Speichern“ nach dem Schließen der Tastatur erreichbar.
-- [ ] Einstellungen, Stil-Wissen: Textfeld sichtbar, das Sheet scrollt, die Seite dahinter nicht.
+- [ ] Einstellungen, Farbregeln: Textfeld sichtbar, das Sheet scrollt, die Seite dahinter nicht.
 
 Kamera und Fotos
 - [ ] Teil hinzufügen, „Foto aufnehmen“: Safari fragt nach der Kamera, das Bild erscheint mit Umrisslinie.

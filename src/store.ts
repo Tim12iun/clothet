@@ -74,10 +74,9 @@ export async function load(): Promise<boolean> {
     for (const [k, v] of await entries(db)) {
       const key = String(k)
       if (key.startsWith('item:')) {
-        // Ältere Einträge an das aktuelle Format anpassen; Beispiel-Teile der ersten Version werden ersetzt
+        // Ältere Einträge an das aktuelle Format anpassen
         const it = v as Omit<Item, 'category'> & { category: string }
-        if (it.sample && !it.styles) { del(k, db); continue }
-        items.push({ ...it, styles: it.styles ?? [], category: (it.category === 'Kleider & Röcke' ? 'Kleider' : it.category) as Item['category'] })
+        items.push({ ...it, category: (it.category === 'Kleider & Röcke' ? 'Kleider' : it.category) as Item['category'] })
       } else if (key.startsWith('outfit:')) {
         if ((v as Outfit).slots) outfits.push(v as Outfit)
         else del(k, db) // Collage-Outfits der ersten Version gibt es nicht mehr

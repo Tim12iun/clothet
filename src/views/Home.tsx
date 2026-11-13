@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { IconBookmark, IconCheck, IconDice, IconGear, IconPlus, IconSliders } from '../icons'
 import { DRAW_ORDER, avatarOf } from '../lib/avatar'
-import { judge, randomOutfit, type Pools, type RandomPrefs } from '../lib/engine'
+import { randomOutfit, type Pools, type RandomPrefs } from '../lib/engine'
 import { ensureOutfit, today } from '../lib/outfits'
 import { seedSamples } from '../lib/samples'
 import type { Toast } from '../main'
 import { deleteOutfit, markSeeded, setWorn, urlFor, useStore } from '../store'
-import { COLORS, SEASONS, STYLES, ZONES, ZONE_CATEGORIES, ZONE_LABEL, type Filter, type Item, type Season, type Slots, type Style, type Zone } from '../types'
+import { COLORS, ZONES, ZONE_CATEGORIES, ZONE_LABEL, type Item, type Slots, type Zone } from '../types'
 import { Sheet } from './Sheet'
 import { Wear } from './Wear'
 
@@ -25,7 +25,6 @@ interface Props {
 export function Home({ hidden, slots, setSlots, onSettings, onAdd, toast }: Props) {
   const { items, body, figure, avatarMode, knowledge, outfits, worn: wornDays } = useStore()
   const av = useMemo(() => avatarOf(body, figure, avatarMode), [body, figure, avatarMode])
-  const [filter, setFilter] = useState<Filter>({})
   const [prefs, setPrefs] = useState<RandomPrefs>({ mainColor: null, keep: [], mode: 'normal' })
   const [prefsOpen, setPrefsOpen] = useState(false)
   const [zone, setZone] = useState<Zone>('top')
@@ -40,12 +39,9 @@ export function Home({ hidden, slots, setSlots, onSettings, onAdd, toast }: Prop
 
   // Zonen, die mit Absicht leer sind: ein zweiter Tipp auf das angezogene Teil zieht es wieder aus
   const [bare, setBare] = useState<Zone[]>([])
-  const pools = useMemo(() => {
-    const ok = (i: Item) => (!filter.season || i.seasons.includes(filter.season)) && (!filter.style || i.styles.includes(filter.style))
-    return Object.fromEntries(ZONES.map((z) => [z, items.filter((i) => ZONE_CATEGORIES[z].includes(i.category) && ok(i))])) as Pools
-  }, [items, filter])
+  const pools = useMemo(() => Object.fromEntries(ZONES.map((z) => [z, items.filter((i) => ZONE_CATEGORIES[z].includes(i.category))])) as Pools, [items])
 
-  // Was wirklich getragen wird: die Auswahl, sofern sie zum Filter passt, sonst das erste passende Teil.
+  // Was wirklich getragen wird: die Auswahl, sonst das erste Teil der Zone.
   const worn = useMemo(() => {
     const w = {} as Record<Zone, Item | null>
     for (const z of ZONES) w[z] = pools[z].find((i) => i.id === slots[z]) ?? (z === 'jacket' || bare.includes(z) ? null : pools[z][0] ?? null)
@@ -56,7 +52,7 @@ export function Home({ hidden, slots, setSlots, onSettings, onAdd, toast }: Prop
   const wornList = ZONES.filter((z) => !(z === 'bottom' && isDress)).map((z) => worn[z]).filter((i): i is Item => !!i)
   const wornSlots = Object.fromEntries(ZONES.map((z) => [z, worn[z]?.id ?? null])) as Slots
 
-  // Auswahl mit dem abgleichen, was zu sehen ist (z. B. nach einem Filterwechsel)
+  // Auswahl mit dem abgleichen, was zu sehen ist (z. B. nach dem Löschen eines Teils)
   useEffect(() => {
     if (ZONES.some((z) => wornSlots[z] !== slots[z])) setSlots(wornSlots)
     // Kommt von anderswo wieder ein Teil in die Zone (Zufall, Wischen, geladenes Outfit), gilt sie nicht mehr als leer
@@ -125,15 +121,18 @@ export function Home({ hidden, slots, setSlots, onSettings, onAdd, toast }: Prop
     setBusy(null)
   }
 
-  const filtered = !!filter.season || !!filter.style
+  const tuned = prefs.mode !== 'normal' || !!prefs.mainColor || prefs.keep.length > 0
   const list = pools[zone]
   const dressBlocks = zone === 'bottom' && isDress
 
   return (
     <section className={'home' + (open ? ' is-open' : '')} hidden={hidden} aria-label="Anprobe">
-      <header className="home-head">
-        <h1>Anprobe</h1>
-        <div className="home-head-actions">
+      <header className="view-head home-head">
+        <div className="view-title">
+          <h1>Anprobe</h1>
+          <p className="muted">{wornList.length === 0 ? 'Noch nichts an' : saved ? 'Gespeichert' : wornList.length === 1 ? '1 Teil an' : `${wornList.length} Teile an`}</p>
+        </div>
+        <div className="actions">
           <button className={'btn is-compact' + (wornToday ? ' is-on' : '') + (busy === 'worn' ? ' is-busy' : '')} onClick={wearToday} disabled={!wornList.length} aria-pressed={wornToday} aria-label="Heute getragen" id="worn-today"><IconCheck /><span>Heute getragen</span></button>
           <button className={'icon-btn' + (saved ? ' is-on' : '')} onClick={save} disabled={!wornList.length} aria-label={saved ? 'Outfit ist gespeichert' : 'Outfit speichern'} aria-pressed={!!saved} id="save-outfit"><IconBookmark /></button>
           <button className="icon-btn" onClick={onSettings} aria-label="Einstellungen" id="open-settings"><IconGear /></button>
@@ -176,14 +175,13 @@ export function Home({ hidden, slots, setSlots, onSettings, onAdd, toast }: Prop
           </div>
         ) : (
           <>
-            <div className="segment roll-mode" role="group" aria-label="Art des Zufalls">
-              <button className={prefs.mode === 'normal' ? 'is-on' : ''} aria-pressed={prefs.mode === 'normal'} onClick={() => setPrefs({ ...prefs, mode: 'normal' })} title="Klassische Kombinationen">Normal</button>
-              <button className={prefs.mode === 'special' ? 'is-on' : ''} aria-pressed={prefs.mode === 'special'} onClick={() => setPrefs({ ...prefs, mode: 'special' })} title="Ungewöhnliche Kombinationen, die auf den zweiten Blick passen">Speziell</button>
+            <div className="roll">
+              <button className={'icon-btn is-float' + (tuned ? ' is-on' : '')} onClick={() => setPrefsOpen(true)} id="open-prefs" aria-label="Zufall einstellen"><IconSliders /></button>
+              <button className="fab" onClick={roll} id="roll" aria-label="Zufall: Outfit würfeln">
+                <IconDice /> Zufall
+                {prefs.mainColor && <span className="dot is-small" style={{ ['--dot' as string]: COLORS[prefs.mainColor] }} title={'Hauptfarbe ' + prefs.mainColor} />}
+              </button>
             </div>
-            <button className="fab" onClick={roll} id="roll" aria-label="Zufall: Outfit würfeln">
-              <IconDice /> Zufall
-              {prefs.mainColor && <span className="dot is-small" style={{ ['--dot' as string]: COLORS[prefs.mainColor] }} title={'Hauptfarbe ' + prefs.mainColor} />}
-            </button>
           </>
         )}
       </div>
@@ -206,7 +204,6 @@ export function Home({ hidden, slots, setSlots, onSettings, onAdd, toast }: Prop
               <div className="segment grow" role="tablist" aria-label="Körperzone">
                 {ZONES.map((z) => <button key={z} role="tab" aria-selected={zone === z} className={zone === z ? 'is-on' : ''} onClick={() => setZone(z)}>{ZONE_LABEL[z]}</button>)}
               </div>
-              <button className={'btn is-compact' + (filtered || prefs.mainColor || prefs.keep.length ? ' is-on' : '')} onClick={() => setPrefsOpen(true)} id="open-prefs"><IconSliders /> Filter</button>
             </div>
             <div className="drawer-body">
               {dressBlocks ? (
@@ -230,43 +227,31 @@ export function Home({ hidden, slots, setSlots, onSettings, onAdd, toast }: Prop
                   <button className="pick-tile is-add" onClick={onAdd}><IconPlus />Neues Teil</button>
                 </div>
               )}
-              {!dressBlocks && filtered && list.length === 0 && <p className="muted drawer-note">Zu diesem Filter passt hier kein Teil.</p>}
             </div>
         </>
       </div>
 
       {prefsOpen && (
-        <Sheet title="Filter und Zufall" onClose={() => setPrefsOpen(false)}>
+        <Sheet title="Zufall" onClose={() => setPrefsOpen(false)}>
           <div className="field">
-            <span>Jahreszeit</span>
-            <div className="chips wrap">
-              {SEASONS.map((s: Season) => {
-                const on = filter.season === s
-                return <button key={s} className={'chip' + (on ? ' is-on' : '')} aria-pressed={on} onClick={() => setFilter({ ...filter, season: on ? undefined : s })}>{s}</button>
-              })}
+            <span>Art</span>
+            <div className="segment" role="group" aria-label="Art des Zufalls" id="roll-mode">
+              <button className={prefs.mode === 'normal' ? 'is-on' : ''} aria-pressed={prefs.mode === 'normal'} onClick={() => setPrefs({ ...prefs, mode: 'normal' })}>Normal</button>
+              <button className={prefs.mode === 'special' ? 'is-on' : ''} aria-pressed={prefs.mode === 'special'} onClick={() => setPrefs({ ...prefs, mode: 'special' })}>Speziell</button>
             </div>
+            <p className="muted">{prefs.mode === 'normal' ? 'Ruhige Kombinationen: neutrale Farben und höchstens eine kräftige.' : 'Ungewöhnliche Kombinationen mit genau einem spannenden Farbpaar.'}</p>
           </div>
           <div className="field">
-            <span>Stil</span>
-            <div className="chips wrap">
-              {STYLES.map((s: Style) => {
-                const on = filter.style === s
-                return <button key={s} className={'chip' + (on ? ' is-on' : '')} aria-pressed={on} onClick={() => setFilter({ ...filter, style: on ? undefined : s })}>{s}</button>
-              })}
-            </div>
-          </div>
-          <div className="field">
-            <span>Hauptfarbe beim Würfeln</span>
+            <span>Hauptfarbe{prefs.mainColor ? ': ' + prefs.mainColor : ''}</span>
             <div className="chips wrap">
               <button className={'chip' + (!prefs.mainColor ? ' is-on' : '')} onClick={() => setPrefs({ ...prefs, mainColor: null })}>Egal</button>
               {Object.keys(COLORS).filter((c) => items.some((i) => i.color === c)).map((c) => (
                 <button key={c} className={'dot' + (prefs.mainColor === c ? ' is-on' : '')} style={{ ['--dot' as string]: COLORS[c] }} onClick={() => setPrefs({ ...prefs, mainColor: c })} aria-label={c} aria-pressed={prefs.mainColor === c} title={c} />
               ))}
-              {prefs.mainColor && <span className="muted">{prefs.mainColor}</span>}
             </div>
           </div>
           <div className="field">
-            <span>Beim Würfeln behalten</span>
+            <span>Diese Teile behalten</span>
             <div className="chips wrap">
               {ZONES.map((z) => {
                 const on = prefs.keep.includes(z)
@@ -275,7 +260,7 @@ export function Home({ hidden, slots, setSlots, onSettings, onAdd, toast }: Prop
             </div>
           </div>
           <div className="actions">
-            <button className="btn" onClick={() => { setFilter({}); setPrefs({ ...prefs, mainColor: null, keep: [] }) }}>Zurücksetzen</button>
+            <button className="btn" onClick={() => setPrefs({ mode: 'normal', mainColor: null, keep: [] })} disabled={!tuned}>Zurücksetzen</button>
             <span className="grow" />
             <button className="btn btn-primary" id="roll-prefs" onClick={() => { setPrefsOpen(false); roll() }}><IconDice /> Würfeln</button>
           </div>

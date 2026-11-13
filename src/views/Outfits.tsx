@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react'
-import { IconCheck, IconChevronLeft, IconChevronRight, IconPlus } from '../icons'
+import { IconCheck, IconChevronLeft, IconChevronRight, IconGear, IconPlus } from '../icons'
 import { ensureOutfit, fromIso, hasParts, iso, today as todayIso } from '../lib/outfits'
 import type { Toast } from '../main'
 import { deleteOutfit, planOutfit, restoreOutfit, saveOutfit, setWorn, urlFor, useStore } from '../store'
@@ -15,9 +15,9 @@ const times = (n: number) => (n === 0 ? 'noch nie getragen' : n === 1 ? '1-mal g
 const addDays = (d: Date, n: number) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n)
 const monday = (d: Date) => addDays(d, -((d.getDay() + 6) % 7))
 
-interface Props { hidden: boolean; slots: Slots; onWear: (o: Outfit) => void; onHome: () => void; toast: Toast; note: ReactNode }
+interface Props { hidden: boolean; slots: Slots; onWear: (o: Outfit) => void; onHome: () => void; onSettings: () => void; toast: Toast; note: ReactNode }
 
-export function Outfits({ hidden, slots, onWear, onHome, toast, note }: Props) {
+export function Outfits({ hidden, slots, onWear, onHome, onSettings, toast, note }: Props) {
   const { outfits, calendar, worn } = useStore()
   const [mode, setMode] = useState<Mode>('liste')
   const [openId, setOpenId] = useState<string | null>(null)
@@ -59,9 +59,12 @@ export function Outfits({ hidden, slots, onWear, onHome, toast, note }: Props) {
   return (
     <section className="view" hidden={hidden} aria-label="Outfits">
       <header className="view-head">
-        <div>
+        <div className="view-title">
           <h1>Outfits</h1>
           <p className="muted">{outfits.length === 1 ? '1 Outfit gespeichert' : `${outfits.length} Outfits gespeichert`}</p>
+        </div>
+        <div className="actions">
+          <button className="icon-btn" onClick={onSettings} aria-label="Einstellungen"><IconGear /></button>
         </div>
       </header>
       {note}

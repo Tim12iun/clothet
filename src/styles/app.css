@@ -47,7 +47,11 @@ button, label.btn, .nav, .home-head, .view-head, .segment, .chips, .sheet-head, 
   padding: calc(var(--safe-top) + var(--s-4)) max(var(--gutter), var(--safe-right)) var(--s-6) max(var(--gutter), var(--sl));
 }
 .view > * { flex: none; width: 100%; max-width: var(--maxw); margin-inline: auto; }
-.view-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--s-3); }
+.view-head { display: flex; align-items: center; justify-content: space-between; gap: var(--s-2); min-height: 56px; }
+/* Kopf jeder Seite: links Titel mit einer Zeile Stand, rechts die Aktionen, ganz rechts immer die Einstellungen */
+.view-title { flex: 1 1 auto; display: flex; flex-direction: column; gap: 2px; }
+.view-title h1, .view-title p { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.view-head .actions { flex: none; flex-wrap: nowrap; gap: var(--s-1); margin-right: calc(-1 * var(--s-3)); }
 
 /* Buttons */
 .btn {
@@ -198,7 +202,7 @@ button, label.btn, .nav, .home-head, .view-head, .segment, .chips, .sheet-head, 
 
 /* Formular */
 .field { display: flex; flex-direction: column; gap: var(--s-2); min-width: 0; }
-.field > span:first-child { font-size: var(--fs-xs); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--c-muted); }
+.field > span:first-child, .card > h3 { font: 600 var(--fs-md) / var(--lh-tight) var(--font-body); color: var(--c-ink); }
 .field input[type='text'] {
   min-height: var(--tap); padding: 0 var(--s-3); width: 100%;
   background: var(--c-tile); border: 1px solid var(--c-line); border-radius: var(--r-sm);
@@ -255,11 +259,7 @@ button, label.btn, .nav, .home-head, .view-head, .segment, .chips, .sheet-head, 
   background: var(--c-stage); padding-top: var(--safe-top);
 }
 .home > * { flex: none; width: 100%; max-width: 560px; margin-inline: auto; }
-.home-head {
-  display: flex; align-items: center; justify-content: space-between; gap: var(--s-2); min-height: 56px;
-  padding-left: max(20px, var(--sl)); padding-right: max(var(--s-1), var(--safe-right));
-}
-.home-head-actions { display: flex; }
+.home-head { padding: var(--s-4) max(var(--gutter), var(--safe-right)) var(--s-2) max(var(--gutter), var(--sl)); }
 .stage-wrap { position: relative; flex: 1 1 0; min-height: 200px; display: flex; justify-content: center; align-items: center; padding-bottom: var(--s-2); }
 .stage {
   position: relative; height: 100%; aspect-ratio: 3 / 4; max-width: 100%;
@@ -286,11 +286,11 @@ button, label.btn, .nav, .home-head, .view-head, .segment, .chips, .sheet-head, 
   background: var(--c-surface); border-radius: var(--r-lg); box-shadow: var(--sh-2);
   text-align: center; color: var(--c-muted);
 }
-/* Art des Zufalls: steht sichtbar auf der Bühne, oben links, und gilt für den Zufallsknopf */
-.roll-mode { position: absolute; z-index: 2; top: var(--s-2); left: max(var(--gutter), var(--sl)); background: var(--c-surface); box-shadow: var(--sh-1); }
-.roll-mode button { padding: 0 var(--s-3); font-size: var(--fs-xs); }
+/* Zufall: schwebt unten rechts auf der Bühne, links daneben der Knopf für seine Einstellungen */
+.roll { position: absolute; z-index: 3; right: max(var(--gutter), var(--safe-right)); bottom: var(--s-4); display: flex; align-items: center; gap: var(--s-2); }
+.icon-btn.is-float { background: var(--c-surface); box-shadow: var(--sh-1); border-radius: var(--r-md); width: 56px; height: 56px; }
+.icon-btn.is-float.is-on { background: var(--c-accent-soft); }
 .fab {
-  position: absolute; z-index: 3; right: max(var(--gutter), var(--safe-right)); bottom: var(--s-4);
   display: inline-flex; align-items: center; gap: var(--s-3); min-height: 56px; padding: 0 20px 0 16px;
   background: var(--c-accent); color: var(--c-accent-ink); border-radius: var(--r-md); box-shadow: var(--sh-fab);
   font-weight: 600; font-size: var(--fs-md);
@@ -342,13 +342,15 @@ button, label.btn, .nav, .home-head, .view-head, .segment, .chips, .sheet-head, 
   .nav-inner { width: 60px; }
   .home { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); grid-template-rows: auto minmax(0, 1fr); }
   .home > * { max-width: none; }
-  .home-head { grid-column: 1; min-height: var(--tap); padding-left: max(var(--s-2), var(--sl)); justify-content: flex-end; }
+  .home-head { grid-column: 1; min-height: var(--tap); padding: 0 var(--s-2) 0 max(var(--s-2), var(--sl)); justify-content: flex-end; }
+  .home-head .actions { margin-right: 0; }
   /* Im Querformat am Telefon ist die Kopfzeile schmal: Titel und Beschriftung bleiben für Screenreader, sichtbar sind die Zeichen */
-  .home-head h1, .home-head .btn.is-compact span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .home-head .view-title, .home-head .btn.is-compact span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .home-head .btn.is-compact { width: var(--tap); padding: 0; }
   .stage-wrap { grid-column: 1; min-height: 0; }
-  .roll-mode { top: auto; bottom: var(--s-2); left: var(--s-2); }
-  .fab { min-height: var(--tap); padding: 0 var(--s-3); gap: var(--s-2); right: var(--s-2); bottom: var(--s-2); }
+  .roll { right: var(--s-2); bottom: var(--s-2); }
+  .fab { min-height: var(--tap); padding: 0 var(--s-3); gap: var(--s-2); }
+  .icon-btn.is-float { width: var(--tap); height: var(--tap); }
   .drawer, .home.is-open .drawer { grid-column: 2; grid-row: 1 / span 2; height: 100%; max-height: none; border-radius: var(--r-lg) 0 0 var(--r-lg); padding-right: var(--safe-right); }
   .drawer-handle { display: none; }
   .drawer-bar { padding: var(--s-3) var(--s-2) 0; }
@@ -430,8 +432,6 @@ button, label.btn, .nav, .home-head, .view-head, .segment, .chips, .sheet-head, 
 /* Kompakter Button und gedrückter Zustand (Umschalter wie "Heute getragen") */
 .btn.is-compact { padding-inline: var(--s-3); font-size: var(--fs-sm); white-space: nowrap; }
 .btn.is-on { background: var(--c-accent-soft); border-color: var(--c-accent); }
-.home-head h1 { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.home-head-actions { flex: none; align-items: center; gap: var(--s-1); }
 /* Schmale Telefone: Die Beschriftung bleibt für Screenreader, sichtbar ist der Haken */
 @media (max-width: 379px) {
   .home-head .btn.is-compact span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
@@ -578,7 +578,6 @@ noscript { display: block; padding: var(--s-6) var(--s-4); text-align: center; }
 .item-edit .fit-side { flex: 1 1 0; gap: var(--s-3); align-items: stretch; }
 .item-edit .fit-side .pad { grid-template-columns: repeat(4, var(--tap)); gap: var(--s-1); }
 .item-edit .field { gap: var(--s-1); }
-.item-edit .chips > * { flex: none; }
 /* Wischen an der Figur: Nur das gewischte Teil gleitet kurz herein */
 .wear-img.is-next { animation: wear-next var(--t-fast, 160ms) var(--ease); }
 .wear-img.is-prev { animation: wear-prev var(--t-fast, 160ms) var(--ease); }
@@ -587,3 +586,13 @@ noscript { display: block; padding: var(--s-6) var(--s-4); text-align: center; }
 @media (max-width: 359px) {
   .item-edit .fit-side .pad { grid-template-columns: repeat(2, var(--tap)); }
 }
+/* Schrank: Farben und Sortierung in einer Zeile */
+.filter-row { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); }
+.filter-row .chips { flex: 1 1 0; padding-inline: 4px; }
+.filter-row .sort { flex: none; align-self: center; max-width: 55%; }
+.filter-row .sort span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+/* Karten in Sheets (Einstellungen): dieselbe Karte wie auf den Seiten, Kennzahlen darin als ruhige Kacheln */
+.card .facts div { background: var(--c-tile); border: 0; }
+.card .facts dd { font-size: var(--fs-lg); white-space: nowrap; }
+.rules-read { display: flex; flex-direction: column; gap: var(--s-2); }
+.muted.is-center { text-align: center; }

@@ -1,12 +1,6 @@
 export const CATEGORIES = ['Oberteile', 'Hosen', 'Röcke', 'Kleider', 'Jacken', 'Schuhe', 'Accessoires'] as const
 export type Category = (typeof CATEGORIES)[number]
 
-export const SEASONS = ['Frühling', 'Sommer', 'Herbst', 'Winter'] as const
-export type Season = (typeof SEASONS)[number]
-
-export const STYLES = ['Lässig', 'Business', 'Sport', 'Elegant'] as const
-export type Style = (typeof STYLES)[number]
-
 export const COLORS: Record<string, string> = {
   Schwarz: '#1c1c1c', Weiß: '#f5f5f2', Grau: '#8d9291', Beige: '#d8c7a6', Braun: '#7a5236',
   Rot: '#c8372d', Orange: '#e58a2b', Gelb: '#e8cf4a', Grün: '#4f8a55', Türkis: '#3aa6a0',
@@ -19,8 +13,6 @@ export interface Item {
   category: Category
   color: string // Hauptfarbe
   color2?: string // Nebenfarbe, falls deutlich vorhanden
-  seasons: Season[]
-  styles: Style[]
   image: Blob // Bild für den Schrank
   wearImage?: Blob // nur Schuhe: ein Schuh von vorne, wird am Avatar für beide Füße verwendet (einmal gespiegelt)
   fit?: Fit // Feineinstellung des Sitzes nur für dieses Teil (Höhe und Größe)
@@ -57,9 +49,6 @@ export interface Outfit {
   preview: Blob
   createdAt: number
 }
-
-/** Was eine Filter-Auswahl auf dem Hauptscreen bedeutet. */
-export type Filter = { season?: Season; style?: Style }
 
 export const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36)
 

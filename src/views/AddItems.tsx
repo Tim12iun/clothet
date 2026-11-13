@@ -99,7 +99,7 @@ export function AddItems({ onClose, toast }: { onClose: () => void; toast: Toast
       const items: Item[] = []
       for (let i = 0; i < rows.length; i++) {
         const r = rows[i]
-        items.push({ id: uid(), name: `${SINGULAR[r.category]} in ${r.color}`, category: r.category, color: r.color, color2: r.color2, seasons: ['Frühling', 'Sommer', 'Herbst', 'Winter'], styles: [], image: await toBlob(r.cut ?? r.photo), wearImage: r.category === 'Schuhe' && r.wear ? await toBlob(r.wear) : undefined, createdAt: now - i })
+        items.push({ id: uid(), name: `${SINGULAR[r.category]} in ${r.color}`, category: r.category, color: r.color, color2: r.color2, image: await toBlob(r.cut ?? r.photo), wearImage: r.category === 'Schuhe' && r.wear ? await toBlob(r.wear) : undefined, createdAt: now - i })
       }
       await addItems(items)
       toast(items.length === 1 ? '1 Teil hängt jetzt im Schrank.' : `${items.length} Teile hängen jetzt im Schrank.`)
@@ -133,7 +133,7 @@ export function AddItems({ onClose, toast }: { onClose: () => void; toast: Toast
   return (
     <Sheet title="Kleidung hinzufügen" onClose={onClose}>
       {rows.length === 0 ? (
-        <p className="muted">Fotografier ein Teil mit Umrisslinie oder wähl Bilder aus deiner Galerie, auch mehrere auf einmal. Clothet schneidet es aus und erkennt Farbe und Art. Am saubersten wird es so: In Fotos das Teil gedrückt halten, „Kopieren“ wählen und hier einfügen.</p>
+        <p className="muted">Clothet stellt jedes Teil frei und erkennt Art und Farbe. Am saubersten: in der Fotos-App das Teil gedrückt halten, „Kopieren“ wählen und hier einfügen.</p>
       ) : (
         <>
           <p className="muted">Stimmt die Art? Sonst antippen. Ist ein Teil nicht sauber ausgeschnitten, tipp auf „Zuschnitt“ unter dem Bild.</p>

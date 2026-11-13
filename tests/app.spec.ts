@@ -568,12 +568,20 @@ test('Zufall: Normal bleibt ruhig, Speziell bringt ein spannendes Farbpaar', asy
     }
     return all
   }
-  await expect(page.locator('.roll-mode button', { hasText: 'Normal' })).toHaveAttribute('aria-pressed', 'true')
   await page.locator('#roll').click()
   expect((await colors()).length).toBeGreaterThan(1)
-  await page.locator('.roll-mode button', { hasText: 'Speziell' }).click()
-  await expect(page.locator('.roll-mode button', { hasText: 'Speziell' })).toHaveAttribute('aria-pressed', 'true')
-  await page.locator('#roll').click()
+  // Die Einstellungen des Zufalls liegen in einem eigenen Sheet, ohne Filter für den Schrank
+  await page.locator('#open-prefs').click()
+  await expect(page.locator('.sheet h2')).toHaveText('Zufall')
+  await expect(page.locator('#roll-mode button', { hasText: 'Normal' })).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.locator('.sheet')).not.toContainText(/Jahreszeit|Stil|Filter/)
+  await expectNoOverflow(page, 'Sheet Zufall')
+  await expectAccessible(page, 'Sheet Zufall')
+  await page.locator('#roll-mode button', { hasText: 'Speziell' }).click()
+  await expect(page.locator('#roll-mode button', { hasText: 'Speziell' })).toHaveAttribute('aria-pressed', 'true')
+  await page.locator('#roll-prefs').click()
+  await expect(page.locator('.sheet')).toHaveCount(0)
+  await expect(page.locator('#open-prefs')).toHaveClass(/is-on/)
   expect((await colors()).length).toBeGreaterThan(1)
   expect(NEUTRAL.length).toBe(6)
   await expectNoOverflow(page, 'Zufall mit Art')

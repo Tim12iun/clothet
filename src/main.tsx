@@ -85,8 +85,8 @@ function App() {
     <div className="app">
       <main className="app-main" ref={main}>
         <Home hidden={tab !== 'anprobe'} slots={slots} setSlots={setSlots} onSettings={() => setSheet('settings')} onAdd={() => setSheet('add')} toast={toast} />
-        <Closet hidden={tab !== 'schrank'} onAdd={() => setSheet('add')} toast={toast} note={storageNote} />
-        <Outfits hidden={tab !== 'outfits'} slots={slots} onHome={() => go('anprobe')} onWear={(o) => { setSlots(o.slots); go('anprobe'); toast(`„${o.name}“ ist geladen. Tausch Teile aus, das gespeicherte Outfit bleibt.`) }} toast={toast} note={storageNote} />
+        <Closet hidden={tab !== 'schrank'} onAdd={() => setSheet('add')} onSettings={() => setSheet('settings')} toast={toast} note={storageNote} />
+        <Outfits hidden={tab !== 'outfits'} slots={slots} onSettings={() => setSheet('settings')} onHome={() => go('anprobe')} onWear={(o) => { setSlots(o.slots); go('anprobe'); toast(`„${o.name}“ ist geladen. Tausch Teile aus, das gespeicherte Outfit bleibt.`) }} toast={toast} note={storageNote} />
         {update && (
           <div className="toast" role="status">
             <span>Eine neue Version ist da.</span>
@@ -122,7 +122,7 @@ function Skeleton() {
     <div className="app" role="status" aria-label="Schrank wird geöffnet">
       <main className="app-main">
         <section className="home" aria-hidden="true">
-          <header className="home-head"><h1>Anprobe</h1></header>
+          <header className="view-head home-head"><div className="view-title"><h1>Anprobe</h1></div></header>
           <div className="stage-wrap"><div className="stage skeleton" /></div>
           <div className="drawer"><div className="drawer-body"><div className="picks">{[0, 1, 2].map((i) => <span key={i} className="pick-tile skeleton" />)}</div></div></div>
         </section>
