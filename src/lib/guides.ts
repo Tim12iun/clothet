@@ -14,3 +14,6 @@ export const GUIDES: Record<GuideKey, Guide> = {
   'Schuh von vorne': { vb: '8 4 88 100', d: 'M18 90Q18 42 34 24q18-16 36 0 16 18 16 66 0 8-9 8H27q-9 0-9-8zM30 70q22-16 44 0', hint: 'Einen Schuh von vorne, die Spitze zeigt zu dir, leicht von oben. Den zweiten ergänzt Clothet gespiegelt.' },
   Accessoires: { vb: '0 0 200 200', d: 'M40 30h120q10 0 10 10v120q0 10-10 10H40q-10 0-10-10V40q0-10 10-10z', hint: 'Mittig auf eine einfarbige Fläche legen, von oben fotografieren.' },
 }
+
+/** Umriss für das Selfie: das Gesicht füllt das Oval. Die Maße nutzt auch der Ausschnitt in face.ts. */
+export const FACE_GUIDE: Guide = { vb: '0 0 200 260', d: 'M100 20c44 0 80 49 80 110s-36 110-80 110-80-49-80-110S56 20 100 20z', hint: 'Halt das Handy auf Augenhöhe. Dein Gesicht füllt das Oval, vom Kinn bis zum Haaransatz.' }

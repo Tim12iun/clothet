@@ -194,7 +194,7 @@ export function trim(src: HTMLCanvasElement): HTMLCanvasElement {
 }
 
 /** Zeichnet den Avatar mit dem angezogenen Outfit im Format 3:4 als Vorschaubild. */
-export async function renderOutfit(slots: Slots, items: Item[], fits: Fits, avatar: Blob | string, isPhoto: boolean, tile: string): Promise<Blob> {
+export async function renderOutfit(slots: Slots, items: Item[], fits: Fits, avatar: Blob | string, isPhoto: boolean, tile: string, wide = 1): Promise<Blob> {
   const W = 600, H = 800
   const c = makeCanvas(W, H)
   const ctx = c.getContext('2d')!
@@ -216,7 +216,7 @@ export async function renderOutfit(slots: Slots, items: Item[], fits: Fits, avat
     if (zone === 'bottom' && isDress) continue
     const item = items.find((i) => i.id === slots[zone])
     if (!item) continue
-    const p = placement(zone, isDress, fits[zone])
+    const p = placement(zone, isDress, fits[zone], wide)
     if (zone === 'shoes' && item.wearImage) {
       // Ein Schuh von vorne: links normal, rechts gespiegelt
       const one = await createImageBitmap(item.wearImage)

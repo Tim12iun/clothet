@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { IconBookmark, IconCheck, IconDice, IconGear, IconPlus, IconSliders } from '../icons'
-import { DRAW_ORDER, MANNEQUIN_URL, placement } from '../lib/avatar'
+import { DRAW_ORDER, avatarOf, placement } from '../lib/avatar'
 import { judge, randomOutfit, type Pools, type RandomPrefs } from '../lib/engine'
 import { renderOutfit } from '../lib/image'
 import { saveOutfit, setFits, urlFor, useStore } from '../store'
@@ -21,7 +21,8 @@ interface Props {
 }
 
 export function Home({ slots, setSlots, onSettings, onAdd, fitZone, setFitZone, toast }: Props) {
-  const { items, body, fits, knowledge, outfits } = useStore()
+  const { items, body, figure, avatarMode, fits, knowledge, outfits } = useStore()
+  const av = useMemo(() => avatarOf(body, figure, avatarMode), [body, figure, avatarMode])
   const [filter, setFilter] = useState<Filter>({})
   const [prefs, setPrefs] = useState<RandomPrefs>({ mainColor: null, keep: [] })
   const [prefsOpen, setPrefsOpen] = useState(false)
@@ -75,7 +76,7 @@ export function Home({ slots, setSlots, onSettings, onAdd, fitZone, setFitZone, 
     if (!wornList.length) return
     const tile = getComputedStyle(document.documentElement).getPropertyValue('--c-tile').trim() || '#f2f4f1'
     try {
-      const preview = await renderOutfit(wornSlots, items, fits, body ?? MANNEQUIN_URL, !!body, tile)
+      const preview = await renderOutfit(wornSlots, items, fits, av.photo ?? av.url, !!av.photo, tile, av.wide)
       await saveOutfit({ id: uid(), name: `Outfit ${outfits.length + 1}`, slots: wornSlots, preview, createdAt: Date.now() })
       toast('Outfit gespeichert. Du findest es unter Outfits.')
     } catch {
@@ -100,11 +101,11 @@ export function Home({ slots, setSlots, onSettings, onAdd, fitZone, setFitZone, 
 
       <div className="stage-wrap">
         <div className="stage">
-          <img className={'avatar' + (body ? ' is-photo' : '')} src={body ? urlFor(body) : MANNEQUIN_URL} alt={body ? 'Dein Foto' : 'Avatar'} draggable={false} />
+          <img className={'avatar' + (av.photo ? ' is-photo' : '')} src={av.photo ? urlFor(av.photo) : av.url} alt={av.photo ? 'Dein Foto' : 'Avatar'} draggable={false} />
           {DRAW_ORDER.map((z) => {
             const item = worn[z]
             if (!item || (z === 'bottom' && isDress)) return null
-            const p = placement(z, isDress, fits[z])
+            const p = placement(z, isDress, fits[z], av.wide)
             return (
               <div key={z} className="wear" style={{ width: p.w * 100 + '%', ...(p.anchor === 'top' ? { top: p.y * 100 + '%' } : { bottom: (1 - p.y) * 100 + '%' }) }}>
                 {z === 'shoes' && item.wearImage ? (

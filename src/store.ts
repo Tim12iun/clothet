@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react'
 import { createStore, del, entries, set } from 'idb-keyval'
-import { DEFAULT_FITS, type Fits, type Item, type Outfit } from './types'
+import { DEFAULT_FITS, type AvatarMode, type Figure, type Fits, type Item, type Outfit } from './types'
 import { parseKnowledge, type Knowledge } from './lib/engine'
 
 export interface State {
@@ -9,13 +9,15 @@ export interface State {
   outfits: Outfit[]
   calendar: Record<string, string> // Datum (JJJJ-MM-TT) -> Outfit-ID
   body: Blob | null // eigenes Avatar-Foto, sonst Standard-Avatar
+  figure: Figure | null // gezeichnete Figur aus Selfie und Körperdaten
+  avatarMode: AvatarMode // was auf der Bühne steht: Figur oder Ganzkörperfoto
   fits: Fits
   knowledgeText: string
   knowledge: Knowledge
   persistent: boolean // false, wenn der Browser keinen Speicher erlaubt
 }
 
-let state: State = { ready: false, items: [], outfits: [], calendar: {}, body: null, fits: DEFAULT_FITS, knowledgeText: '', knowledge: { rules: [], ignored: 0 }, persistent: true }
+let state: State = { ready: false, items: [], outfits: [], calendar: {}, body: null, figure: null, avatarMode: 'figure', fits: DEFAULT_FITS, knowledgeText: '', knowledge: { rules: [], ignored: 0 }, persistent: true }
 const listeners = new Set<() => void>()
 const db = (() => {
   try {
@@ -53,6 +55,8 @@ export async function load(): Promise<boolean> {
   const outfits: Outfit[] = []
   let calendar: Record<string, string> = {}
   let body: Blob | null = null
+  let figure: Figure | null = null
+  let avatarMode: AvatarMode | null = null
   let seeded = false
   shoesFront = false
   let persistent = true
@@ -75,6 +79,8 @@ export async function load(): Promise<boolean> {
       else if (key === 'knowledge') knowledgeText = v as string
       else if (key === 'calendar') calendar = v as Record<string, string>
       else if (key === 'body') body = v as Blob
+      else if (key === 'figure') figure = v as Figure
+      else if (key === 'avatarMode') avatarMode = v as AvatarMode
       else if (key === 'seeded2') seeded = true
       else if (key === 'shoes-front') shoesFront = true
     }
@@ -83,7 +89,7 @@ export async function load(): Promise<boolean> {
   }
   items.sort((a, b) => b.createdAt - a.createdAt)
   outfits.sort((a, b) => b.createdAt - a.createdAt)
-  update({ ready: true, items, outfits, calendar, body, fits, knowledgeText, knowledge: parseKnowledge(knowledgeText), persistent })
+  update({ ready: true, items, outfits, calendar, body, figure, avatarMode: avatarMode ?? (body ? 'photo' : 'figure'), fits, knowledgeText, knowledge: parseKnowledge(knowledgeText), persistent })
   return !seeded
 }
 
@@ -122,7 +128,16 @@ export function planOutfit(date: string, outfitId: string | null) {
 }
 export function setBody(body: Blob | null) {
   update({ body })
+  if (body) setAvatarMode('photo')
   return body ? put('body', body) : remove('body')
+}
+export function setFigure(figure: Figure) {
+  update({ figure })
+  return put('figure', figure)
+}
+export function setAvatarMode(avatarMode: AvatarMode) {
+  update({ avatarMode })
+  return put('avatarMode', avatarMode)
 }
 
 export function setFits(fits: Fits) {

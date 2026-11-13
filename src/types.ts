@@ -58,3 +58,19 @@ export interface Outfit {
 export type Filter = { season?: Season; style?: Style }
 
 export const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36)
+
+/** Gezeichnete Figur aus Selfie und Körperdaten (Alternative zum Ganzkörperfoto). */
+export const BUILDS = ['Schmal', 'Mittel', 'Kräftig'] as const
+export type Build = (typeof BUILDS)[number]
+export interface Figure {
+  selfie: string | null // Ausgangsfoto als Daten-URL
+  crop: { zoom: number; dx: number; dy: number } // Ausschnitt des Gesichts im Selfie
+  face: string | null // ausgeschnittenes Gesicht als Daten-URL
+  skin: string // Hautton der Figur
+  skinAuto: boolean // Hautton stammt aus dem Selfie
+  tone: number // Feinabstimmung: heller (+) oder dunkler (-), als Anteil
+  height: number // Körpergröße in cm
+  build: Build
+}
+export const DEFAULT_FIGURE: Figure = { selfie: null, crop: { zoom: 1, dx: 0, dy: 0 }, face: null, skin: '#d9a67e', skinAuto: true, tone: 0, height: 172, build: 'Mittel' }
+export type AvatarMode = 'figure' | 'photo'

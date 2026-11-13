@@ -11,6 +11,7 @@ Lies `DESIGN.md`. Es ist verbindlich für Design, Bildsprache und Tonalität. Nu
 - Vite, React 18, TypeScript. Oberfläche auf Deutsch.
 - Daten liegen lokal im Browser (IndexedDB über `idb-keyval`), siehe `src/store.ts`. Kein Backend.
 - Bildverarbeitung in `src/lib/image.ts` (Freistellen, Farben erkennen, Outfit-Vorschau), Sitz der Teile auf dem Avatar in `src/lib/avatar.ts`.
+- Avatar: gezeichnete Figur aus Selfie und Körperdaten (`figureUrl` in `src/lib/avatar.ts`, Gesicht und Hautton in `src/lib/face.ts`) oder Ganzkörperfoto. Eigene Kamera mit Umrisslinien in `src/views/Camera.tsx` und `src/lib/guides.ts`.
 - Outfit-Engine in `src/lib/engine.ts`: Bewertung von Kombinationen, Zufalls-Outfit, Auslesen von Farbregeln aus dem Stil-Wissen.
 - `npm run dev` startet lokal, `npm run build` prüft Typen und baut, `npm run build:artifact` baut eine Ein-Datei-Vorschau.
 

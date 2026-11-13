@@ -8,7 +8,7 @@ const MAX_SIDE = 900
  * Eigene Kamera im Vollbild mit Umrisslinie des Teils. Ersetzt für die Dauer der Aufnahme das Sheet.
  * Steht keine Kamera bereit (kein Zugriff, kein https), ruft sie onFail und der Aufrufer nimmt die Kamera des Geräts.
  */
-export function Camera({ title, guide, onShot, onClose, onFail }: { title: string; guide: Guide; onShot: (c: HTMLCanvasElement) => void; onClose: () => void; onFail: () => void }) {
+export function Camera({ title, guide, facing = 'environment', onShot, onClose, onFail }: { title: string; guide: Guide; facing?: 'environment' | 'user'; onShot: (c: HTMLCanvasElement) => void; onClose: () => void; onFail: () => void }) {
   const video = useRef<HTMLVideoElement>(null)
   const frame = useRef<HTMLDivElement>(null)
   const [live, setLive] = useState(false)
@@ -20,7 +20,7 @@ export function Camera({ title, guide, onShot, onClose, onFail }: { title: strin
     let gone = false
     const media = navigator.mediaDevices
     if (!media?.getUserMedia) { fail.current(); return }
-    media.getUserMedia({ audio: false, video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1440 } } })
+    media.getUserMedia({ audio: false, video: { facingMode: { ideal: facing }, width: { ideal: 1920 }, height: { ideal: 1440 } } })
       .then(async (s) => {
         stream = s
         if (gone) return s.getTracks().forEach((t) => t.stop())
@@ -59,7 +59,7 @@ export function Camera({ title, guide, onShot, onClose, onFail }: { title: strin
         <button className="icon-btn" onClick={onClose} aria-label="Kamera schließen"><IconClose /></button>
       </header>
       <div className="camera-frame" ref={frame}>
-        <video ref={video} playsInline muted />
+        <video ref={video} playsInline muted className={facing === 'user' ? 'is-mirrored' : ''} />
         <svg className="camera-guide" viewBox={guide.vb} aria-hidden="true"><path d={guide.d} /></svg>
       </div>
       <footer className="camera-foot">
