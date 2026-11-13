@@ -4,10 +4,10 @@ import { FIT_ORIGIN, fitKind, fittedUrl } from '../lib/fitting'
 import { urlFor } from '../store'
 import { NO_FIT, ZONE_LABEL, type Item, type Sex, type Zone } from '../types'
 
-/** An die Figur angepasstes Bild eines Teils: undefined solange es gerechnet wird, null wenn das Teil flach aufliegt. */
+/** Bild eines Teils an seinem Platz auf der Figur: undefined solange es gerechnet wird, null wenn es keins gibt. */
 function useFitted(item: Item, sex: Sex | undefined, on: boolean) {
   // Art, Bild und Schalter gehören zum Schlüssel: Ändert sich eins davon, wird neu gerechnet
-  const key = `${item.id}:${item.category}:${item.flat ? 1 : 0}:${item.image.size}:${sex ?? ''}`
+  const key = `${item.id}:${item.category}:${item.sleeves ? 1 : 0}:${item.image.size}:${sex ?? ''}`
   const [hit, setHit] = useState<{ key: string; url: string | null } | null>(null)
   useEffect(() => {
     if (!on) return
@@ -24,7 +24,7 @@ function useFitted(item: Item, sex: Sex | undefined, on: boolean) {
  */
 export function Wear({ item, zone, isDress, wide, photo, sex, dir = 'next' }: { item: Item; zone: Zone; isDress: boolean; wide: number; photo: boolean; sex: Sex | undefined; dir?: 'next' | 'prev' }) {
   const kind = fitKind(item.category)
-  const full = useFitted(item, sex, !photo && !!kind && !item.flat)
+  const full = useFitted(item, sex, !photo && !!kind)
   const f = item.fit ?? NO_FIT
   const label = `${ZONE_LABEL[zone]}: ${item.name}`
   if (full === undefined) return null

@@ -119,11 +119,11 @@ export function AddItems({ onClose, toast }: { onClose: () => void; toast: Toast
         <p className="muted">Fotografier ein Teil mit Umrisslinie oder wähl Bilder aus deiner Galerie, auch mehrere auf einmal. Clothet schneidet es aus und erkennt Farbe und Art. Du korrigierst nur, was nicht stimmt.</p>
       ) : (
         <>
-          <p className="muted">Stimmt die Art? Sonst antippen. Ist ein Teil nicht sauber ausgeschnitten, hilft „Zuschneiden“.</p>
+          <p className="muted">Stimmt die Art? Sonst antippen. Ist ein Teil nicht sauber ausgeschnitten, tipp auf „Zuschnitt“ unter dem Bild.</p>
           <ul className="days" id="import-list">
             {rows.map((r, n) => (
               <li key={r.id} className="import-row">
-                <button className="import-thumb" onClick={() => setMarking(r.id)} aria-label={`Bild ${n + 1} zuschneiden`}><img src={r.url} alt="" /><span>Zuschneiden</span></button>
+                <button className="import-thumb" onClick={() => setMarking(r.id)} aria-label={`Zuschnitt von Bild ${n + 1} ändern`}><img src={r.url} alt="" /><span>Zuschnitt</span></button>
                 <div className="import-kinds grow" role="group" aria-label={`Art von Bild ${n + 1}`}>
                   {(r.more || REST.includes(r.category) ? [...MAIN, ...REST] : MAIN).map((c) => <button key={c} className={'chip' + (r.category === c ? ' is-on' : '')} aria-pressed={r.category === c} onClick={() => patch(r.id, { category: c, picked: true })}>{SINGULAR[c]}</button>)}
                   {!r.more && !REST.includes(r.category) && <button className="chip" onClick={() => patch(r.id, { more: true })} aria-label={`Mehr Arten für Bild ${n + 1}`}>Mehr</button>}

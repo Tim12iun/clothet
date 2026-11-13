@@ -113,7 +113,8 @@ export function removeBackground(src: HTMLCanvasElement, tolerance = 45): HTMLCa
 }
 
 /**
- * Kleine, lose Flecken neben dem eigentlichen Teil: alle zusammenhängenden Flächen, die deutlich kleiner sind als die größte.
+ * Lose Flächen neben dem eigentlichen Teil (Schrift, Knöpfe einer Shop-Seite, Krümel): alle zusammenhängenden Flächen, die
+ * deutlich kleiner sind als die größte.
  * cells[p] === fg markiert Vordergrund. Zwei ähnlich große Flächen (ein Paar Schuhe) bleiben beide.
  */
 export function specks(cells: Uint8Array, w: number, h: number, fg: number): number[] {
@@ -134,7 +135,7 @@ export function specks(cells: Uint8Array, w: number, h: number, fg: number): num
     }
     sizes.push(size)
   }
-  const limit = Math.max(...sizes) * 0.05
+  const limit = Math.max(...sizes) * 0.3
   const out: number[] = []
   for (let p = 0; p < n; p++) if (label[p] && sizes[label[p]] < limit) out.push(p)
   return out
@@ -225,24 +226,33 @@ export function guessCategory(src: HTMLCanvasElement): Category {
   small.getContext('2d', { willReadFrequently: true })!.drawImage(c, 0, 0, w, h)
   const d = small.getContext('2d')!.getImageData(0, 0, w, h).data
   const on = (x: number, y: number) => d[(y * w + x) * 4 + 3] > 60
-  /** Breite (Anteil) und ob in der Mitte eine Lücke zwischen zwei Stücken liegt. */
+  /** Breite (Anteil), Zahl der Lücken zwischen Stoffstücken und ob eine davon in der Mitte liegt. */
   const row = (f: number) => {
     const y = Math.min(h - 1, Math.round(f * (h - 1)))
-    let l = 0, e = w - 1, hole = 0
+    let l = 0, e = w - 1, gaps = 0, mid = false, run = 0
     while (l < w && !on(l, y)) l++
     while (e > l && !on(e, y)) e--
-    for (let x = l; x <= e; x++) if (!on(x, y) && Math.abs(x - (l + e) / 2) < (e - l) * 0.3) hole++
-    return { width: l >= w ? 0 : (e - l + 1) / w, gap: hole >= 2 }
+    for (let x = l; x <= e; x++) {
+      if (on(x, y)) { run = 0; continue }
+      if (++run === 2) { gaps++; if (Math.abs(x - (l + e) / 2) < (e - l) * 0.2) mid = true }
+    }
+    return { width: l >= w ? 0 : (e - l + 1) / w, gaps, gap: gaps === 1 && mid }
   }
   const band = (from: number, to: number) => { const out = []; for (let f = from; f <= to + 0.001; f += 0.03) out.push(row(f)); return out }
-  const top = Math.max(...band(0.03, 0.09).map((x) => x.width)), upper = Math.max(...band(0.12, 0.36).map((x) => x.width))
-  const lowerRows = band(0.72, 0.86), lower = Math.max(...lowerRows.map((x) => x.width))
-  const legs = band(0.8, 0.97).filter((x) => x.gap).length >= 2 && !band(0.03, 0.2).some((x) => x.gap)
-  if (legs && top > 0.4) return 'Hosen'
+  const top = Math.max(...band(0.02, 0.06).map((x) => x.width)), upper = Math.max(...band(0.12, 0.36).map((x) => x.width))
+  const lower = Math.max(...band(0.72, 0.86).map((x) => x.width))
+  // Ärmel, die neben dem Rumpf herabhängen: links und rechts je eine Lücke
+  if (band(0.45, 0.9).filter((x) => x.gaps >= 2).length >= 2) return r > 1.7 ? 'Kleider' : 'Oberteile'
+  // Oben schmal (Kragen), gleich darunter schon die volle Breite (Schultern und Ärmel): ein Oberteil, auch ohne Lücken
+  if (top < upper * 0.6 && upper > 0.9 && upper >= lower * 0.9) return r > 1.7 ? 'Kleider' : 'Oberteile'
+  // Zwei Beine: unten genau eine Lücke in der Mitte, oben ein gerader Bund, der fast so breit ist wie die Hüfte
+  const waist = top > row(0.3).width * 0.6
+  const legs = band(0.8, 0.97).filter((x) => x.gap).length >= 2 && !band(0.03, 0.2).some((x) => x.gaps)
+  if (legs && waist) return 'Hosen'
   if (upper > lower * 1.2 && upper > 0.9) return r > 1.7 ? 'Kleider' : 'Oberteile' // Ärmel stehen über den Saum hinaus
-  if (lower > top * 1.3) return r > 1.5 ? 'Kleider' : r > 0.75 ? 'Röcke' : 'Oberteile'
+  if (lower > top * 1.3 && !waist) return r > 1.5 ? 'Kleider' : r > 0.75 ? 'Röcke' : 'Oberteile'
   // Weite Hosen, deren Beine aneinander liegen: oben ein gerader, breiter Bund ohne Ausschnitt
-  if (r > 1.45 || (r > 1.15 && top > 0.5 && !band(0.03, 0.2).some((x) => x.gap))) return 'Hosen'
+  if (r > 1.45 || (r > 1.15 && waist && !band(0.03, 0.2).some((x) => x.gaps))) return 'Hosen'
   return 'Oberteile'
 }
 

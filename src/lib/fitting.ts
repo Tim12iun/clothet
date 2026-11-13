@@ -3,10 +3,11 @@ import { bodyTargets } from './avatar'
 import { specks } from './image'
 
 /**
- * Passform ohne KI: Aus dem freigestellten Umriss eines Teils werden wenige Ankerpunkte gelesen (Schulternaht, Rumpfkante,
- * Ärmelende, Bund). Damit wird das ganze Bild in einem Stück auf die Körperpunkte der Figur gelegt: Hosen nur skaliert
- * und gesetzt, bei Oberteilen fallen zusätzlich die Ärmel stufenlos zu den Armen hin. Das Teil bleibt, wie es fotografiert wurde, es wird nicht
- * zerschnitten und bekommt keine Körperform und keine Schatten.
+ * Sitz am Avatar ohne KI. Standard: Jede Art hat eine feste Zone an der Figur (Oberteil und Jacke von der Schulter
+ * bis zur Hüfte, Hose von der Hüfte bis zum Knöchel). Das freigestellte Bild wird über seinen wirklichen Umriss (ohne
+ * Rand und lose Bildreste) unverformt in diese Zone gelegt: oben angelegt, mittig, proportional so groß, dass es in
+ * Breite und Höhe der Zone passt. Zusatz auf Wunsch (item.sleeves): Bei Oberteilen fallen die Ärmel zu den Armen hin.
+ * Das greift nur, wenn beide Ärmel sicher erkannt sind, sonst bleibt es beim Standard.
  * Ergebnis ist ein Bild in Bühnengröße (3:4) für die Figur in Normalbreite.
  */
 const U = 2, W = 300 * U, H = 400 * U, CX = W / 2
@@ -116,10 +117,8 @@ function stage() {
  * wie er fotografiert wurde. Nur jenseits der Rumpfkante wird das Bild stufenlos nach unten geschert und etwas
  * zusammengeschoben, damit die Ärmel den Armen folgen. Nichts wird ausgeschnitten oder einzeln gedreht.
  */
-function warpTop(src: HTMLCanvasElement, m: Mask, sex: Sex | undefined, jacket: boolean): HTMLCanvasElement | null {
-  const t = bodyTargets(sex), sh = readTop(m)
-  if (!sh) return null
-  const s = ((t.shoulderHalf + (jacket ? 5 : 3)) * U) / sh.bh
+function warpTop(src: HTMLCanvasElement, m: Mask, sex: Sex | undefined, sh: TopShape, s: number): HTMLCanvasElement {
+  const t = bodyTargets(sex)
   const top = (t.shoulderY - 1.5) * U + (m.top - sh.seamY) * s
   const edge = sh.bh * s, onset = edge * 0.2
   const arm = Math.atan2(t.armTo[1] - t.armFrom[1], Math.max(1, t.armTo[0] - t.armFrom[0]))
@@ -161,41 +160,44 @@ function span(m: Mask, y: number): [number, number] | null {
   return r > l ? [l, r] : null
 }
 
-/**
- * Hose: Der Schnitt bleibt, wie er fotografiert wurde. Das Bild wird nur als Ganzes skaliert und gesetzt: Bundbreite auf
- * Hüftbreite, Bund mittig an der Hüfte, lange Hosen in der Länge leicht angeglichen, damit der Saum am Knöchel endet.
- */
-function warpBottom(src: HTMLCanvasElement, m: Mask, sex: Sex | undefined): HTMLCanvasElement | null {
-  const t = bodyTargets(sex), hgt = m.bottom - m.top
-  // Bund: die erste Zeile von oben, die annähernd so breit ist wie die Hose im oberen Viertel.
-  // Etiketten oder Schlaufen, die über den Bund hinausragen, zählen so nicht mit.
-  const spans: ([number, number] | null)[] = []
-  let wide = 0
-  for (let y = m.top; y <= m.top + hgt * 0.25; y++) { const r = span(m, y); spans.push(r); if (r) wide = Math.max(wide, r[1] - r[0]) }
-  const first = spans.findIndex((r) => r && r[1] - r[0] > wide * 0.6)
-  if (first < 0) return null
-  const waist = m.top + first, len = m.bottom - waist
-  const rows = spans.slice(first + Math.round(len * 0.01), first + Math.round(len * 0.05) + 2).filter((r): r is [number, number] => !!r)
-  if (rows.length < 2) return null
-  const cx = median(rows.map((r) => (r[0] + r[1]) / 2)), wh = median(rows.map((r) => (r[1] - r[0]) / 2))
-  if (wh < 10) return null
-  const waistT = t.waistY * U, full = (t.ankleY - t.waistY) * U
-  // Die ganze Hose muss neben der Figur noch auf die Bühne passen
-  const s = Math.min(((t.torsoHalf(t.waistY) + 2.5) * U) / wh, (W * 0.3) / Math.max(cx - m.left, m.right - cx), (full * 1.15) / len)
-  // Lange Hosen enden am Knöchel, kurze behalten ihre Länge. Die Länge ändert sich höchstens leicht.
-  const sy = len * s > full * 0.8 ? s * clamp(full / (len * s), 0.88, 1.15) : s
+/** Oberkante einer Hose: die erste Zeile, die annähernd so breit ist wie die Hose oben. Etiketten über dem Bund zählen nicht. */
+function waistRow(m: Mask): number {
+  const hgt = m.bottom - m.top, widths: number[] = []
+  for (let y = m.top; y <= m.top + hgt * 0.25; y++) { const r = span(m, y); widths.push(r ? r[1] - r[0] : 0) }
+  const first = widths.findIndex((w) => w > Math.max(...widths) * 0.6)
+  return m.top + Math.max(0, first)
+}
+
+/** Feste Zone je Art in Bühnenpunkten: Oberkante, größte Breite und größte Höhe. */
+function zoneBox(kind: FitKind, jacket: boolean, sex: Sex | undefined, tall: boolean) {
+  const t = bodyTargets(sex)
+  if (kind === 'top') {
+    const top = t.shoulderY - (jacket ? 8 : 6), k = jacket ? 1.07 : 1
+    return { top: top * U, maxW: (t.armOuter * 2 + 8) * k * U, maxH: (t.crotchY - 4 - top) * k * U }
+  }
+  // Lange Hosen dürfen weit sein, kurze Hosen richten sich nach der Hüfte
+  const hip = t.torsoHalf(t.waistY) * 2
+  return { top: (t.waistY - 3) * U, maxW: hip * (tall ? 1.7 : 1.25) * U, maxH: (t.ankleY + 5 - t.waistY) * U }
+}
+
+/** Standard: das Teil unverformt in seine Zone legen. */
+function place(src: HTMLCanvasElement, m: Mask, kind: FitKind, jacket: boolean, sex: Sex | undefined): { out: HTMLCanvasElement; s: number } {
+  const y0 = kind === 'bottom' ? waistRow(m) : m.top
+  const w = m.right - m.left + 1, h = m.bottom - y0 + 1
+  const box = zoneBox(kind, jacket, sex, h / w >= 1.3)
+  const s = Math.min(box.maxW / w, box.maxH / h)
   const { out, ctx } = stage()
-  ctx.setTransform(s, 0, 0, sy, CX - cx * s, waistT - waist * sy)
+  ctx.setTransform(s, 0, 0, s, CX - ((m.left + m.right + 1) / 2) * s, box.top - y0 * s)
   ctx.drawImage(src, 0, 0)
-  return out
+  return { out, s }
 }
 
 const cache = new Map<string, Promise<string | null>>()
-/** Bild des Teils, an die Figur angepasst (Bühnengröße 3:4), oder null, wenn das Teil flach aufgelegt wird. */
+/** Bild des Teils an seinem Platz auf der Figur (Bühnengröße 3:4), oder null für Arten ohne feste Zone hier. */
 export function fittedUrl(item: Item, sex: Sex | undefined): Promise<string | null> {
   const kind = fitKind(item.category)
-  if (!kind || item.flat) return Promise.resolve(null)
-  const key = `${item.id}:${item.category}:${item.image.size}:${sex === 'Weiblich' ? 'w' : 'm'}`
+  if (!kind) return Promise.resolve(null)
+  const key = `${item.id}:${item.category}:${item.sleeves ? 1 : 0}:${item.image.size}:${sex === 'Weiblich' ? 'w' : 'm'}`
   let hit = cache.get(key)
   if (!hit) {
     hit = (async () => {
@@ -215,8 +217,14 @@ export function fittedUrl(item: Item, sex: Sex | undefined): Promise<string | nu
         sc.putImageData(img, 0, 0)
       }
       const m = maskOf(src)
-      const out = m && (kind === 'top' ? warpTop(src, m, sex, item.category === 'Jacken') : warpBottom(src, m, sex))
-      if (!out) return null
+      if (!m) return null
+      const jacket = item.category === 'Jacken'
+      let { out, s } = place(src, m, kind, jacket, sex)
+      if (kind === 'top' && item.sleeves) {
+        // Nur wenn beide Ärmel erkannt sind und der Maßstab zum Standard passt, sonst bleibt der Standard
+        const sh = readTop(m), sw = sh ? ((bodyTargets(sex).shoulderHalf + (jacket ? 5 : 3)) * U) / sh.bh : 0
+        if (sh && sh.sleeves[1] && sh.sleeves[-1] && sw > s * 0.8 && sw < s * 1.35) out = warpTop(src, m, sex, sh, sw)
+      }
       const blob = await new Promise<Blob | null>((res) => out.toBlob(res, 'image/png'))
       return blob ? URL.createObjectURL(blob) : null
     })().catch(() => null)

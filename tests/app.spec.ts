@@ -360,18 +360,38 @@ test('Offline-Start: nach dem ersten Besuch lädt die App ohne Netz und zeigt di
   expect(font).toBe(true)
 })
 
-test('Passform: Oberteil und Hose werden an die Figur angepasst, „Flach aufgelegt“ schaltet es je Teil ab', async ({ page }) => {
+test('Platz am Avatar: Oberteil liegt zwischen Schulter und Hüfte, Hose zwischen Hüfte und Knöchel, Ärmel als Zusatz', async ({ page }) => {
   const errors = await withSamples(page)
   await expect(page.locator('.home .wear.is-full')).toHaveCount(2)
+  // Wo liegt der Stoff im Bühnenbild? Oberste und unterste sichtbare Zeile als Anteil der Höhe
+  const extent = (zone: string) => page.locator(`.home .wear[data-zone="${zone}"] img`).evaluate(async (el) => {
+    const img = el as HTMLImageElement
+    await img.decode()
+    const c = document.createElement('canvas')
+    c.width = img.naturalWidth; c.height = img.naturalHeight
+    const g = c.getContext('2d')!
+    g.drawImage(img, 0, 0)
+    const d = g.getImageData(0, 0, c.width, c.height).data
+    let top = -1, bottom = -1
+    for (let y = 0; y < c.height; y++) for (let x = 0; x < c.width; x += 2) if (d[(y * c.width + x) * 4 + 3] > 60) { if (top < 0) top = y; bottom = y; break }
+    return [top / c.height, bottom / c.height]
+  })
+  const [t0, t1] = await extent('top'), [b0, b1] = await extent('bottom')
+  expect(t0).toBeGreaterThan(0.17); expect(t0).toBeLessThan(0.26)
+  expect(t1).toBeGreaterThan(0.38); expect(t1).toBeLessThan(0.56)
+  expect(b0).toBeGreaterThan(0.4); expect(b0).toBeLessThan(0.48)
+  expect(b1).toBeGreaterThan(0.75); expect(b1).toBeLessThan(0.96)
   await page.locator('#save-outfit').click()
   await expect(page.locator('.toast')).toContainText('Outfit gespeichert')
   await go(page, 'Schrank')
   await page.locator('.view:not([hidden]) .grid .tile', { hasText: 'Weißes T-Shirt' }).click()
-  await expectAccessible(page, 'Teil bearbeiten mit Passform')
-  await page.locator('#fit-flat').click()
+  await expectAccessible(page, 'Teil bearbeiten mit Sitz')
+  const plain = await page.locator('#fit-stage .wear img').getAttribute('src')
+  await page.locator('#fit-sleeves').click()
+  await expect.poll(() => page.locator('#fit-stage .wear img').getAttribute('src')).not.toBe(plain)
   await page.locator('#save-edit').click()
   await go(page, 'Anprobe')
-  await expect(page.locator('.home .wear.is-full')).toHaveCount(1)
+  await expect(page.locator('.home .wear.is-full')).toHaveCount(2)
   expect(errors).toEqual([])
 })
 

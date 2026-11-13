@@ -23,7 +23,7 @@ export interface Item {
   styles: Style[]
   image: Blob // Bild für den Schrank
   wearImage?: Blob // nur Schuhe: ein Schuh von vorne, wird am Avatar für beide Füße verwendet (einmal gespiegelt)
-  flat?: boolean // true: liegt flach auf dem Avatar, statt an den Körper angepasst zu werden
+  sleeves?: boolean // nur Oberteile und Jacken: Ärmel fallen zu den Armen hin (Zusatz, sonst liegt das Teil unverformt auf)
   fit?: Fit // Feineinstellung des Sitzes nur für dieses Teil (Höhe und Größe)
   sample?: boolean
   createdAt: number

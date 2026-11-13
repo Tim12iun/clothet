@@ -113,7 +113,7 @@ Grundlage ist Entwurf 4A „Klar“ mit dem Zufallsknopf aus 4C.
 - Ein Tipp auf den Griff vergrößert oder verkleinert die Schublade. Nur das Raster scrollt, der Screen selbst nicht.
 - Ein Tipp auf eine Körperzone des Avatars zeigt diese Zone in der Schublade, ein Wisch darüber wechselt direkt zum nächsten Teil.
 - Der Filter-Knopf öffnet das eine Sheet „Filter und Zufall“: Jahreszeit, Stil, Hauptfarbe und was beim Würfeln bleibt. Ist etwas gesetzt, trägt der Knopf einen grünen Punkt.
-- **Sitz am Avatar** (in „Teil bearbeiten“, ganz oben): kleine Bühne mit dem Avatar und dem Teil, daneben vier Knöpfe (höher, tiefer, kleiner, größer). Die Einstellung gilt nur für dieses Teil. Einen eigenen Modus dafür gibt es nicht mehr.
+- **Sitz am Avatar** (in „Teil bearbeiten“, ganz oben): kleine Bühne mit dem Avatar und dem Teil, daneben vier Knöpfe (höher, tiefer, kleiner, größer). Die Einstellung gilt nur für dieses Teil. Bei Oberteilen und Jacken gibt es dazu den Schalter „Ärmel an die Arme legen“ (aus ist Standard). Einen eigenen Modus dafür gibt es nicht mehr.
 - Im Querformat am Telefon stehen Bühne und Schublade nebeneinander, die Bereiche wandern als schmale Leiste an die linke Seite.
 
 ## 6b. Regeln für Abläufe
