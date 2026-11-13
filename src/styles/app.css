@@ -320,7 +320,6 @@ button, label.btn, .nav, .home-head, .view-head, .segment, .chips, .sheet-head, 
 .drawer-bar .segment { grid-auto-columns: minmax(min-content, 1fr); }
 .drawer-bar .segment button { padding: 0 var(--s-1); }
 .drawer > .drawer-body { flex: 1 1 0; min-height: 0; overflow-y: auto; padding: var(--s-3) var(--s-4) var(--s-4); }
-.drawer-body.is-fit { display: flex; flex-direction: column; gap: var(--s-2); }
 .drawer-note { padding: var(--s-3) 0; }
 .picks { display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 10px; }
 .pick-tile {
@@ -352,7 +351,7 @@ button, label.btn, .nav, .home-head, .view-head, .segment, .chips, .sheet-head, 
   .match { max-width: 96px; padding: var(--s-1) var(--s-2); }
   .match strong + span { display: none; }
   .fab { min-height: var(--tap); padding: 0 var(--s-3); gap: var(--s-2); right: var(--s-2); bottom: var(--s-2); }
-  .drawer, .home.is-open .drawer, .home.is-fit .drawer, .home.is-fit.is-open .drawer { grid-column: 2; grid-row: 1 / span 2; height: 100%; max-height: none; border-radius: var(--r-lg) 0 0 var(--r-lg); padding-right: var(--safe-right); }
+  .drawer, .home.is-open .drawer { grid-column: 2; grid-row: 1 / span 2; height: 100%; max-height: none; border-radius: var(--r-lg) 0 0 var(--r-lg); padding-right: var(--safe-right); }
   .drawer-handle { display: none; }
   .drawer-bar { padding: var(--s-3) var(--s-2) 0; }
   .drawer-bar .segment button { font-size: var(--fs-xs); }
@@ -445,13 +444,11 @@ button, label.btn, .nav, .home-head, .view-head, .segment, .chips, .sheet-head, 
 /* Steuerkreuz als sichtbare Alternative zu jeder Geste */
 .pad { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2); }
 
-/* Sitz anpassen: der Avatar bekommt den Platz, die gewählte Zone ist markiert */
-@media (orientation: portrait), (min-height: 501px) {
-  .home.is-fit .drawer, .home.is-fit.is-open .drawer { height: auto; max-height: 52%; }
-  .home.is-fit .drawer > .drawer-body { flex: 0 1 auto; }
-}
-.home.is-fit .stage { touch-action: none; cursor: ns-resize; }
-.wear.is-fitting { outline: 2px dashed var(--c-guide); outline-offset: 2px; border-radius: var(--r-sm); }
+/* Sitz eines Teils beim Bearbeiten: kleine Bühne mit dem Avatar, daneben das Steuerkreuz */
+.fit-row { display: flex; gap: var(--s-4); align-items: flex-start; }
+.stage.is-mini { flex: none; width: 150px; height: 200px; background: var(--c-tile); border-radius: var(--r-md); }
+.fit-side { display: flex; flex-direction: column; align-items: flex-start; gap: var(--s-2); min-width: 0; }
+.fit-side .pad { display: grid; grid-template-columns: repeat(2, var(--tap)); }
 
 /* Avatar einrichten im Vollbild */
 .editor {

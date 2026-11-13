@@ -1,4 +1,4 @@
-import type { Category, Fits, Item, Sex, Slots } from '../types'
+import { NO_FIT, type Category, type Item, type Sex, type Slots } from '../types'
 import { FIT_ORIGIN, fitKind, fittedUrl } from './fitting'
 import { DRAW_ORDER, PAIR_SHOE, placement } from './avatar'
 
@@ -264,7 +264,7 @@ export function trim(src: HTMLCanvasElement): HTMLCanvasElement {
 }
 
 /** Zeichnet den Avatar mit dem angezogenen Outfit im Format 3:4 als Vorschaubild. */
-export async function renderOutfit(slots: Slots, items: Item[], fits: Fits, avatar: Blob | string, isPhoto: boolean, tile: string, wide = 1, sex?: Sex): Promise<Blob> {
+export async function renderOutfit(slots: Slots, items: Item[], avatar: Blob | string, isPhoto: boolean, tile: string, wide = 1, sex?: Sex): Promise<Blob> {
   const W = 600, H = 800
   const c = makeCanvas(W, H)
   const ctx = c.getContext('2d')!
@@ -286,7 +286,8 @@ export async function renderOutfit(slots: Slots, items: Item[], fits: Fits, avat
     if (zone === 'bottom' && isDress) continue
     const item = items.find((i) => i.id === slots[zone])
     if (!item) continue
-    const p = placement(zone, isDress, fits[zone], wide)
+    const f = item.fit ?? NO_FIT
+    const p = placement(zone, isDress, f, wide)
     if (zone === 'shoes' && item.wearImage) {
       // Ein Schuh von vorne: links normal, rechts gespiegelt
       const one = await createImageBitmap(item.wearImage)
@@ -306,7 +307,7 @@ export async function renderOutfit(slots: Slots, items: Item[], fits: Fits, avat
       const img = new Image()
       img.src = full
       await img.decode()
-      const f = fits[zone], oy = FIT_ORIGIN[kind] * H
+      const oy = FIT_ORIGIN[kind] * H
       ctx.save()
       ctx.translate(W / 2, oy + f.dy * H)
       ctx.scale(wide * f.scale, f.scale)

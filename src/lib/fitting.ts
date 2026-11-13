@@ -195,7 +195,7 @@ const cache = new Map<string, Promise<string | null>>()
 export function fittedUrl(item: Item, sex: Sex | undefined): Promise<string | null> {
   const kind = fitKind(item.category)
   if (!kind || item.flat) return Promise.resolve(null)
-  const key = `${item.id}:${item.image.size}:${sex === 'Weiblich' ? 'w' : 'm'}`
+  const key = `${item.id}:${item.category}:${item.image.size}:${sex === 'Weiblich' ? 'w' : 'm'}`
   let hit = cache.get(key)
   if (!hit) {
     hit = (async () => {

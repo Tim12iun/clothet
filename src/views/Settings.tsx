@@ -12,7 +12,7 @@ const standalone = () => window.matchMedia('(display-mode: standalone)').matches
 const isIos = () => /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
 
 /** Einstellungen: Avatar, Stil-Wissen, Sicherung, Installation und Version. Alles, was man selten braucht. */
-export function Settings({ online, onClose, onFit, toast }: { online: boolean; onClose: () => void; onFit: () => void; toast: Toast }) {
+export function Settings({ online, onClose, toast }: { online: boolean; onClose: () => void; toast: Toast }) {
   const { items, outfits, body, figure, avatarMode, knowledgeText, knowledge, persistent } = useStore()
   const [editor, setEditor] = useState(false)
   const [text, setText] = useState(knowledgeText)
@@ -104,7 +104,6 @@ export function Settings({ online, onClose, onFit, toast }: { online: boolean; o
           )}
         </div>
         {error && <p className="note is-danger" role="alert">{error}</p>}
-        <button className="link" onClick={onFit} id="open-fit">Sitz der Teile am Avatar anpassen</button>
       </div>
 
       <div className="field">

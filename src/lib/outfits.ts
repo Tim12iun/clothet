@@ -17,7 +17,7 @@ export async function ensureOutfit(slots: Slots): Promise<{ outfit: Outfit; crea
   const s = getState()
   const av = avatarOf(s.body, s.figure, s.avatarMode)
   const tile = getComputedStyle(document.documentElement).getPropertyValue('--c-tile').trim() || '#f2f4f1'
-  const preview = await renderOutfit(slots, s.items, s.fits, av.photo ?? av.url, !!av.photo, tile, av.wide, s.figure?.sex)
+  const preview = await renderOutfit(slots, s.items, av.photo ?? av.url, !!av.photo, tile, av.wide, s.figure?.sex)
   const outfit: Outfit = { id: uid(), name: `Outfit ${s.outfits.length + 1}`, slots, preview, createdAt: Date.now() }
   await saveOutfit(outfit)
   return { outfit, created: true }

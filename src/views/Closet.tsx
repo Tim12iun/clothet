@@ -1,11 +1,13 @@
 import { useMemo, useState, type ReactNode } from 'react'
-import { IconPlus, IconSearch, IconSort } from '../icons'
+import { IconDown, IconMinus, IconPlus, IconSearch, IconSort, IconUp } from '../icons'
+import { avatarOf } from '../lib/avatar'
 import { fitKind } from '../lib/fitting'
 import { seedSamples } from '../lib/samples'
 import type { Toast } from '../main'
 import { deleteItem, markSeeded, saveItem, urlFor, useStore } from '../store'
-import { CATEGORIES, COLORS, SEASONS, STYLES, type Category, type Item, type Season } from '../types'
+import { CATEGORIES, COLORS, NO_FIT, SEASONS, STYLES, zoneOf, type Category, type Fit, type Item, type Season } from '../types'
 import { Sheet } from './Sheet'
+import { Wear } from './Wear'
 
 const SORTS = { neu: 'Neueste zuerst', alt: 'Älteste zuerst', name: 'Name', kategorie: 'Kategorie', farbe: 'Farbe' } as const
 type Sort = keyof typeof SORTS
@@ -186,22 +188,48 @@ export function ItemFields({ value, onChange }: { value: Pick<Item, 'name' | 'ca
   )
 }
 
+const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
+
 function ItemSheet({ item, onClose, onDelete }: { item: Item; onClose: () => void; onDelete: () => void }) {
+  const { body, figure, avatarMode } = useStore()
+  const av = useMemo(() => avatarOf(body, figure, avatarMode), [body, figure, avatarMode])
   const [draft, setDraft] = useState(item)
+  const zone = zoneOf(draft.category), fit = draft.fit ?? NO_FIT
+  const setFit = (f: Fit) => setDraft({ ...draft, fit: { dy: clamp(f.dy, -0.14, 0.14), scale: clamp(f.scale, 0.6, 1.7) } })
+  // Mit der Art ändert sich, wo und wie das Teil sitzt: Passform und Feineinstellung beginnen neu
+  const change = (v: Partial<Item>) => setDraft({ ...draft, ...v, ...(v.category && v.category !== draft.category ? { fit: undefined, flat: false } : {}) })
   return (
     <Sheet title="Teil bearbeiten" onClose={onClose}>
-      <div className="preview-tile small"><img src={urlFor(item.image)} alt={item.name} /></div>
-      <ItemFields value={draft} onChange={(v) => setDraft({ ...draft, ...v })} />
-      {fitKind(draft.category) && (
+      {zone ? (
         <div className="field">
-          <span>Am Avatar</span>
-          <div className="chips wrap">
-            <button className={'chip' + (!draft.flat ? ' is-on' : '')} aria-pressed={!draft.flat} onClick={() => setDraft({ ...draft, flat: false })} id="fit-shaped">An den Körper angepasst</button>
-            <button className={'chip' + (draft.flat ? ' is-on' : '')} aria-pressed={!!draft.flat} onClick={() => setDraft({ ...draft, flat: true })} id="fit-flat">Flach aufgelegt</button>
+          <span>Sitz am Avatar</span>
+          <div className="fit-row">
+            <div className="stage is-mini" id="fit-stage">
+              <img className={'avatar' + (av.photo ? ' is-photo' : '')} src={av.photo ? urlFor(av.photo) : av.url} alt="" draggable={false} />
+              <Wear item={draft} zone={zone} isDress={draft.category === 'Kleider'} wide={av.wide} photo={!!av.photo} sex={figure?.sex} />
+            </div>
+            <div className="fit-side">
+              <div className="pad" role="group" aria-label="Sitz dieses Teils">
+                <button className="icon-btn is-outlined" id="fit-up" onClick={() => setFit({ ...fit, dy: fit.dy - 0.01 })} aria-label="Höher"><IconUp /></button>
+                <button className="icon-btn is-outlined" id="fit-down" onClick={() => setFit({ ...fit, dy: fit.dy + 0.01 })} aria-label="Tiefer"><IconDown /></button>
+                <button className="icon-btn is-outlined" id="fit-smaller" onClick={() => setFit({ ...fit, scale: fit.scale / 1.04 })} aria-label="Kleiner"><IconMinus /></button>
+                <button className="icon-btn is-outlined" id="fit-bigger" onClick={() => setFit({ ...fit, scale: fit.scale * 1.04 })} aria-label="Größer"><IconPlus /></button>
+              </div>
+              {draft.fit && <button className="link" onClick={() => setDraft({ ...draft, fit: undefined })}>Zurücksetzen</button>}
+              <p className="muted">Gilt nur für dieses Teil.</p>
+            </div>
           </div>
-          <p className="muted">Angepasst folgt das Teil der Körperlinie, Ärmel und Hosenbeine liegen an Armen und Beinen. Sitzt es so nicht gut, nimm „Flach aufgelegt“.</p>
+          {fitKind(draft.category) && !av.photo && (
+            <div className="chips wrap">
+              <button className={'chip' + (!draft.flat ? ' is-on' : '')} aria-pressed={!draft.flat} onClick={() => setDraft({ ...draft, flat: false })} id="fit-shaped">An den Körper angepasst</button>
+              <button className={'chip' + (draft.flat ? ' is-on' : '')} aria-pressed={!!draft.flat} onClick={() => setDraft({ ...draft, flat: true })} id="fit-flat">Flach aufgelegt</button>
+            </div>
+          )}
         </div>
+      ) : (
+        <div className="preview-tile small"><img src={urlFor(item.image)} alt={item.name} /></div>
       )}
+      <ItemFields value={draft} onChange={change} />
       <div className="actions">
         <button className="btn btn-danger" onClick={onDelete} id="delete-item">Löschen</button>
         <span className="grow" />

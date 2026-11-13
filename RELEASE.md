@@ -13,7 +13,7 @@ Version 1.0.0. Diese Datei sagt, was geprüft ist, was offen ist und was nur du 
 | Planer | Outfit speichern, Tag eintragen, in der Woche bestätigen und zurücknehmen, Monat, Statistik, Outfit löschen und wiederherstellen |
 | Schrank | Teil aus Foto anlegen, suchen, sortieren, bearbeiten, löschen mit Rückgängig |
 | Avatar | Selfie hinterlegen, Gesicht am großen Avatar ziehen und vergrößern, Körperform und Körpertyp wählen |
-| Sitz der Teile | am Avatar ziehen und per Knopf verschieben |
+| Sitz der Teile | je Teil in „Teil bearbeiten“ per Knopf verschieben |
 | Navigation | Adresse je Bereich, Neuladen bleibt im Bereich, Zurück und Escape schließen zuerst das Sheet, Fokus kehrt zurück |
 | Tastatur | Hauptablauf ohne Zeiger (Desktop) |
 | Barrierefreiheit | axe (WCAG 2.0 bis 2.2, A und AA) ohne Verstoß auf jedem Bereich und in jeder Überlagerung, hell und dunkel |
@@ -60,7 +60,7 @@ Avatar
 - [ ] Gesicht mit einem Finger ziehen, mit zwei Fingern vergrößern: folgt dem Finger ohne Ruckeln, die Seite bewegt sich nicht mit.
 - [ ] Körper: weiblich und männlich, Größe, Körpertyp, Hautton ändern sich sofort.
 - [ ] Ein eigenes T-Shirt, einen Pullover und eine Hose fotografieren: Liegen die Ärmel an den Armen, bleiben die Hände frei, folgen die Hosenbeine den Beinen?
-- [ ] „Sitz der Teile am Avatar anpassen“: Teil am Avatar ziehen, zwei Finger ändern die Größe.
+- [ ] „Teil bearbeiten“: Sitz am Avatar mit den vier Knöpfen ändern, gilt nur für dieses Teil.
 
 Bedienung
 - [ ] Wischen über eine Körperzone wechselt das Teil, ohne dass Safari zurückblättert.

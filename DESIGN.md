@@ -52,7 +52,7 @@ Regeln:
 - Der Seitenhintergrund ist reines Weiß. Kleidung und Avatar liegen auf `--c-tile`.
 - Bewertungen von Outfits nutzen Worte plus Farbe: „Stimmig“ in Akzentgrün, „Passt“ neutral, „Gewagt“ in Rot.
 
-Zusätzlich gibt es `--c-guide` (Tannengrün, in beiden Farbmodi gleich) für Hilfslinien beim Ausrichten am Avatar: das Oval um das Gesicht und den Rahmen um die Zone, deren Sitz angepasst wird.
+Zusätzlich gibt es `--c-guide` (Tannengrün, in beiden Farbmodi gleich) für Hilfslinien beim Ausrichten am Avatar: das Oval um das Gesicht.
 
 ## 4. Typografie
 
@@ -113,11 +113,12 @@ Grundlage ist Entwurf 4A „Klar“ mit dem Zufallsknopf aus 4C.
 - Ein Tipp auf den Griff vergrößert oder verkleinert die Schublade. Nur das Raster scrollt, der Screen selbst nicht.
 - Ein Tipp auf eine Körperzone des Avatars zeigt diese Zone in der Schublade, ein Wisch darüber wechselt direkt zum nächsten Teil.
 - Der Filter-Knopf öffnet das eine Sheet „Filter und Zufall“: Jahreszeit, Stil, Hauptfarbe und was beim Würfeln bleibt. Ist etwas gesetzt, trägt der Knopf einen grünen Punkt.
-- **Sitz anpassen** (aus den Einstellungen): Die Schublade wird klein, der Avatar groß. Das Teil wird direkt am Avatar gezogen (hoch, runter), zwei Finger ändern die Größe, die gewählte Zone trägt einen gestrichelten Rahmen in `--c-guide`. In der Schublade stehen dieselben Schritte als Knöpfe (`.pad`), dazu „Zurücksetzen“ und „Fertig“.
+- **Sitz am Avatar** (in „Teil bearbeiten“, ganz oben): kleine Bühne mit dem Avatar und dem Teil, daneben vier Knöpfe (höher, tiefer, kleiner, größer). Die Einstellung gilt nur für dieses Teil. Einen eigenen Modus dafür gibt es nicht mehr.
 - Im Querformat am Telefon stehen Bühne und Schublade nebeneinander, die Bereiche wandern als schmale Leiste an die linke Seite.
 
 ## 6b. Regeln für Abläufe
 
+- **Nichts verstecken, nichts verschachteln.** Jede Funktion hat genau einen sichtbaren Ort mit Beschriftung. Es gibt keine eigenen Modi und keine Menüs hinter Menüs: Von jedem der drei Bereiche führt höchstens ein Sheet weg, nur Kamera, Zuschneiden und Avatar einrichten liegen als Vollbild darüber. Was zu einem Teil gehört (Art, Farbe, Sitz am Avatar), steht in „Teil bearbeiten“.
 - **Am Objekt arbeiten, nicht am Regler.** Was eine Position oder Größe hat (Gesicht am Avatar, Sitz der Teile), wird dort angefasst, wo es zu sehen ist, und groß gezeigt. Regler bleiben für Werte ohne Ort (Körpergröße, Helligkeit des Hauttons).
 - **Jede Geste hat sichtbare Knöpfe** mit derselben Wirkung (`.pad`), und die Pfeiltasten funktionieren.
 - **Rückgängig statt Nachfrage.** Löschen und Eintragen wirken sofort, der Toast bietet sechs Sekunden lang „Rückgängig“. Eine Nachfrage gibt es nur, wenn alles ersetzt wird (Sicherung laden).
@@ -132,6 +133,7 @@ Grundlage ist Entwurf 4A „Klar“ mit dem Zufallsknopf aus 4C.
 | --- | --- | --- |
 | Avatar einrichten | `.editor` | Vollbild: oben der große Avatar, unten das Feld mit „Gesicht“ und „Körper“ |
 | Steuerkreuz | `.pad` | Knöpfe als Ersatz für Gesten |
+| Sitz am Avatar | `.fit-row`, `.stage.is-mini`, `.fit-side` | Kleine Bühne und Steuerkreuz in „Teil bearbeiten“ |
 | Heute-Karte | `.today` | oben in Outfits: was heute geplant oder getragen ist, mit der einen Aktion |
 | Wochenliste | `.days`, `.day-row`, `.day-check` | sieben Tage, rechts der Haken für „getragen“ |
 | Kennzahlen, Karte, Balken | `.facts`, `.card`, `.bars` | Statistik |

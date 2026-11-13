@@ -24,6 +24,7 @@ export interface Item {
   image: Blob // Bild für den Schrank
   wearImage?: Blob // nur Schuhe: ein Schuh von vorne, wird am Avatar für beide Füße verwendet (einmal gespiegelt)
   flat?: boolean // true: liegt flach auf dem Avatar, statt an den Körper angepasst zu werden
+  fit?: Fit // Feineinstellung des Sitzes nur für dieses Teil (Höhe und Größe)
   sample?: boolean
   createdAt: number
 }
@@ -40,8 +41,11 @@ export const ZONE_CATEGORIES: Record<Zone, Category[]> = {
 export type Slots = Record<Zone, string | null>
 export const EMPTY_SLOTS: Slots = { jacket: null, top: null, bottom: null, shoes: null }
 
-/** Feineinstellung, wie Teile einer Zone auf dem Avatar sitzen. */
+/** Feineinstellung, wie ein Teil auf dem Avatar sitzt: Verschiebung in der Höhe (Anteil der Bühne) und Größe. */
 export interface Fit { dy: number; scale: number }
+export const NO_FIT: Fit = { dy: 0, scale: 1 }
+/** Zone, in der ein Teil getragen wird (Accessoires haben keine). */
+export const zoneOf = (c: Category): Zone | null => ZONES.find((z) => ZONE_CATEGORIES[z].includes(c)) ?? null
 export type Fits = Record<Zone, Fit>
 export const DEFAULT_FITS: Fits = {
   jacket: { dy: 0, scale: 1 }, top: { dy: 0, scale: 1 }, bottom: { dy: 0, scale: 1 }, shoes: { dy: 0, scale: 1 },

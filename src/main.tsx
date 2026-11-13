@@ -28,7 +28,6 @@ function App() {
   const [tab, setTab] = useState<Tab>(tabFromHash)
   const [sheet, setSheet] = useState<'add' | 'settings' | null>(null)
   const [slots, setSlots] = useState<Slots>(EMPTY_SLOTS)
-  const [fitZone, setFitZone] = useState<Zone | null>(null)
   const [note, setNote] = useState<{ text: string; undo?: () => void } | null>(null)
   const [online, setOnline] = useState(navigator.onLine)
   const [update, setUpdate] = useState<ServiceWorker | null>(null)
@@ -85,7 +84,7 @@ function App() {
   return (
     <div className="app">
       <main className="app-main" ref={main}>
-        <Home hidden={tab !== 'anprobe'} slots={slots} setSlots={setSlots} onSettings={() => setSheet('settings')} onAdd={() => setSheet('add')} fitZone={fitZone} setFitZone={setFitZone} toast={toast} />
+        <Home hidden={tab !== 'anprobe'} slots={slots} setSlots={setSlots} onSettings={() => setSheet('settings')} onAdd={() => setSheet('add')} toast={toast} />
         <Closet hidden={tab !== 'schrank'} onAdd={() => setSheet('add')} toast={toast} note={storageNote} />
         <Outfits hidden={tab !== 'outfits'} slots={slots} onHome={() => go('anprobe')} onWear={(o) => { setSlots(o.slots); go('anprobe') }} toast={toast} note={storageNote} />
         {update && (
@@ -112,7 +111,7 @@ function App() {
         </div>
       </nav>
       {sheet === 'add' && <AddItems onClose={() => setSheet(null)} toast={toast} />}
-      {sheet === 'settings' && <Settings online={online} onClose={() => setSheet(null)} onFit={() => { setSheet(null); go('anprobe'); setFitZone('top') }} toast={toast} />}
+      {sheet === 'settings' && <Settings online={online} onClose={() => setSheet(null)} toast={toast} />}
     </div>
   )
 }
