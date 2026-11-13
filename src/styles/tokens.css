@@ -1,56 +1,52 @@
 /*
- * Clothet Design-Tokens. Einzige Quelle für Farben, Schrift, Abstände, Radien, Schatten, Bewegung.
+ * Clothet Design-Tokens. Einzige Quelle für Farben, Schrift, Abstände, Radius, Schatten, Bewegung.
  * Komponenten nutzen ausschließlich diese Variablen, nie feste Werte. Regeln dazu: DESIGN.md.
- * Layout-Idee (Entwurf 4A „Klar“): oben der Avatar auf ruhigem Grund, darunter eine weiße Schublade mit der Kleidung.
+ * Richtung „Atelier“: warmes Papier, eine Akzentfarbe, Serif-Titel, ein Radius, ein Schatten.
  */
 :root {
-  /* Farbe: Flächen */
-  --c-bg: #ffffff;          /* Seitenhintergrund, reines Weiß */
-  --c-surface: #ffffff;     /* Karten, Sheets, Leisten */
-  --c-tile: #f2f4f1;        /* Ablage hinter Kleidung */
-  --c-stage: #f2f4f1;       /* Hintergrund der Anprobe, die Schublade liegt weiß darauf */
-  --c-line: #e3e7e2;        /* Trennlinien, Rahmen */
+  /* Farbe: Flächen (warmes Papier, kein reines Weiß) */
+  --c-bg: #f7f4ef;          /* Seitenhintergrund und Bühne */
+  --c-surface: #fffdfa;     /* Schublade, Sheets, Leiste */
+  --c-tile: #efeae2;        /* Ablage hinter Kleidung, Chips, Umschalter */
+  --c-stage: #f7f4ef;       /* Hintergrund der Anprobe */
+  --c-line: #e2dcd2;        /* Haarlinien, nur wo nötig */
   /* Farbe: Text */
-  --c-ink: #16201c;         /* Haupttext */
-  --c-muted: #55615b;       /* Nebentext, Beschriftungen */
-  /* Farbe: Akzent (Tannengrün) – nur für die eine Hauptaktion und aktive Zustände */
-  --c-accent: #17694f;
-  --c-accent-ink: #ffffff;  /* Text auf Akzent */
-  --c-accent-soft: #dcebe4; /* aktive Chips, Auswahl */
+  --c-ink: #1e1b18;         /* Haupttext, warmes Fast-Schwarz */
+  --c-muted: #6e675f;       /* Nebentext */
+  /* Farbe: die eine Akzentfarbe (Salbei-Tanne) für Hauptaktion und aktive Zustände */
+  --c-accent: #3e5a4c;
+  --c-accent-ink: #fffdfa;  /* Text auf Akzent */
+  --c-accent-soft: #dfe6e0; /* aktive Chips, Auswahl */
   /* Farbe: Bedeutung (getrennt vom Akzent) */
-  --c-danger: #b3372c;
-  --c-danger-soft: #f6e0dd;
-  --c-scrim: rgba(16, 24, 20, 0.45);
-  --c-camera: #0b0e0d;      /* Kamera im Vollbild, in beiden Farbmodi dunkel */
-  --c-camera-ink: #ffffff;  /* Text, Umrisslinie und Auslöser in der Kamera */
+  --c-danger: #b3432f;
+  --c-danger-soft: #f3e0da;
+  --c-scrim: rgba(30, 27, 24, 0.45);
+  --c-camera: #14120f;      /* Kamera im Vollbild, in beiden Farbmodi dunkel */
+  --c-camera-ink: #fffdfa;  /* Text, Umrisslinie und Auslöser in der Kamera */
 
-  /* Schrift */
-  --font-display: 'Inter', 'Segoe UI', system-ui, sans-serif; /* Titel */
-  --font-body: 'Inter', 'Segoe UI', system-ui, sans-serif;    /* alles andere */
-  --fs-xs: 0.75rem;   /* 12 Beschriftung, Tabs */
+  /* Schrift: Serif nur für Titel, Sans für alles andere */
+  --font-display: 'Instrument Serif', 'Iowan Old Style', Georgia, serif;
+  --font-body: 'DM Sans', 'Helvetica Neue', Arial, sans-serif;
+  --fs-xs: 0.75rem;   /* 12 Beschriftung, Leiste */
   --fs-sm: 0.875rem;  /* 14 Nebentext, Chips */
   --fs-md: 1rem;      /* 16 Fließtext, Eingaben, Buttons */
-  --fs-lg: 1.25rem;   /* 20 Sheet-Titel */
-  --fs-xl: 1.375rem;  /* 22 Seitentitel */
-  --lh-tight: 1.15;
+  --fs-lg: 1.25rem;   /* 20 kleine Titel */
+  --fs-xl: 1.75rem;   /* 28 Sheet-Titel */
+  --fs-2xl: 2.5rem;   /* 40 Seitentitel */
+  --lh-tight: 1.1;
   --lh-body: 1.45;
 
-  /* Abstände: 4er-Raster */
-  --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px; --s-5: 24px; --s-6: 32px; --s-7: 48px;
+  /* Abstände: 4er-Raster, keine anderen Werte */
+  --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px; --s-5: 24px; --s-6: 32px; --s-7: 48px; --s-8: 64px;
 
-  /* Radien: Kacheln weich, Bedienelemente rund */
-  --r-sm: 8px;    /* Eingaben, kleine Flächen */
-  --r-md: 16px;   /* Kacheln, Karten */
-  --r-lg: 24px;   /* Sheets, Bühne */
-  --r-pill: 999px;/* Buttons, Chips */
+  /* Form: ein Radius für alles. Rund sind nur echte Kreise (Farbpunkte, Auslöser, Haken). */
+  --r: 6px;
+  --r-round: 999px;
 
-  /* Schatten: sparsam, nur für Schwebendes */
-  --sh-1: 0 1px 2px rgba(22, 32, 28, 0.08);
-  --sh-2: 0 8px 28px rgba(22, 32, 28, 0.16);
-  --sh-drawer: 0 -2px 16px rgba(22, 32, 28, 0.08);            /* Schublade über der Bühne */
-  --sh-fab: 0 1px 3px rgba(22, 32, 28, 0.2), 0 6px 16px rgba(23, 105, 79, 0.3); /* schwebende Hauptaktion */
+  /* Schatten: genau einer, sehr weich, nur für Schwebendes (Sheet, Zufallsknopf, Toast) */
+  --sh: 0 8px 28px rgba(30, 27, 24, 0.14);
 
-  /* Bewegung: kurz und ruhig */
+  /* Bewegung: kurz und ruhig, nur Ein- und Ausblenden oder Verschieben */
   --t-fast: 120ms;
   --t-base: 220ms;
   --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
@@ -58,26 +54,24 @@
   /* Maße */
   --tap: 48px;        /* Mindestgröße für alles Antippbare */
   --maxw: 960px;      /* maximale Inhaltsbreite */
-  --nav-h: 72px;
+  --nav-h: 64px;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --c-bg: #101412; --c-surface: #181e1b; --c-tile: #232b27; --c-stage: #0b0e0d; --c-line: #2e3833;
-    --c-ink: #e8ede9; --c-muted: #9aa8a0;
-    --c-accent: #57c79f; --c-accent-ink: #0c1512; --c-accent-soft: #1d3a30;
-    --c-danger: #ef8076; --c-danger-soft: #3d1f1c; --c-scrim: rgba(0, 0, 0, 0.6);
-    --sh-1: 0 1px 2px rgba(0, 0, 0, 0.4); --sh-2: 0 8px 28px rgba(0, 0, 0, 0.5);
-    --sh-drawer: 0 -2px 16px rgba(0, 0, 0, 0.4); --sh-fab: 0 1px 3px rgba(0, 0, 0, 0.5), 0 6px 16px rgba(0, 0, 0, 0.4);
+    --c-bg: #171512; --c-surface: #201d19; --c-tile: #2b2722; --c-stage: #171512; --c-line: #3a352e;
+    --c-ink: #ede8e0; --c-muted: #a69e93;
+    --c-accent: #a3bdae; --c-accent-ink: #14201a; --c-accent-soft: #2b3a32;
+    --c-danger: #e58c7a; --c-danger-soft: #40221c; --c-scrim: rgba(0, 0, 0, 0.6);
+    --sh: 0 8px 28px rgba(0, 0, 0, 0.5);
     color-scheme: dark;
   }
 }
 :root[data-theme='dark'] {
-  --c-bg: #101412; --c-surface: #181e1b; --c-tile: #232b27; --c-stage: #0b0e0d; --c-line: #2e3833;
-  --c-ink: #e8ede9; --c-muted: #9aa8a0;
-  --c-accent: #57c79f; --c-accent-ink: #0c1512; --c-accent-soft: #1d3a30;
-  --c-danger: #ef8076; --c-danger-soft: #3d1f1c; --c-scrim: rgba(0, 0, 0, 0.6);
-  --sh-1: 0 1px 2px rgba(0, 0, 0, 0.4); --sh-2: 0 8px 28px rgba(0, 0, 0, 0.5);
-    --sh-drawer: 0 -2px 16px rgba(0, 0, 0, 0.4); --sh-fab: 0 1px 3px rgba(0, 0, 0, 0.5), 0 6px 16px rgba(0, 0, 0, 0.4);
+  --c-bg: #171512; --c-surface: #201d19; --c-tile: #2b2722; --c-stage: #171512; --c-line: #3a352e;
+  --c-ink: #ede8e0; --c-muted: #a69e93;
+  --c-accent: #a3bdae; --c-accent-ink: #14201a; --c-accent-soft: #2b3a32;
+  --c-danger: #e58c7a; --c-danger-soft: #40221c; --c-scrim: rgba(0, 0, 0, 0.6);
+  --sh: 0 8px 28px rgba(0, 0, 0, 0.5);
   color-scheme: dark;
 }

@@ -74,7 +74,7 @@ export function Home({ slots, setSlots, onSettings, onAdd, fitZone, setFitZone, 
 
   async function save() {
     if (!wornList.length) return
-    const tile = getComputedStyle(document.documentElement).getPropertyValue('--c-tile').trim() || '#f2f4f1'
+    const tile = getComputedStyle(document.documentElement).getPropertyValue('--c-tile').trim() || '#efeae2'
     try {
       const preview = await renderOutfit(wornSlots, items, fits, av.photo ?? av.url, !!av.photo, tile, av.wide)
       await saveOutfit({ id: uid(), name: `Outfit ${outfits.length + 1}`, slots: wornSlots, preview, createdAt: Date.now() })

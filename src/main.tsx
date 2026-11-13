@@ -14,10 +14,10 @@ import { Settings } from './views/Settings'
 
 // Flache Navigation: drei Bereiche, darüber höchstens ein Sheet.
 type Tab = 'anprobe' | 'schrank' | 'outfits'
-const TABS: { id: Tab; label: string; icon: JSX.Element }[] = [
-  { id: 'anprobe', label: 'Anprobe', icon: <IconPerson /> },
-  { id: 'schrank', label: 'Schrank', icon: <IconHanger /> },
-  { id: 'outfits', label: 'Outfits', icon: <IconOutfit /> },
+const TABS: { id: Tab; label: string; Icon: (p: { on?: boolean }) => JSX.Element }[] = [
+  { id: 'anprobe', label: 'Anprobe', Icon: IconPerson },
+  { id: 'schrank', label: 'Schrank', Icon: IconHanger },
+  { id: 'outfits', label: 'Outfits', Icon: IconOutfit },
 ]
 
 function App() {
@@ -60,7 +60,7 @@ function App() {
         <div className="nav-inner">
           {TABS.map((t) => (
             <button key={t.id} className={tab === t.id ? 'is-on' : ''} onClick={() => setTab(t.id)} aria-current={tab === t.id ? 'page' : undefined}>
-              {t.icon}
+              <t.Icon on={tab === t.id} />
               <span>{t.label}</span>
             </button>
           ))}

@@ -2,7 +2,7 @@ import type { AvatarMode, Figure, Fit, Zone } from '../types'
 
 /** Standard-Avatar im Format 3:4, falls kein eigenes Foto hinterlegt ist. */
 const MANNEQUIN = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 400" width="600" height="800">
-<g fill="#c9d0ca" stroke="#c9d0ca" stroke-linecap="round">
+<g fill="#cdc6ba" stroke="#cdc6ba" stroke-linecap="round">
 <circle cx="150" cy="44" r="24" stroke="none"/>
 <rect x="141" y="62" width="18" height="24" stroke="none"/>
 <path d="M118 92 86 204M182 92l32 112" stroke-width="18" fill="none"/>
