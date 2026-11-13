@@ -4,9 +4,11 @@ Verbindliche Grundlage für jeden Screen, jedes Bild und jeden Text in Clothet. 
 
 ## 1. Leitidee
 
-**Du vor deinem Schrank.** Im Mittelpunkt steht dein Avatar, links und rechts hängt deine Kleidung. Ein Wisch, und du hast etwas anderes an. Die Kleidung ist bunt, die App nicht.
+**Du vor deinem Schrank.** Oben steht dein Avatar auf ruhigem Grund, darunter liegt deine Kleidung in einer weißen Schublade. Ein Tipp, und du hast etwas anderes an. Die Kleidung ist bunt, die App nicht.
 
-Vorbild für die Bedienung sind heutige Handy-Apps mit minimalistischer Oberfläche wie Airbnb: viel Weiß, große klare Titel, runde Chips, eine untere Leiste mit drei Bereichen.
+Vorbild für die Bedienung sind heutige Handy-Apps mit minimalistischer Oberfläche wie Airbnb: viel Weiß, klare Titel, runde Chips, eine untere Leiste mit drei Bereichen.
+
+Zwei Vorlagen geben die Regeln vor. Aus **Material Design 3** kommen die Bausteine: Schublade (Bottom Sheet) mit Griff, schwebende Hauptaktion (Extended FAB), Umschalter, Filter-Chips, untere Leiste, Antippflächen von 48 px. Aus **Refactoring UI** kommt die Gestaltung: Rangfolge über Schriftgewicht und Farbe statt über Größe, Flächen und Abstände statt Rahmen, Nebentext zurückgenommen, Schatten nur für Schwebendes.
 
 Drei Grundsätze, an denen jede Entscheidung gemessen wird:
 
@@ -54,22 +56,22 @@ Regeln:
 
 | Rolle | Schrift | Größe | Gewicht |
 | --- | --- | --- | --- |
-| Seitentitel | Bricolage Grotesque | `--fs-xl` 28 | 700 |
-| Sheet-Titel | Bricolage Grotesque | `--fs-lg` 20 | 700 |
-| Text, Eingaben, Buttons | Instrument Sans | `--fs-md` 16 | 400 / 600 |
-| Nebentext, Chips | Instrument Sans | `--fs-sm` 14 | 400 / 500 |
-| Beschriftung, Tabs | Instrument Sans | `--fs-xs` 12 | 600, Großbuchstaben mit 0.06em Sperrung nur bei Feld-Beschriftungen |
+| Seitentitel | Inter | `--fs-xl` 22 | 700 |
+| Sheet-Titel | Inter | `--fs-lg` 20 | 700 |
+| Text, Eingaben, Buttons | Inter | `--fs-md` 16 | 400 / 600 |
+| Nebentext, Chips | Inter | `--fs-sm` 14 | 400 / 500 |
+| Beschriftung, Tabs | Inter | `--fs-xs` 12 | 600, Großbuchstaben mit 0.06em Sperrung nur bei Feld-Beschriftungen |
 
-Die Display-Schrift steht nur in Titeln und in Kalenderzahlen. Keine dritte Schrift. Zahlen in Rastern stehen mit `tabular-nums`.
+Es gibt nur eine Schrift, Inter. Rangfolge entsteht über Gewicht (400, 500, 600, 700) und Farbe (`--c-ink`, `--c-muted`). Zahlen in Rastern stehen mit `tabular-nums`.
 
 ## 5. Abstände, Raster, Form
 
 - **Abstände** im 4er-Raster: `--s-1` 4, `--s-2` 8, `--s-3` 12, `--s-4` 16, `--s-5` 24, `--s-6` 32, `--s-7` 48. Zwischen Geschwistern immer `gap`, keine Einzel-Margins.
 - **Seitenrand** mindestens 16 px, Inhalt maximal `--maxw` 960 px breit.
 - **Kleider-Raster:** Kacheln im Format 3:4, mindestens 150 px breit, Abstand `--s-3`.
-- **Radien:** `--r-sm` 8 für Eingaben, `--r-md` 14 für Kacheln, `--r-lg` 22 für Sheets und die Bühne, `--r-pill` für Buttons und Chips.
-- **Schatten** nur für Schwebendes: `--sh-1` für die untere Leiste, `--sh-2` für Sheets. Kacheln haben keinen Schatten.
-- **Antippflächen** mindestens 44 px (`--tap`).
+- **Radien:** `--r-sm` 8 für Eingaben, `--r-md` 16 für Kacheln und den Zufallsknopf, `--r-lg` 24 für Sheets und die Schublade, `--r-pill` für Buttons und Chips.
+- **Schatten** nur für Schwebendes: `--sh-1` für kleine Karten und den aktiven Umschalter, `--sh-2` für Sheets, `--sh-drawer` für die Schublade, `--sh-fab` für den Zufallsknopf. Kacheln haben keinen Schatten.
+- **Antippflächen** mindestens 48 px (`--tap`).
 
 ## 6. Komponenten
 
@@ -80,27 +82,34 @@ Klassen stehen in `src/styles/app.css`. Bestehende Komponenten wiederverwenden, 
 | Hauptbutton | `.btn.btn-primary` | einmal pro Screen, grün, Verb als Text ("Speichern") |
 | Nebenbutton | `.btn` | neutral mit Rahmen |
 | Löschbutton | `.btn.btn-danger` | rot, nur für Unwiderrufliches, immer mit Rückfrage |
-| Icon-Button | `.icon-btn` | 44 px, immer mit `aria-label` |
+| Icon-Button | `.icon-btn` | 48 px, immer mit `aria-label` |
 | Chip | `.chip`, aktiv `.chip.is-on` | Filter und Mehrfachauswahl |
 | Kachel | `.tile` | Kleidung 3:4 auf `--c-tile`, Name darunter |
 | Sheet | `.sheet` | Formulare und Details, von unten, am Desktop mittig |
 | Feld | `.field` | Beschriftung über der Eingabe |
 | Leerer Zustand | `.empty` | ein Satz, was hier erscheint, plus die eine Aktion |
 | Hinweis | `.note` | kurze Rückmeldung in einem Satz |
-| Bühne | `.stage` | Avatar-Fläche 3:4, füllt auf der Anprobe die freie Höhe |
-| Seitenkarte | `.side` | Nachbar-Teil im Karussell, links und rechts der Bühne, je Körperzone |
-| Umschalter | `.segment` | zwei bis drei gleichrangige Ansichten |
-| Regler-Leiste | `.panel` | Feineinstellung direkt unter der Bühne, ohne Sheet |
+| Bühne | `.stage` | Avatar-Fläche 3:4 ohne eigene Kachel, steht auf `--c-stage` und füllt die freie Höhe |
+| Schublade | `.drawer` | weiße Fläche unter der Bühne mit Griff, Umschalter und Auswahl-Raster |
+| Auswahl-Kachel | `.pick-tile` | ein Teil im Raster der Schublade, angezogen mit grünem Rahmen und Haken (`.check`) |
+| Zufallsknopf | `.fab` | die eine schwebende Hauptaktion der Anprobe, rechts unten auf der Bühne |
+| Bewertung | `.match` | kleine Karte links oben auf der Bühne: Urteil fett, Grund darunter |
+| Umschalter | `.segment` | zwei bis vier gleichrangige Ansichten, in der Schublade die Körperzonen |
 | Toast | `.toast` | kurze Bestätigung über der unteren Leiste, verschwindet von selbst |
 | Untere Leiste | `.nav` | drei Bereiche: Anprobe, Schrank, Outfits |
 
 ## 6a. Der Hauptscreen (Anprobe)
 
-- Der Avatar steht mittig auf der Bühne. Ohne eigenes Foto ist es eine schlichte graue Figur.
-- Je Körperzone (Jacke, Oberteil, Hose, Schuhe) gibt es ein Karussell. Das mittlere Teil ist angezogen, die Nachbarn liegen als Seitenkarten links und rechts auf Höhe der Zone.
-- Wechseln per Wisch über die Zone oder Tipp auf eine Seitenkarte. Das neue Teil gleitet aus der Wischrichtung herein.
-- Über der Bühne liegt genau eine Chip-Reihe als Filter (Jahreszeit, Stil). Unter der Bühne stehen eine Zeile Bewertung und eine Zeile Aktionen. Mehr kommt auf diesen Screen nicht.
-- Der Screen scrollt nicht. Die Bühne nimmt den Platz, der übrig bleibt.
+Grundlage ist Entwurf 4A „Klar“ mit dem Zufallsknopf aus 4C.
+
+- **Oben die Bühne** auf `--c-stage`: Titel „Anprobe“, rechts Speichern und Einstellungen als Icon-Buttons. Der Avatar steht mittig. Ohne eigenes Foto ist es eine schlichte graue Figur.
+- **Links oben auf der Bühne** steht die Bewertung des Outfits als kleine Karte.
+- **Rechts unten auf der Bühne** schwebt der Zufallsknopf („Zufall“ mit Würfel). Er ist die einzige grüne Fläche des Screens. Ist eine Hauptfarbe vorgegeben, zeigt er sie als Punkt.
+- **Unten die Schublade:** Griff, Umschalter für Jacke, Oberteil, Hose, Schuhe und daneben der Filter-Knopf. Darunter das Raster der Teile dieser Zone, drei pro Reihe. Ein Tipp zieht das Teil an. Bei der Jacke steht zuerst „Ohne“, am Ende des Rasters immer „Neues Teil“.
+- Ein Tipp auf den Griff vergrößert oder verkleinert die Schublade. Nur das Raster scrollt, der Screen selbst nicht.
+- Ein Tipp auf eine Körperzone des Avatars zeigt diese Zone in der Schublade, ein Wisch darüber wechselt direkt zum nächsten Teil.
+- Der Filter-Knopf öffnet das eine Sheet „Filter und Zufall“: Jahreszeit, Stil, Hauptfarbe und was beim Würfeln bleibt. Ist etwas gesetzt, trägt der Knopf einen grünen Punkt.
+- Die Feineinstellung des Sitzes (aus den Einstellungen) erscheint in der Schublade anstelle des Rasters.
 
 ## 7. Icons
 
@@ -147,4 +156,4 @@ Klassen stehen in `src/styles/app.css`. Bestehende Komponenten wiederverwenden, 
 3. Kleidung auf `--c-tile`, vollständig sichtbar?
 4. Hell und dunkel geprüft, bei 390 px Breite ohne Querscrollen?
 5. Texte in Du-Form, Buttons als Verben, feste Begriffe eingehalten?
-6. Alles Antippbare mindestens 44 px, mit sichtbarem Fokus?
+6. Alles Antippbare mindestens 48 px, mit sichtbarem Fokus?

@@ -1,17 +1,18 @@
 /*
  * Clothet Design-Tokens. Einzige Quelle für Farben, Schrift, Abstände, Radien, Schatten, Bewegung.
  * Komponenten nutzen ausschließlich diese Variablen, nie feste Werte. Regeln dazu: DESIGN.md.
- * Layout-Idee: viel Weiß, der Avatar mit der Kleidung steht im Mittelpunkt. Die Oberfläche tritt zurück.
+ * Layout-Idee (Entwurf 4A „Klar“): oben der Avatar auf ruhigem Grund, darunter eine weiße Schublade mit der Kleidung.
  */
 :root {
   /* Farbe: Flächen */
   --c-bg: #ffffff;          /* Seitenhintergrund, reines Weiß */
   --c-surface: #ffffff;     /* Karten, Sheets, Leisten */
-  --c-tile: #f1f3f0;        /* Ablage hinter Kleidung und Avatar */
-  --c-line: #e1e5e0;        /* Trennlinien, Rahmen */
+  --c-tile: #f2f4f1;        /* Ablage hinter Kleidung */
+  --c-stage: #f2f4f1;       /* Hintergrund der Anprobe, die Schublade liegt weiß darauf */
+  --c-line: #e3e7e2;        /* Trennlinien, Rahmen */
   /* Farbe: Text */
   --c-ink: #16201c;         /* Haupttext */
-  --c-muted: #5f6b65;       /* Nebentext, Beschriftungen */
+  --c-muted: #55615b;       /* Nebentext, Beschriftungen */
   /* Farbe: Akzent (Tannengrün) – nur für die eine Hauptaktion und aktive Zustände */
   --c-accent: #17694f;
   --c-accent-ink: #ffffff;  /* Text auf Akzent */
@@ -22,13 +23,13 @@
   --c-scrim: rgba(16, 24, 20, 0.45);
 
   /* Schrift */
-  --font-display: 'Bricolage Grotesque', 'Segoe UI', system-ui, sans-serif; /* Titel, Zahlen im Kalender */
-  --font-body: 'Instrument Sans', 'Segoe UI', system-ui, sans-serif;        /* alles andere */
+  --font-display: 'Inter', 'Segoe UI', system-ui, sans-serif; /* Titel */
+  --font-body: 'Inter', 'Segoe UI', system-ui, sans-serif;    /* alles andere */
   --fs-xs: 0.75rem;   /* 12 Beschriftung, Tabs */
   --fs-sm: 0.875rem;  /* 14 Nebentext, Chips */
   --fs-md: 1rem;      /* 16 Fließtext, Eingaben, Buttons */
   --fs-lg: 1.25rem;   /* 20 Sheet-Titel */
-  --fs-xl: 1.75rem;   /* 28 Seitentitel */
+  --fs-xl: 1.375rem;  /* 22 Seitentitel */
   --lh-tight: 1.15;
   --lh-body: 1.45;
 
@@ -37,13 +38,15 @@
 
   /* Radien: Kacheln weich, Bedienelemente rund */
   --r-sm: 8px;    /* Eingaben, kleine Flächen */
-  --r-md: 14px;   /* Kacheln, Karten */
-  --r-lg: 22px;   /* Sheets, Bühne */
+  --r-md: 16px;   /* Kacheln, Karten */
+  --r-lg: 24px;   /* Sheets, Bühne */
   --r-pill: 999px;/* Buttons, Chips */
 
   /* Schatten: sparsam, nur für Schwebendes */
   --sh-1: 0 1px 2px rgba(22, 32, 28, 0.08);
   --sh-2: 0 8px 28px rgba(22, 32, 28, 0.16);
+  --sh-drawer: 0 -2px 16px rgba(22, 32, 28, 0.08);            /* Schublade über der Bühne */
+  --sh-fab: 0 1px 3px rgba(22, 32, 28, 0.2), 0 6px 16px rgba(23, 105, 79, 0.3); /* schwebende Hauptaktion */
 
   /* Bewegung: kurz und ruhig */
   --t-fast: 120ms;
@@ -51,26 +54,28 @@
   --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
 
   /* Maße */
-  --tap: 44px;        /* Mindestgröße für alles Antippbare */
+  --tap: 48px;        /* Mindestgröße für alles Antippbare */
   --maxw: 960px;      /* maximale Inhaltsbreite */
-  --nav-h: 60px;
+  --nav-h: 72px;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --c-bg: #101412; --c-surface: #181e1b; --c-tile: #232b27; --c-line: #2e3833;
+    --c-bg: #101412; --c-surface: #181e1b; --c-tile: #232b27; --c-stage: #0b0e0d; --c-line: #2e3833;
     --c-ink: #e8ede9; --c-muted: #9aa8a0;
     --c-accent: #57c79f; --c-accent-ink: #0c1512; --c-accent-soft: #1d3a30;
     --c-danger: #ef8076; --c-danger-soft: #3d1f1c; --c-scrim: rgba(0, 0, 0, 0.6);
     --sh-1: 0 1px 2px rgba(0, 0, 0, 0.4); --sh-2: 0 8px 28px rgba(0, 0, 0, 0.5);
+    --sh-drawer: 0 -2px 16px rgba(0, 0, 0, 0.4); --sh-fab: 0 1px 3px rgba(0, 0, 0, 0.5), 0 6px 16px rgba(0, 0, 0, 0.4);
     color-scheme: dark;
   }
 }
 :root[data-theme='dark'] {
-  --c-bg: #101412; --c-surface: #181e1b; --c-tile: #232b27; --c-line: #2e3833;
+  --c-bg: #101412; --c-surface: #181e1b; --c-tile: #232b27; --c-stage: #0b0e0d; --c-line: #2e3833;
   --c-ink: #e8ede9; --c-muted: #9aa8a0;
   --c-accent: #57c79f; --c-accent-ink: #0c1512; --c-accent-soft: #1d3a30;
   --c-danger: #ef8076; --c-danger-soft: #3d1f1c; --c-scrim: rgba(0, 0, 0, 0.6);
   --sh-1: 0 1px 2px rgba(0, 0, 0, 0.4); --sh-2: 0 8px 28px rgba(0, 0, 0, 0.5);
+    --sh-drawer: 0 -2px 16px rgba(0, 0, 0, 0.4); --sh-fab: 0 1px 3px rgba(0, 0, 0, 0.5), 0 6px 16px rgba(0, 0, 0, 0.4);
   color-scheme: dark;
 }

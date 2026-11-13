@@ -25,3 +25,4 @@ export const IconGear = () => <I><g transform="translate(12 12) scale(.84) trans
 export const IconDice = () => <I><rect x="4" y="4" width="16" height="16" rx="3.500" /><circle cx="9" cy="9" r=".6" fill="currentColor" /><circle cx="15" cy="15" r=".6" fill="currentColor" /><circle cx="15" cy="9" r=".6" fill="currentColor" /><circle cx="9" cy="15" r=".6" fill="currentColor" /><circle cx="12" cy="12" r=".6" fill="currentColor" /></I>
 export const IconSliders = () => <I><path d="M4 7h9M17 7h3M4 17h3M11 17h9" /><circle cx="15" cy="7" r="2" /><circle cx="9" cy="17" r="2" /></I>
 export const IconBookmark = () => <I><path d="M7 4h10a1 1 0 0 1 1 1v15l-6-4-6 4V5a1 1 0 0 1 1-1z" /></I>
+export const IconCheck = () => <I><path d="m5 12.5 4.5 4.5L19 7.5" /></I>

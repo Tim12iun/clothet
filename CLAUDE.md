@@ -1,6 +1,6 @@
 # Clothet
 
-Kleiderschrank-App: Teile fotografieren, freistellen und taggen. Hauptscreen ist der Avatar mit einem Karussell je Körperzone, das mittlere Teil wird angezogen. Dazu Filter, Zufalls-Outfits mit Vorgaben, Stil-Wissen für Farbregeln, gespeicherte Outfits und Kalender. Eigenes Produkt mit eigenem Design.
+Kleiderschrank-App: Teile fotografieren, freistellen und taggen. Hauptscreen ist der Avatar, darunter eine Schublade mit den Teilen je Körperzone (Entwurf 4A), ein Tipp zieht ein Teil an. Dazu Filter, Zufalls-Outfits mit Vorgaben, Stil-Wissen für Farbregeln, gespeicherte Outfits und Kalender. Eigenes Produkt mit eigenem Design.
 
 ## Pflicht vor jeder UI-Änderung
 
