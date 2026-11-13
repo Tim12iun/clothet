@@ -134,6 +134,7 @@ Grundlage ist Entwurf 4A „Klar“ mit dem Zufallsknopf aus 4C.
 | Heute-Karte | `.today` | oben in Outfits: was heute geplant oder getragen ist, mit der einen Aktion |
 | Wochenliste | `.days`, `.day-row`, `.day-check` | sieben Tage, rechts der Haken für „getragen“ |
 | Kennzahlen, Karte, Balken | `.facts`, `.card`, `.bars` | Statistik |
+| Import | `.import-row` | Sheet „Kleidung importieren“: mehrere Bilder wählen, je Bild die Art antippen (Oberteil, Hose, Schuhe zuerst), Freistellen und Farbe laufen automatisch |
 | Sortieren | `.sort` | Auswahl über dem Raster im Schrank |
 | Schritte | `.steps` | nummerierte Anleitung, z. B. Installation |
 

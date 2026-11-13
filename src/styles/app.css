@@ -544,3 +544,10 @@ noscript { display: block; padding: var(--s-6) var(--s-4); text-align: center; }
 /* An die Figur angepasstes Teil: Bild in Bühnengröße, Feineinstellung per transform */
 .wear.is-full { inset: 0; left: 0; outline: none; }
 .wear.is-full .wear-img { width: 100%; height: 100%; }
+
+/* Import: ein Bild je Zeile, darunter die Art zum Antippen */
+.import-row { display: flex; flex-direction: column; gap: var(--s-2); padding: var(--s-3); background: var(--c-surface); border: 1px solid var(--c-line); border-radius: var(--r-md); }
+.import-top { display: flex; align-items: flex-end; gap: var(--s-3); }
+.import-thumb { flex: none; width: 64px; height: 80px; display: grid; place-items: center; padding: 4px; background: var(--c-tile); border-radius: var(--r-sm); }
+.import-thumb img { width: 100%; height: 100%; object-fit: contain; }
+.grid .tile { border-radius: var(--r-md) var(--r-md) 0 0; }

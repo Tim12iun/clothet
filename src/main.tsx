@@ -9,6 +9,7 @@ import { EMPTY_SLOTS, type Slots, type Zone } from './types'
 import { AddItem } from './views/AddItem'
 import { Closet } from './views/Closet'
 import { Home } from './views/Home'
+import { ImportItems } from './views/ImportItems'
 import { Outfits } from './views/Outfits'
 import { Settings } from './views/Settings'
 
@@ -26,7 +27,7 @@ export type Toast = (text: string, undo?: () => void) => void
 function App() {
   const { ready, persistent } = useStore()
   const [tab, setTab] = useState<Tab>(tabFromHash)
-  const [sheet, setSheet] = useState<'add' | 'settings' | null>(null)
+  const [sheet, setSheet] = useState<'add' | 'import' | 'settings' | null>(null)
   const [slots, setSlots] = useState<Slots>(EMPTY_SLOTS)
   const [fitZone, setFitZone] = useState<Zone | null>(null)
   const [note, setNote] = useState<{ text: string; undo?: () => void } | null>(null)
@@ -86,7 +87,7 @@ function App() {
     <div className="app">
       <main className="app-main" ref={main}>
         <Home hidden={tab !== 'anprobe'} slots={slots} setSlots={setSlots} onSettings={() => setSheet('settings')} onAdd={() => setSheet('add')} fitZone={fitZone} setFitZone={setFitZone} toast={toast} />
-        <Closet hidden={tab !== 'schrank'} onAdd={() => setSheet('add')} toast={toast} note={storageNote} />
+        <Closet hidden={tab !== 'schrank'} onAdd={() => setSheet('add')} onImport={() => setSheet('import')} toast={toast} note={storageNote} />
         <Outfits hidden={tab !== 'outfits'} slots={slots} onHome={() => go('anprobe')} onWear={(o) => { setSlots(o.slots); go('anprobe') }} toast={toast} note={storageNote} />
         {update && (
           <div className="toast" role="status">
@@ -111,7 +112,8 @@ function App() {
           ))}
         </div>
       </nav>
-      {sheet === 'add' && <AddItem onClose={() => setSheet(null)} toast={toast} />}
+      {sheet === 'add' && <AddItem onClose={() => setSheet(null)} onImport={() => setSheet('import')} toast={toast} />}
+      {sheet === 'import' && <ImportItems onClose={() => setSheet(null)} toast={toast} />}
       {sheet === 'settings' && <Settings online={online} onClose={() => setSheet(null)} onFit={() => { setSheet(null); go('anprobe'); setFitZone('top') }} toast={toast} />}
     </div>
   )

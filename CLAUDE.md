@@ -13,6 +13,7 @@ Lies `DESIGN.md`. Es ist verbindlich für Design, Bildsprache und Tonalität. Nu
 - Bildverarbeitung in `src/lib/image.ts` (Freistellen, Farben erkennen, Outfit-Vorschau), Sitz der Teile auf dem Avatar in `src/lib/avatar.ts`.
 - App-Rahmen in `src/main.tsx`: drei Bereiche mit eigener Adresse (`#/anprobe`, `#/schrank`, `#/outfits`), alle bleiben eingehängt. Das Dokument scrollt nie. Überlagerungen (Sheet, Kamera, Avatar einrichten) laufen über `src/lib/overlay.ts` (Zurück-Taste, Escape, Fokus).
 - Avatar: Körpermodell aus Selfie und Körperdaten, weiblich oder männlich (`figureSvg` in `src/lib/avatar.ts`, Gesicht und Hautton in `src/lib/face.ts`), eingerichtet im Vollbild in `src/views/AvatarEditor.tsx`, oder Ganzkörperfoto. Eigene Kamera mit Umrisslinien in `src/views/Camera.tsx` und `src/lib/guides.ts`.
+- Anlegen: einzeln mit Kamera und Umrisslinie (`src/views/AddItem.tsx`) oder viele Bilder auf einmal (`src/views/ImportItems.tsx`).
 - Passform in `src/lib/fitting.ts`: liest Ankerpunkte aus dem Umriss (Schulter, Achsel, Ärmelende, Bund, Schritt) und zieht Oberteile, Jacken und Hosen auf die Körperpunkte aus `bodyTargets` (`src/lib/avatar.ts`). Ohne KI, alles im Gerät. Ergebnis ist ein Bild in Bühnengröße, die Feineinstellung des Sitzes läuft per transform.
 - Outfit-Engine in `src/lib/engine.ts`: Bewertung von Kombinationen, Zufalls-Outfit, Auslesen von Farbregeln aus dem Stil-Wissen.
 - Planer und „getragen“: `calendar` und `worn` im Store, Hilfen in `src/lib/outfits.ts`. Sicherung: `exportAll` und `importAll` im Store.

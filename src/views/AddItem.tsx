@@ -11,7 +11,7 @@ import { Sheet } from './Sheet'
 
 type Which = 'main' | 'wear' // main: Bild für den Schrank, wear: Schuh von vorne für den Avatar
 
-export function AddItem({ onClose, toast }: { onClose: () => void; toast: Toast }) {
+export function AddItem({ onClose, onImport, toast }: { onClose: () => void; onImport: () => void; toast: Toast }) {
   const [photo, setPhoto] = useState<HTMLCanvasElement | null>(null)
   const [wearPhoto, setWearPhoto] = useState<HTMLCanvasElement | null>(null)
   const [cutout, setCutout] = useState(true)
@@ -121,6 +121,7 @@ export function AddItem({ onClose, toast }: { onClose: () => void; toast: Toast 
             )}
           </div>
           {sources('main', true)}
+          <button className="link" onClick={onImport} id="to-import">Mehrere Bilder auf einmal importieren</button>
           {error && <p className="note is-danger" role="alert">{error}</p>}
         </>
       ) : (
