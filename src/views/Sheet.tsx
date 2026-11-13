@@ -31,6 +31,7 @@ export function Sheet({ title, onClose, children }: { title: string; onClose: ()
           onPointerMove={(e) => move(e.clientY)}
           onPointerUp={(e) => end(e.clientY)}
           onPointerCancel={() => end(0)}
+          onLostPointerCapture={() => end(0)}
         >
           <i className="sheet-grip" aria-hidden="true" />
           <h2>{title}</h2>

@@ -427,3 +427,37 @@ test('Hinzufügen: mehrere Bilder auf einmal, Art korrigieren, Teil markieren', 
   await expect(page.locator('.view:not([hidden]) .grid .tile', { hasText: 'Hose in' })).toHaveCount(1)
   expect(errors).toEqual([])
 })
+
+test('Schublade: bleibt in ihrem Bereich, auch groß, und lässt sich am Griff antippen und wischen', async ({ page }) => {
+  const errors = await withSamples(page)
+  const handle = page.locator('.drawer-handle')
+  if (!(await handle.isVisible())) return // im Querformat steht die Schublade fest neben der Bühne
+  const inside = async () => {
+    const [home, drawer, stage] = await Promise.all(['.home', '.drawer', '.stage-wrap'].map((s) => page.locator(s).first().boundingBox()))
+    expect(drawer!.y + drawer!.height).toBeLessThanOrEqual(home!.y + home!.height + 1)
+    expect(stage!.height).toBeGreaterThanOrEqual(150)
+    return drawer!.height
+  }
+  const small = await inside()
+  await handle.click()
+  await expect(handle).toHaveAttribute('aria-expanded', 'true')
+  await page.waitForTimeout(400)
+  expect(await inside()).toBeGreaterThanOrEqual(small)
+  // Nach unten wischen macht sie wieder klein, nach oben groß
+  const swipe = async (dy: number) => {
+    const b = (await handle.boundingBox())!
+    await handle.dispatchEvent('pointerdown', { clientX: b.x + b.width / 2, clientY: b.y + 10, pointerId: 1 })
+    await handle.dispatchEvent('pointerup', { clientX: b.x + b.width / 2, clientY: b.y + 10 + dy, pointerId: 1 })
+  }
+  await swipe(60)
+  await expect(handle).toHaveAttribute('aria-expanded', 'false')
+  await swipe(-60)
+  await expect(handle).toHaveAttribute('aria-expanded', 'true')
+  // Wer den Bereich verlässt, findet die Schublade danach wieder klein vor
+  await go(page, 'Schrank')
+  await go(page, 'Anprobe')
+  await expect(handle).toHaveAttribute('aria-expanded', 'false')
+  await page.waitForTimeout(400)
+  await inside()
+  expect(errors).toEqual([])
+})

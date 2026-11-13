@@ -136,7 +136,9 @@ function Skeleton() {
 const vv = window.visualViewport
 function syncKeyboard() {
   if (!vv) return
-  const covered = Math.max(0, window.innerHeight - vv.height - vv.offsetTop)
+  // Nur eine echte Tastatur zählt: Beim Zoomen mit zwei Fingern schrumpft der sichtbare Bereich auch, die App soll dann nicht kleiner werden
+  const typing = !!document.activeElement?.matches?.('input:not([type=range]):not([type=file]):not([type=checkbox]), textarea, select')
+  const covered = typing && vv.scale < 1.05 ? Math.max(0, window.innerHeight - vv.height - vv.offsetTop) : 0
   document.documentElement.style.setProperty('--keyboard', `${Math.round(covered)}px`)
   document.documentElement.classList.toggle('keyboard-open', covered > 80)
   if (covered > 80) window.scrollTo(0, 0) // falls iOS das Dokument beim Fokus verschoben hat
@@ -144,6 +146,10 @@ function syncKeyboard() {
 vv?.addEventListener('resize', syncKeyboard)
 vv?.addEventListener('scroll', syncKeyboard)
 syncKeyboard()
+document.addEventListener('focusout', () => window.setTimeout(syncKeyboard, 100))
+document.addEventListener('focusin', () => window.setTimeout(syncKeyboard, 100))
+// iOS zoomt mit zwei Fingern auch dann, wenn die Seite es abstellt: Das würde die Oberfläche verschieben
+document.addEventListener('gesturestart', (e) => e.preventDefault())
 // Nach dem Fokus das Feld im eigenen Scroll-Bereich sichtbar machen
 document.addEventListener('focusin', (e) => {
   const el = e.target as HTMLElement

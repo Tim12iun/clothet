@@ -30,6 +30,9 @@ export function Home({ hidden, slots, setSlots, onSettings, onAdd, toast }: Prop
   const [prefsOpen, setPrefsOpen] = useState(false)
   const [zone, setZone] = useState<Zone>('top')
   const [open, setOpen] = useState(false)
+  const grip = useRef<number | null>(null), swiped = useRef(false)
+  // Die große Schublade gilt nur für den Moment: Wer den Bereich verlässt, findet sie danach wieder klein vor
+  useEffect(() => { if (hidden) setOpen(false) }, [hidden])
   const [dir, setDir] = useState<'next' | 'prev'>('next')
   const swipe = useRef<{ x: number } | null>(null)
   const [busy, setBusy] = useState<'save' | 'worn' | 'seed' | null>(null)
@@ -178,7 +181,18 @@ export function Home({ hidden, slots, setSlots, onSettings, onAdd, toast }: Prop
       </div>
 
       <div className="drawer">
-        <button className="drawer-handle" onClick={() => setOpen(!open)} aria-expanded={open} aria-label={open ? 'Schublade verkleinern' : 'Schublade vergrößern'}><i /></button>
+        <button
+          className="drawer-handle" aria-expanded={open} aria-label={open ? 'Schublade verkleinern' : 'Schublade vergrößern'}
+          onPointerDown={(e) => { grip.current = e.clientY }}
+          onPointerCancel={() => { grip.current = null }}
+          onPointerUp={(e) => {
+            // Wischen am Griff: nach oben groß, nach unten klein. Der Klick danach schaltet dann nicht noch einmal um
+            const dy = grip.current === null ? 0 : e.clientY - grip.current
+            grip.current = null
+            if (Math.abs(dy) > 10) { swiped.current = true; setOpen(dy < 0) }
+          }}
+          onClick={() => { if (swiped.current) swiped.current = false; else setOpen(!open) }}
+        ><i /></button>
         <>
             <div className="drawer-bar">
               <div className="segment grow" role="tablist" aria-label="Körperzone">

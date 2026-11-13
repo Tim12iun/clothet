@@ -93,7 +93,7 @@ Klassen stehen in `src/styles/app.css`. Bestehende Komponenten wiederverwenden, 
 | Leerer Zustand | `.empty` | ein Satz, was hier erscheint, plus die eine Aktion |
 | Hinweis | `.note` | kurze Rückmeldung in einem Satz |
 | Bühne | `.stage` | Avatar-Fläche 3:4 ohne eigene Kachel, steht auf `--c-stage` und füllt die freie Höhe |
-| Schublade | `.drawer` | weiße Fläche unter der Bühne mit Griff, Umschalter und Auswahl-Raster |
+| Schublade | `.drawer` | weiße Fläche unter der Bühne mit Griff, Umschalter und Auswahl-Raster. Zwei Größen (klein ist Standard), Griff antippen oder wischen. Sie gibt nach, bevor die Bühne zu klein wird, ragt nie über die untere Leiste und ist nach einem Bereichswechsel wieder klein |
 | Auswahl-Kachel | `.pick-tile` | ein Teil im Raster der Schublade, angezogen mit grünem Rahmen und Haken (`.check`) |
 | Zufallsknopf | `.fab` | die eine schwebende Hauptaktion der Anprobe, rechts unten auf der Bühne |
 | Bewertung | `.match` | kleine Karte links oben auf der Bühne: Urteil fett, Grund darunter |
