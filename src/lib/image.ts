@@ -328,11 +328,13 @@ export async function renderOutfit(slots: Slots, items: Item[], avatar: Blob | s
   const ctx = c.getContext('2d')!
   ctx.fillStyle = tile
   ctx.fillRect(0, 0, W, H)
+  let figure: HTMLImageElement | null = null
   if (typeof avatar === 'string') {
     const img = new Image()
     img.src = avatar
     await img.decode()
     ctx.drawImage(img, 0, 0, W, H)
+    figure = img
   } else {
     const bmp = await createImageBitmap(avatar)
     const k = isPhoto ? Math.max(W / bmp.width, H / bmp.height) : Math.min(W / bmp.width, H / bmp.height)
@@ -378,6 +380,15 @@ export async function renderOutfit(slots: Slots, items: Item[], avatar: Blob | s
     const h = (w * bmp.height) / bmp.width
     const y = p.anchor === 'top' ? p.y * H : p.y * H - h
     ctx.drawImage(bmp, (W - w) / 2, y, w, h)
+  }
+  // Wie auf der Bühne: Kopf und ein Stück Hals liegen vor der Kleidung
+  if (figure && !isPhoto) {
+    ctx.save()
+    ctx.beginPath()
+    ctx.rect(0, 0, W, H * 0.19)
+    ctx.clip()
+    ctx.drawImage(figure, 0, 0, W, H)
+    ctx.restore()
   }
   return toBlob(c, 'image/jpeg', 0.88)
 }

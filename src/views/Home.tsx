@@ -148,6 +148,7 @@ export function Home({ hidden, slots, setSlots, onSettings, onAdd, toast }: Prop
             if (!item || (z === 'bottom' && isDress)) return null
             return <Wear key={z} item={item} zone={z} isDress={isDress} wide={av.wide} photo={!!av.photo} sex={sex} dir={slide?.zone === z ? slide.dir : null} />
           })}
+          {!av.photo && <img className="avatar is-front" src={av.url} alt="" aria-hidden="true" draggable={false} />}
           {ZONES.map((z) => (
             <div
               key={z}

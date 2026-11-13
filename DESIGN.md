@@ -201,3 +201,7 @@ Grundlage ist Entwurf 4A „Klar“ mit dem Zufallsknopf aus 4C.
 ## Bewegung an der Figur
 
 Ein Teil wechselt ohne Bewegung, die Puppe steht nie kurz ohne Kleidung da. Nur beim Wischen an der Figur gleitet das gewischte Teil kurz herein, alle anderen Teile bleiben stehen.
+
+## Tiefe an der Figur
+
+Oberteile sitzen mit ihrer Schulterlinie auf den Schultern der Puppe, Kragen und Kapuze reichen an den Hals. Kopf und ein Stück Hals liegen noch einmal vor der Kleidung (`.avatar.is-front`), auch in der Outfit-Vorschau.

@@ -91,12 +91,12 @@ export async function load(): Promise<boolean> {
       else if (key === 'avatarMode') avatarMode = v as AvatarMode
       else if (key === 'seeded2') seeded = true
       else if (key === 'shoes-front') shoesFront = true
-      else if (key === 'fit-reset') fitReset = true
+      else if (key === 'fit-reset2') fitReset = true
     }
-    // Oberteile sitzen seit der Puppe ohne Arme von selbst größer: von Hand gesetzte Werte von davor würden doppelt wirken
+    // Oberteile sitzen inzwischen von selbst größer und höher: von Hand gesetzte Werte von davor würden doppelt wirken
     if (!fitReset) {
       for (const it of items) if (it.fit && (it.category === 'Oberteile' || it.category === 'Jacken')) { delete it.fit; set('item:' + it.id, it, db) }
-      set('fit-reset', 1, db)
+      set('fit-reset2', 1, db)
     }
   } catch {
     persistent = false

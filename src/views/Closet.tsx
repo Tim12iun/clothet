@@ -209,6 +209,7 @@ function ItemSheet({ item, onClose, onDelete }: { item: Item; onClose: () => voi
           <div className="stage is-mini" id="fit-stage">
             <img className={'avatar' + (av.photo ? ' is-photo' : '')} src={av.photo ? urlFor(av.photo) : av.url} alt="" draggable={false} />
             <Wear item={draft} zone={zone} isDress={draft.category === 'Kleider'} wide={av.wide} photo={!!av.photo} sex={figure?.sex} />
+            {!av.photo && <img className="avatar is-front" src={av.url} alt="" aria-hidden="true" draggable={false} />}
           </div>
         ) : (
           <div className="stage is-mini is-plain"><img src={urlFor(item.image)} alt={item.name} /></div>

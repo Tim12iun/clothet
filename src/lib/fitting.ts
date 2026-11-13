@@ -95,7 +95,7 @@ function waistRow(m: Mask): number {
 /** Feste Zone je Art in Bühnenpunkten. Oberteil: Oberkante, Länge des Oberkörpers, Schulterbreite. Hose: Oberkante, größte Breite und Höhe. */
 function topBox(jacket: boolean, sex: Sex | undefined) {
   const t = bodyTargets(sex), top = t.shoulderY - (jacket ? 11 : 9)
-  return { top: top * U, torso: (t.crotchY - top) * (jacket ? 1.06 : 1) * U, shoulders: (t.shoulderHalf * 2 + (jacket ? 22 : 16)) * U }
+  return { top: top * U, torso: (t.crotchY - top) * (jacket ? 1.06 : 1) * U, shoulders: (t.shoulderHalf * 2 + (jacket ? 22 : 16)) * U, shoulderLine: (t.shoulderY - 4) * U }
 }
 function bottomBox(sex: Sex | undefined, tall: boolean) {
   // Lange Hosen dürfen weit sein, kurze Hosen richten sich nach der Hüfte
@@ -122,8 +122,20 @@ function placeTop(src: HTMLCanvasElement, m: Mask, jacket: boolean, sex: Sex | u
   // Weicht die Erkennung stark vom sicheren Weg ab, stimmt sie nicht, und der sichere Weg gilt
   if (byShoulder > simple * 0.7 && byShoulder < simple * 1.4) s = byShoulder
   s = Math.min(s, (W * 0.98) / w) // weit ausgebreitete Ärmel bleiben auf der Bühne
+  // Höhe: Die Schulterlinie des Teils (erste Zeile, die fast so breit ist wie der Rumpf) liegt auf den Schultern der Figur.
+  // Kragen und Kapuze reichen so von selbst an den Hals hinauf. Ohne erkannte Schulterlinie gilt die Oberkante der Zone.
+  let top = box.top
+  if (shape) {
+    const cx = (m.left + m.right) / 2
+    for (let y = m.top; y <= m.top + shape.length * 0.35; y++) {
+      const r = centerRun(m, y, cx)
+      if (!r || r[1] - r[0] + 1 < shape.width * 0.8) continue
+      top = clamp(box.shoulderLine - (y - m.top) * s, box.top - 22 * U, box.top)
+      break
+    }
+  }
   const { out, ctx } = stage()
-  ctx.setTransform(s, 0, 0, s, CX - ((m.left + m.right + 1) / 2) * s, box.top - m.top * s)
+  ctx.setTransform(s, 0, 0, s, CX - ((m.left + m.right + 1) / 2) * s, top - m.top * s)
   ctx.drawImage(src, 0, 0)
   return out
 }

@@ -273,6 +273,8 @@ button, label.btn, .nav, .home-head, .view-head, .segment, .chips, .sheet-head, 
 }
 .avatar { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
 .avatar.is-photo { object-fit: cover; }
+/* Kopf und ein Stück Hals liegen noch einmal vor der Kleidung: Kragen und Kapuze sitzen dahinter, das gibt Tiefe */
+.avatar.is-front { clip-path: inset(0 0 81% 0); }
 .wear { position: absolute; left: 50%; transform: translateX(-50%); pointer-events: none; }
 /* Ein Teil wechselt ohne Bewegung: Die Puppe steht nie kurz ohne da. */
 .wear-img { width: 100%; max-width: none; }
