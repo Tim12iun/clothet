@@ -246,9 +246,13 @@ export function guessCategory(src: HTMLCanvasElement): Category {
   // Oben schmal (Kragen), gleich darunter schon die volle Breite (Schultern und Ärmel): ein Oberteil, auch ohne Lücken
   if (top < upper * 0.6 && upper > 0.9 && upper >= lower * 0.9) return r > 1.7 ? 'Kleider' : 'Oberteile'
   // Zwei Beine: unten genau eine Lücke in der Mitte, oben ein gerader Bund, der fast so breit ist wie die Hüfte
-  const waist = top > row(0.3).width * 0.6
-  const legs = band(0.8, 0.97).filter((x) => x.gap).length >= 2 && !band(0.03, 0.2).some((x) => x.gaps)
+  // Ein Bund ist schon ganz oben breit, ein Kragen wird erst darunter zu Schultern
+  const waist = Math.min(row(0.02).width, row(0.04).width) > row(0.3).width * 0.6
+  // Bei langen Teilen muss die Lücke weit hinaufreichen: Sonst sind es Ärmel, die neben dem Saum eines Pullovers herabhängen
+  const legs = band(0.8, 0.97).filter((x) => x.gap).length >= 2 && !band(0.03, 0.2).some((x) => x.gaps) && (r < 1.1 || band(0.7, 0.78).some((x) => x.gap))
   if (legs && waist) return 'Hosen'
+  // Schmaler Kragen, kurz darunter breite Schultern: ein Oberteil, auch wenn die Ärmel anliegen und es nach unten breiter wird
+  if (!waist && r < 1.45 && row(0.12).width > row(0.02).width * 1.5) return 'Oberteile'
   if (upper > lower * 1.2 && upper > 0.9) return r > 1.7 ? 'Kleider' : 'Oberteile' // Ärmel stehen über den Saum hinaus
   if (lower > top * 1.3 && !waist) return r > 1.5 ? 'Kleider' : r > 0.75 ? 'Röcke' : 'Oberteile'
   // Weite Hosen, deren Beine aneinander liegen: oben ein gerader, breiter Bund ohne Ausschnitt

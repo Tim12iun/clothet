@@ -6,8 +6,8 @@ import { NO_FIT, ZONE_LABEL, type Item, type Sex, type Zone } from '../types'
 
 /** Bild eines Teils an seinem Platz auf der Figur: undefined solange es gerechnet wird, null wenn es keins gibt. */
 function useFitted(item: Item, sex: Sex | undefined, on: boolean) {
-  // Art, Bild und Schalter gehören zum Schlüssel: Ändert sich eins davon, wird neu gerechnet
-  const key = `${item.id}:${item.category}:${item.sleeves ? 1 : 0}:${item.image.size}:${sex ?? ''}`
+  // Art und Bild gehören zum Schlüssel: Ändert sich eins davon, wird neu gerechnet
+  const key = `${item.id}:${item.category}:${item.image.size}:${sex ?? ''}`
   const [hit, setHit] = useState<{ key: string; url: string | null } | null>(null)
   useEffect(() => {
     if (!on) return

@@ -197,7 +197,7 @@ function ItemSheet({ item, onClose, onDelete }: { item: Item; onClose: () => voi
   const zone = zoneOf(draft.category), fit = draft.fit ?? NO_FIT
   const setFit = (f: Fit) => setDraft({ ...draft, fit: { dy: clamp(f.dy, -0.14, 0.14), scale: clamp(f.scale, 0.6, 1.7) } })
   // Mit der Art ändert sich, wo und wie das Teil sitzt: Passform und Feineinstellung beginnen neu
-  const change = (v: Partial<Item>) => setDraft({ ...draft, ...v, ...(v.category && v.category !== draft.category ? { fit: undefined, sleeves: false } : {}) })
+  const change = (v: Partial<Item>) => setDraft({ ...draft, ...v, ...(v.category && v.category !== draft.category ? { fit: undefined } : {}) })
   return (
     <Sheet title="Teil bearbeiten" onClose={onClose}>
       {zone ? (
@@ -219,11 +219,6 @@ function ItemSheet({ item, onClose, onDelete }: { item: Item; onClose: () => voi
               <p className="muted">Gilt nur für dieses Teil.</p>
             </div>
           </div>
-          {fitKind(draft.category) === 'top' && !av.photo && (
-            <div className="chips wrap">
-              <button className={'chip' + (draft.sleeves ? ' is-on' : '')} aria-pressed={!!draft.sleeves} onClick={() => setDraft({ ...draft, sleeves: !draft.sleeves })} id="fit-sleeves">Ärmel an die Arme legen</button>
-            </div>
-          )}
         </div>
       ) : (
         <div className="preview-tile small"><img src={urlFor(item.image)} alt={item.name} /></div>

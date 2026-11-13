@@ -59,7 +59,7 @@ Avatar
 - [ ] Einstellungen, „Avatar einrichten“, Selfie aufnehmen: Der Avatar erscheint groß mit deinem Gesicht.
 - [ ] Gesicht mit einem Finger ziehen, mit zwei Fingern vergrößern: folgt dem Finger ohne Ruckeln, die Seite bewegt sich nicht mit.
 - [ ] Körper: weiblich und männlich, Größe, Körpertyp, Hautton ändern sich sofort.
-- [ ] Ein eigenes T-Shirt, einen Pullover und eine Hose fotografieren: Liegen die Ärmel an den Armen, bleiben die Hände frei, folgen die Hosenbeine den Beinen?
+- [ ] Ein eigenes T-Shirt, einen Pullover und eine Hose fotografieren: Passt das Oberteil in der Größe zu den Schultern der Puppe (auch mit anliegenden Ärmeln), bleibt es unverzerrt, folgen die Hosenbeine den Beinen?
 - [ ] „Teil bearbeiten“: Sitz am Avatar mit den vier Knöpfen ändern, gilt nur für dieses Teil.
 
 Bedienung

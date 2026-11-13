@@ -360,7 +360,7 @@ test('Offline-Start: nach dem ersten Besuch lädt die App ohne Netz und zeigt di
   expect(font).toBe(true)
 })
 
-test('Platz am Avatar: Oberteil liegt zwischen Schulter und Hüfte, Hose zwischen Hüfte und Knöchel, Ärmel als Zusatz', async ({ page }) => {
+test('Platz am Avatar: Oberteil liegt zwischen Schulter und Hüfte, Hose zwischen Hüfte und Knöchel', async ({ page }) => {
   const errors = await withSamples(page)
   await expect(page.locator('.home .wear.is-full')).toHaveCount(2)
   // Wo liegt der Stoff im Bühnenbild? Oberste und unterste sichtbare Zeile als Anteil der Höhe
@@ -378,7 +378,7 @@ test('Platz am Avatar: Oberteil liegt zwischen Schulter und Hüfte, Hose zwische
   })
   const [t0, t1] = await extent('top'), [b0, b1] = await extent('bottom')
   expect(t0).toBeGreaterThan(0.17); expect(t0).toBeLessThan(0.26)
-  expect(t1).toBeGreaterThan(0.38); expect(t1).toBeLessThan(0.56)
+  expect(t1).toBeGreaterThan(0.38); expect(t1).toBeLessThan(0.66)
   expect(b0).toBeGreaterThan(0.4); expect(b0).toBeLessThan(0.48)
   expect(b1).toBeGreaterThan(0.75); expect(b1).toBeLessThan(0.96)
   await page.locator('#save-outfit').click()
@@ -386,9 +386,8 @@ test('Platz am Avatar: Oberteil liegt zwischen Schulter und Hüfte, Hose zwische
   await go(page, 'Schrank')
   await page.locator('.view:not([hidden]) .grid .tile', { hasText: 'Weißes T-Shirt' }).click()
   await expectAccessible(page, 'Teil bearbeiten mit Sitz')
-  const plain = await page.locator('#fit-stage .wear img').getAttribute('src')
-  await page.locator('#fit-sleeves').click()
-  await expect.poll(() => page.locator('#fit-stage .wear img').getAttribute('src')).not.toBe(plain)
+  await expect(page.locator('#fit-stage .wear img')).toBeVisible()
+  await expect(page.locator('#fit-sleeves')).toHaveCount(0)
   await page.locator('#save-edit').click()
   await go(page, 'Anprobe')
   await expect(page.locator('.home .wear.is-full')).toHaveCount(2)

@@ -3,13 +3,10 @@ import { bodyTargets } from './avatar'
 import { specks } from './image'
 
 /**
- * Sitz am Avatar ohne KI. Standard: Jede Art hat eine feste Zone an der Figur (Oberteil und Jacke von der Schulter
- * bis zur Hüfte, Hose von der Hüfte bis zum Knöchel). Das freigestellte Bild wird über seinen wirklichen Umriss (ohne
- * Rand und lose Bildreste) in diese Zone gelegt: oben angelegt, mittig, proportional so groß, dass es in Breite und
- * Höhe der Zone passt. Das ist der sichere Weg, der bei jedem Bild geht. Bei Oberteilen bestimmt, wenn sie sicher
- * erkannt ist, die Schulterbreite die Größe (Schultern des Teils auf die Schultern der Figur), und das Teil wird
- * höchstens leicht gestreckt, bis es den Oberkörper bedeckt. Zusatz auf Wunsch (item.sleeves): Bei Oberteilen fallen die Ärmel zu den Armen hin.
- * Das greift nur, wenn beide Ärmel sicher erkannt sind, sonst bleibt es beim Standard.
+ * Sitz am Avatar ohne KI. Die Figur ist eine Puppe ohne Arme, darum wird kein Oberteil verzerrt: Das freigestellte
+ * Bild wird über seinen wirklichen Umriss (ohne Rand und lose Bildreste) nur skaliert und an die Schultern gelegt.
+ * Die Größe kommt aus der Schulterbreite des Teils, der sichere Weg aus seiner Länge. Hosen hängen am Bund und enden
+ * am Knöchel, die Beine werden höchstens leicht zur Seite ausgerichtet.
  * Ergebnis ist ein Bild in Bühnengröße (3:4) für die Figur in Normalbreite.
  */
 const U = 2, W = 300 * U, H = 400 * U, CX = W / 2
@@ -51,57 +48,22 @@ function centerRun(m: Mask, y: number, cx: number): [number, number] | null {
   return [l, r]
 }
 
-interface Sleeve { ax: number; ay: number; ex: number; ey: number; armpit: number; top: number }
-interface TopShape { cx: number; bh: number; seamY: number; hem: number; sleeves: Partial<Record<1 | -1, Sleeve>> }
-
-export function readTop(m: Mask): TopShape | null {
-  const hgt = m.bottom - m.top
-  let cx = (m.left + m.right) / 2
-  // Saum: die unterste Zeile, in der der Rumpf liegt (lange Ärmel können tiefer reichen)
+/**
+ * Rumpf eines Oberteils ohne Ärmel: Länge vom Kragen bis zum Saum (Ärmel können tiefer hängen) und die Breite an der
+ * schmalsten Stelle zwischen Schulter und Saum. Liegen die Ärmel am Rumpf an, ist das die Schulterbreite, stehen sie
+ * ab, die Breite des Rumpfs darunter.
+ */
+export function readTop(m: Mask): { width: number; length: number } | null {
+  const cx = (m.left + m.right) / 2
   let hem = m.bottom
   while (hem > m.top && !centerRun(m, hem, cx)) hem--
-  const rows: [number, number][] = []
-  for (let y = Math.round(hem - hgt * 0.1); y <= hem - hgt * 0.02; y++) { const r = centerRun(m, y, cx); if (r) rows.push(r) }
-  if (rows.length < 3) return null
-  cx = median(rows.map((r) => (r[0] + r[1]) / 2))
-  const bh = median(rows.map((r) => (r[1] - r[0]) / 2))
-  if (bh < 10) return null
-  const sleeves: TopShape['sleeves'] = {}
-  let seamY = m.bottom
-  for (const side of [1, -1] as const) {
-    const sx = Math.round(cx + side * bh * 0.96)
-    let sy = m.top
-    while (sy < hem && !m.on(sx, sy)) sy++
-    seamY = Math.min(seamY, sy)
-    // Achsel: von unten nach oben die erste Stelle, an der der Rumpf deutlich breiter wird als am Saum
-    let armpit = -1, streak = 0
-    for (let y = Math.round(hem - hgt * 0.1); y > m.top; y--) {
-      const r = centerRun(m, y, cx)
-      const ext = r ? (side > 0 ? r[1] - cx : cx - r[0]) : 0
-      streak = ext > bh * 1.2 ? streak + 1 : 0
-      if (streak >= 4) { armpit = y + 4; break }
-    }
-    if (armpit < 0) continue
-    const ax = cx + side * bh, ay = (sy + armpit) / 2
-    // Ärmelende: die Punkte jenseits der Rumpfkante, die am weitesten von der Schulter entfernt sind
-    let far = 0
-    const pts: [number, number, number][] = []
-    const gap = Math.max(3, bh * 0.06)
-    for (let y = m.top; y <= m.bottom; y += 2) {
-      // Unter der Achsel gehört der mittlere Abschnitt zum Rumpf, nicht zum Ärmel
-      const body = y > armpit ? centerRun(m, y, cx) : null
-      for (let x = side > 0 ? Math.ceil(ax + gap) : m.left; side > 0 ? x <= m.right : x <= ax - gap; x += 2) {
-        if (!m.on(x, y) || (body && x >= body[0] - 1 && x <= body[1] + 1)) continue
-        const dist = Math.hypot(x - ax, y - ay)
-        pts.push([x, y, dist])
-        if (dist > far) far = dist
-      }
-    }
-    const end = pts.filter((p) => p[2] > far * 0.93)
-    if (far < bh * 0.3 || !end.length) continue
-    sleeves[side] = { ax, ay, ex: end.reduce((a, p) => a + p[0], 0) / end.length, ey: end.reduce((a, p) => a + p[1], 0) / end.length, armpit, top: sy }
-  }
-  return { cx, bh, seamY, hem, sleeves }
+  const length = hem - m.top + 1
+  if (length < 20) return null
+  const widths: number[] = []
+  for (let y = Math.round(m.top + length * 0.15); y <= m.top + length * 0.95; y++) { const r = centerRun(m, y, cx); if (r) widths.push(r[1] - r[0] + 1) }
+  if (widths.length < 5) return null
+  const width = widths.sort((x, y) => x - y)[Math.floor(widths.length * 0.1)]
+  return width < 20 ? null : { width, length }
 }
 
 const smooth = (k: number) => { const c = clamp(k, 0, 1); return c * c * (3 - 2 * c) }
@@ -112,46 +74,6 @@ function stage() {
   const ctx = out.getContext('2d')!
   ctx.imageSmoothingQuality = 'high'
   return { out, ctx }
-}
-
-/**
- * Oberteil: ein Maßstab für das ganze Teil (Rumpfbreite auf Schulterbreite, Naht auf Schulterhöhe). Der Rumpf bleibt,
- * wie er fotografiert wurde. Nur jenseits der Rumpfkante wird das Bild stufenlos nach unten geschert und etwas
- * zusammengeschoben, damit die Ärmel den Armen folgen. Nichts wird ausgeschnitten oder einzeln gedreht.
- */
-function warpTop(src: HTMLCanvasElement, m: Mask, sex: Sex | undefined, sh: TopShape, s: number): HTMLCanvasElement {
-  const t = bodyTargets(sex)
-  const top = (t.shoulderY - 1.5) * U + (m.top - sh.seamY) * s
-  const edge = sh.bh * s, onset = edge * 0.2
-  const arm = Math.atan2(t.armTo[1] - t.armFrom[1], Math.max(1, t.armTo[0] - t.armFrom[0]))
-  const bend = { 1: { squeeze: 1, shear: 0 }, [-1]: { squeeze: 1, shear: 0 } } as Record<1 | -1, { squeeze: number; shear: number }>
-  for (const side of [1, -1] as const) {
-    const sl = sh.sleeves[side]
-    if (!sl) continue
-    const dx = Math.abs(sl.ex - sl.ax) * s, dy = (sl.ey - sl.ay) * s
-    if (dx < edge * 0.15) continue
-    // Der Ärmel dreht sich nur einen Teil des Wegs zum Arm: Er soll fallen, aber seine Form behalten
-    const from = Math.atan2(dy, dx), to = from + Math.max(0, arm - from) * 0.6, len = Math.hypot(dx, dy)
-    const squeeze = clamp((len * Math.cos(to)) / dx, 0.6, 1)
-    bend[side] = { squeeze, shear: clamp((len * Math.sin(to) - dy) / dx, 0, 1) }
-  }
-  const { out, ctx } = stage()
-  const sh0 = m.bottom - m.top + 1
-  for (let tx = 0; tx < W; tx++) {
-    const side = tx >= CX ? 1 : -1, ud = Math.abs(tx + 0.5 - CX), b = bend[side]
-    let u = ud / s, drop = 0, step = 1 / s
-    if (ud > edge) {
-      const v = (ud - edge) / b.squeeze // Weg jenseits der Rumpfkante, im Maßstab des Teils
-      u = (edge + v) / s
-      step /= b.squeeze
-      // Weicher Einsatz der Scherung, damit an der Naht kein Knick entsteht
-      drop = (v < onset ? (v * v) / (2 * onset) : v - onset / 2) * b.shear
-    }
-    const sx = sh.cx + side * u - step / 2
-    if (sx + step < m.left || sx > m.right + 1) continue
-    ctx.drawImage(src, clamp(sx, 0, m.w - step), m.top, step, sh0, tx, top + drop, 1, sh0 * s)
-  }
-  return out
 }
 
 /** Erster und letzter Stoffpunkt einer Zeile. */
@@ -170,39 +92,40 @@ function waistRow(m: Mask): number {
   return m.top + Math.max(0, first)
 }
 
-/** Feste Zone je Art in Bühnenpunkten: Oberkante, größte Breite und größte Höhe. */
-function zoneBox(kind: FitKind, jacket: boolean, sex: Sex | undefined, tall: boolean) {
-  const t = bodyTargets(sex)
-  if (kind === 'top') {
-    // Vom Halsansatz bis über die Hüfte, in der Breite über beide Arme hinaus (Ärmel liegen beim Foto ausgebreitet)
-    const top = t.shoulderY - (jacket ? 11 : 9), k = jacket ? 1.07 : 1
-    return { top: top * U, maxW: (t.armOuter * 2 + 42) * k * U, maxH: (t.crotchY - 2 - top) * k * U, minBody: (t.shoulderHalf * 2 + (jacket ? 18 : 12)) * U, cover: (t.waistY + 10 - top) * U }
-  }
+/** Feste Zone je Art in Bühnenpunkten. Oberteil: Oberkante, Länge des Oberkörpers, Schulterbreite. Hose: Oberkante, größte Breite und Höhe. */
+function topBox(jacket: boolean, sex: Sex | undefined) {
+  const t = bodyTargets(sex), top = t.shoulderY - (jacket ? 11 : 9)
+  return { top: top * U, torso: (t.crotchY - top) * (jacket ? 1.06 : 1) * U, shoulders: (t.shoulderHalf * 2 + (jacket ? 22 : 16)) * U }
+}
+function bottomBox(sex: Sex | undefined, tall: boolean) {
   // Lange Hosen dürfen weit sein, kurze Hosen richten sich nach der Hüfte
-  const hip = t.torsoHalf(t.waistY) * 2
-  return { top: (t.waistY - 3) * U, maxW: hip * (tall ? 1.7 : 1.25) * U, maxH: (t.ankleY + 5 - t.waistY) * U, minBody: 0, cover: 0 }
+  const t = bodyTargets(sex), hip = t.torsoHalf(t.waistY) * 2
+  return { top: (t.waistY - 3) * U, maxW: hip * (tall ? 1.7 : 1.25) * U, maxH: (t.ankleY + 5 - t.waistY) * U }
 }
 
-/** Sicherer Weg, der bei jedem Bild geht: das Teil als Ganzes in seine Zone einpassen, ohne etwas zu erkennen. */
-function simpleScale(m: Mask, y0: number, box: ReturnType<typeof zoneBox>) {
+/** Sicherer Weg für Hosen, der bei jedem Bild geht: das Teil als Ganzes in seine Zone einpassen, ohne etwas zu erkennen. */
+function simpleScale(m: Mask, y0: number, box: ReturnType<typeof bottomBox>) {
   return Math.min(box.maxW / (m.right - m.left + 1), box.maxH / (m.bottom - y0 + 1))
 }
 
 /**
- * Oberteil und Jacke: Wenn sie sicher erkannt ist, bestimmt die Schulterbreite des Teils (Rumpf ohne Ärmel) die Größe:
- * Sie wird zur Schulterbreite der Figur. Danach höchstens leicht in die Länge gestreckt, bis der Oberkörper bedeckt ist.
+ * Oberteil und Jacke: Das Bild bleibt, wie es ist, mit Ärmeln, und wird nur als Ganzes skaliert und mittig an die
+ * Schultern gelegt. Sicherer Weg: Die Länge vom Kragen bis zum Saum wird zur Länge des Oberkörpers. Ist die
+ * Schulterbreite des Teils erkannt und liegt ihr Ergebnis in der Nähe, bestimmt sie die Größe: Schultern des Teils
+ * auf die Schultern der Figur. Nichts wird verzerrt.
  */
-function placeTop(src: HTMLCanvasElement, m: Mask, jacket: boolean, sex: Sex | undefined): { out: HTMLCanvasElement; s: number } {
-  const h = m.bottom - m.top + 1, box = zoneBox('top', jacket, sex, false), simple = simpleScale(m, m.top, box)
+function placeTop(src: HTMLCanvasElement, m: Mask, jacket: boolean, sex: Sex | undefined): HTMLCanvasElement {
+  const box = topBox(jacket, sex), w = m.right - m.left + 1, shape = readTop(m)
+  const simple = box.torso / (shape?.length ?? m.bottom - m.top + 1)
   let s = simple
-  const body = readTop(m)?.bh, byShoulder = body ? box.minBody / (2 * body) : 0
+  const byShoulder = shape ? box.shoulders / shape.width : 0
   // Weicht die Erkennung stark vom sicheren Weg ab, stimmt sie nicht, und der sichere Weg gilt
-  if (byShoulder > simple * 0.75 && byShoulder < simple * 1.35 && h * byShoulder < box.maxH * 1.15) s = byShoulder
-  const sy = h * s < box.cover ? s * Math.min(1.1, box.cover / (h * s)) : s
+  if (byShoulder > simple * 0.7 && byShoulder < simple * 1.4) s = byShoulder
+  s = Math.min(s, (W * 0.98) / w) // weit ausgebreitete Ärmel bleiben auf der Bühne
   const { out, ctx } = stage()
-  ctx.setTransform(s, 0, 0, sy, CX - ((m.left + m.right + 1) / 2) * s, box.top - m.top * sy)
+  ctx.setTransform(s, 0, 0, s, CX - ((m.left + m.right + 1) / 2) * s, box.top - m.top * s)
   ctx.drawImage(src, 0, 0)
-  return { out, s }
+  return out
 }
 
 /**
@@ -213,7 +136,7 @@ function placeTop(src: HTMLCanvasElement, m: Mask, jacket: boolean, sex: Sex | u
  */
 function placeBottom(src: HTMLCanvasElement, m: Mask, sex: Sex | undefined): HTMLCanvasElement {
   const t = bodyTargets(sex), y0 = waistRow(m), w = m.right - m.left + 1, h = m.bottom - y0 + 1
-  const tall = h / w >= 1.3, box = zoneBox('bottom', false, sex, tall), simple = simpleScale(m, y0, box)
+  const tall = h / w >= 1.3, box = bottomBox(sex, tall), simple = simpleScale(m, y0, box)
   let s = simple, cx = (m.left + m.right + 1) / 2
   const rows: [number, number][] = []
   for (let y = Math.round(y0 + h * 0.01); y <= y0 + h * 0.05; y++) { const r = span(m, y); if (r) rows.push(r) }
@@ -286,7 +209,7 @@ const cache = new Map<string, Promise<string | null>>()
 export function fittedUrl(item: Item, sex: Sex | undefined): Promise<string | null> {
   const kind = fitKind(item.category)
   if (!kind) return Promise.resolve(null)
-  const key = `${item.id}:${item.category}:${item.sleeves ? 1 : 0}:${item.image.size}:${sex === 'Weiblich' ? 'w' : 'm'}`
+  const key = `${item.id}:${item.category}:${item.image.size}:${sex === 'Weiblich' ? 'w' : 'm'}`
   let hit = cache.get(key)
   if (!hit) {
     hit = (async () => {
@@ -310,21 +233,13 @@ export function fittedUrl(item: Item, sex: Sex | undefined): Promise<string | nu
       const jacket = item.category === 'Jacken'
       let out: HTMLCanvasElement
       try {
-        if (kind === 'bottom') out = placeBottom(src, m, sex)
-        else {
-          const placed = placeTop(src, m, jacket, sex)
-          out = placed.out
-          if (item.sleeves) {
-            // Nur wenn beide Ärmel erkannt sind und der Maßstab zum Standard passt, sonst bleibt der Standard
-            const sh = readTop(m), sw = sh ? ((bodyTargets(sex).shoulderHalf + (jacket ? 5 : 3)) * U) / sh.bh : 0
-            if (sh && sh.sleeves[1] && sh.sleeves[-1] && sw > placed.s * 0.8 && sw < placed.s * 1.35) out = warpTop(src, m, sex, sh, sw)
-          }
-        }
+        out = kind === 'bottom' ? placeBottom(src, m, sex) : placeTop(src, m, jacket, sex)
       } catch {
         // Was auch immer bei der Erkennung schiefgeht: Der einfache Weg legt das Teil unverändert in seine Zone
-        const y0 = m.top, box = zoneBox(kind, jacket, sex, (m.bottom - m.top) / (m.right - m.left) >= 1.3), k = simpleScale(m, y0, box)
+        const top = kind === 'top' ? topBox(jacket, sex) : null, low = bottomBox(sex, (m.bottom - m.top) / (m.right - m.left) >= 1.3)
+        const k = top ? Math.min(top.torso / (m.bottom - m.top + 1), (W * 0.98) / (m.right - m.left + 1)) : simpleScale(m, m.top, low)
         const st = stage()
-        st.ctx.setTransform(k, 0, 0, k, CX - ((m.left + m.right + 1) / 2) * k, box.top - y0 * k)
+        st.ctx.setTransform(k, 0, 0, k, CX - ((m.left + m.right + 1) / 2) * k, (top ?? low).top - m.top * k)
         st.ctx.drawImage(src, 0, 0)
         out = st.out
       }
