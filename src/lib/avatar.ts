@@ -23,7 +23,7 @@ const BASE: Record<Zone | 'dress', { anchor: 'top' | 'bottom'; y: number; w: num
   top: { anchor: 'top', y: 0.18, w: 0.56 },
   dress: { anchor: 'top', y: 0.18, w: 0.5 },
   bottom: { anchor: 'top', y: 0.465, w: 0.3 },
-  shoes: { anchor: 'bottom', y: 0.985, w: 0.27 },
+  shoes: { anchor: 'bottom', y: 0.985, w: 0.26 }, // Paar von vorne, je ein Schuh unter einem Bein
 }
 export const DRAW_ORDER: Zone[] = ['shoes', 'bottom', 'top', 'jacket']
 

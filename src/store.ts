@@ -54,6 +54,7 @@ export async function load(): Promise<boolean> {
   let calendar: Record<string, string> = {}
   let body: Blob | null = null
   let seeded = false
+  shoesFront = false
   let persistent = true
   let fits = DEFAULT_FITS
   let knowledgeText = ''
@@ -75,6 +76,7 @@ export async function load(): Promise<boolean> {
       else if (key === 'calendar') calendar = v as Record<string, string>
       else if (key === 'body') body = v as Blob
       else if (key === 'seeded2') seeded = true
+      else if (key === 'shoes-front') shoesFront = true
     }
   } catch {
     persistent = false
@@ -86,6 +88,10 @@ export async function load(): Promise<boolean> {
 }
 
 export const markSeeded = () => put('seeded2', true)
+/** Ob die Beispiel-Schuhe schon in der Ansicht von vorne vorliegen. */
+export let shoesFront = false
+export const getState = () => state
+export const markShoesFront = () => put('shoes-front', true)
 
 export function saveItem(item: Item) {
   const rest = state.items.filter((i) => i.id !== item.id)

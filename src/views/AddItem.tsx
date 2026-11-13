@@ -60,6 +60,7 @@ export function AddItem({ onClose }: { onClose: () => void }) {
       {!photo ? (
         <>
           <p className="muted">Leg das Teil flach auf eine einfarbige Fläche und fotografier es von oben. Lass rundherum etwas Rand.</p>
+          <p className="note is-block"><strong>Schuhe anders fotografieren</strong>Stell das Paar nebeneinander, die Spitzen zeigen zu dir. Fotografier es von vorne und leicht von oben, so wie man die Schuhe an einer stehenden Person sieht.</p>
           <div className="pick">
             <label className="btn btn-primary">
               <IconCamera /> Foto aufnehmen
@@ -90,6 +91,7 @@ export function AddItem({ onClose }: { onClose: () => void }) {
             )}
             {hint && <p className="note">{hint}</p>}
           </div>
+          {fields.category === 'Schuhe' && <p className="note">Schuhe sitzen am Avatar am besten, wenn das Paar nebeneinander von vorne und leicht von oben fotografiert ist.</p>}
           <p className="muted">Farbe und Kategorie sind automatisch erkannt. Prüf sie kurz und ergänz Jahreszeit und Stil.</p>
           <ItemFields
             value={fields}

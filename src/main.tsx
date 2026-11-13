@@ -3,8 +3,8 @@ import { createRoot } from 'react-dom/client'
 import './styles/tokens.css'
 import './styles/app.css'
 import { IconHanger, IconOutfit, IconPerson } from './icons'
-import { seedSamples } from './lib/samples'
-import { load, markSeeded, useStore } from './store'
+import { refreshSampleShoes, seedSamples } from './lib/samples'
+import { getState, load, markSeeded, markShoesFront, shoesFront, useStore } from './store'
 import { EMPTY_SLOTS, type Slots, type Zone } from './types'
 import { AddItem } from './views/AddItem'
 import { Closet } from './views/Closet'
@@ -39,7 +39,10 @@ function App() {
       if (fresh) {
         await seedSamples()
         await markSeeded()
+      } else if (!shoesFront) {
+        await refreshSampleShoes(getState().items)
       }
+      await markShoesFront()
     })
   }, [])
 

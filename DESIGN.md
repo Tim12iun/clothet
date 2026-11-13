@@ -120,7 +120,8 @@ Grundlage ist Entwurf 4A „Klar“ mit dem Zufallsknopf aus 4C.
 ## 8. Bildsprache
 
 - **Kleidung:** von oben fotografiert, flach liegend, freigestellt, vollständig sichtbar, mit etwas Luft zum Rand. Immer `object-fit: contain`, nie beschnitten.
-- **Avatar:** eigenes Ganzkörperfoto, frontal, aufrecht, Arme leicht ab, heller ruhiger Hintergrund, füllt die Bühne im Format 3:4. Sonst die Standard-Figur in neutralem Grau ohne Gesicht.
+- **Schuhe** sind die Ausnahme: das Paar steht nebeneinander und ist von vorne und leicht von oben fotografiert (etwa 20 bis 30 Grad), so wie man Schuhe an einer stehenden Person sieht. Am Avatar steht je ein Schuh unter einem Bein, die Hose liegt darüber.
+- **Avatar:** eigenes Ganzkörperfoto, frontal, aufrecht, barfuß, Arme leicht ab, heller ruhiger Hintergrund, füllt die Bühne im Format 3:4. Sonst die Standard-Figur in neutralem Grau ohne Gesicht.
 - **Outfit-Vorschau:** immer aus der Bühne erzeugt, gleiches Format 3:4, gleiche Ablagefarbe.
 - **Beispiel-Teile** sind schlichte Zeichnungen und klar als "Beispiel" markiert.
 - Keine Stockfotos, keine Models, keine Deko-Illustrationen.

@@ -1,4 +1,5 @@
 import { saveItem } from '../store'
+import type { Item } from '../types'
 import { uid, type Category, type Season, type Style } from '../types'
 import { toBlob, trim } from './image'
 
@@ -38,8 +39,8 @@ const SAMPLES: Sample[] = [
     svg: `<path ${st('#5d7350', '#435639')} d="M64 16h72l28 24 28 118-26 8-20-74v104H54V92l-20 74-26-8L36 40z"/><path ${ln('#435639')} d="M100 34v162M64 16l36 18 36-18M70 130h20M110 130h20"/>`,
   },
   {
-    name: 'Weiße Sneaker', category: 'Schuhe', color: 'Weiß', seasons: ['Frühling', 'Sommer', 'Herbst'], styles: ['Lässig', 'Sport'], vb: [200, 110],
-    svg: `<path ${st('#f4f4f0', '#c3c8c2')} d="M14 78 20 22q18-6 34 6l44 30q46 4 78 18 10 6 8 20H14z"/><path ${st('#dfe3dd', '#c3c8c2')} d="M12 82h178v10q0 8-10 8H22q-10 0-10-8z"/><path ${ln('#c3c8c2')} d="M60 36l-8 12M74 44l-8 12M88 52l-8 12"/>`,
+    name: 'Weiße Sneaker', category: 'Schuhe', color: 'Weiß', seasons: ['Frühling', 'Sommer', 'Herbst'], styles: ['Lässig', 'Sport'], vb: [200, 104],
+    svg: [0, 96].map((x) => `<g transform="translate(${x})"><path ${st('#f4f4f0', '#c3c8c2')} d="M22 86Q20 42 34 24q18-16 36 0 14 18 12 62z"/><path ${st('#dfe3dd', '#c3c8c2')} d="M18 82h68v8q0 8-9 8H27q-9 0-9-8z"/><path ${ln('#c3c8c2')} d="M30 70q22-16 44 0M43 30h18M41 40h22M40 50h24"/></g>`).join(''),
   },
   {
     name: 'Grünes T-Shirt', category: 'Oberteile', color: 'Grün', seasons: ['Frühling', 'Sommer'], styles: ['Lässig', 'Sport'], vb: [200, 200],
@@ -51,7 +52,7 @@ const SAMPLES: Sample[] = [
   },
   {
     name: 'Braune Stiefel', category: 'Schuhe', color: 'Braun', seasons: ['Herbst', 'Winter'], styles: ['Lässig', 'Business'], vb: [200, 150],
-    svg: `<path ${st('#7a5236', '#5a3b25')} d="M30 10h56v70l40 22q52 4 60 22v10H30z"/><path ${st('#3e2a1c', '#3e2a1c')} d="M28 134h160v8H28z"/>`,
+    svg: [0, 96].map((x) => `<g transform="translate(${x})"><path ${st('#7a5236', '#5a3b25')} d="M30 8h44v58q16 22 12 66H18q-4-44 12-66z"/><path ${st('#3e2a1c', '#3e2a1c')} d="M16 130h72v10H16z"/><path ${ln('#5a3b25')} d="M30 66h44M30 108q22-14 44 0"/></g>`).join(''),
   },
 ]
 
@@ -77,6 +78,19 @@ export async function seedSamples() {
       await saveItem({ id: uid(), name: s.name, category: s.category, color: s.color, seasons: s.seasons, styles: s.styles, image, sample: true, createdAt: now - i })
     } catch {
       /* Beispiel überspringen */
+    }
+  }
+}
+
+/** Ersetzt die Bilder der Beispiel-Schuhe durch die Ansicht von vorne (ältere Stände zeigten sie von der Seite). */
+export async function refreshSampleShoes(items: Item[]) {
+  for (const it of items) {
+    const s = it.sample && it.category === 'Schuhe' ? SAMPLES.find((x) => x.name === it.name) : undefined
+    if (!s) continue
+    try {
+      await saveItem({ ...it, image: await rasterize(s) })
+    } catch {
+      /* altes Bild behalten */
     }
   }
 }
