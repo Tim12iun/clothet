@@ -540,3 +540,7 @@ noscript { display: block; padding: var(--s-6) var(--s-4); text-align: center; }
 .skeleton { background: var(--c-tile); animation: pulse 1.2s var(--ease) infinite alternate; }
 .stage.skeleton { background: none; }
 @keyframes pulse { to { opacity: 0.5; } }
+
+/* An die Figur angepasstes Teil: Bild in Bühnengröße, Feineinstellung per transform */
+.wear.is-full { inset: 0; left: 0; outline: none; }
+.wear.is-full .wear-img { width: 100%; height: 100%; }

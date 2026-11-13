@@ -28,6 +28,7 @@ Version 1.0.0. Diese Datei sagt, was geprüft ist, was offen ist und was nur du 
 - **Echtes iPhone und Safari.** Die Prüfungen laufen in Chromium mit Geräteprofilen. Adressleiste, Tastatur, sichere Ränder, Kamera und Gesten verhalten sich in Safari anders. Dafür ist die Liste unten.
 - **Lighthouse** wurde nicht gemessen. Gebaut sind 77 KB JavaScript und 7 KB CSS (gzip) plus die Schrift.
 - **Echte Fotos.** Freistellen und Farberkennung sind mit einfachen Testbildern geprüft, nicht mit Fotos aus einer Wohnung. Freistellen klappt nur auf ruhigem, einfarbigem Untergrund.
+- **Passform.** Oberteile, Jacken und Hosen werden an die Figur angepasst. Geprüft ist das mit den gezeichneten Beispiel-Teilen, nicht mit echten Fotos. Die Punkte werden automatisch aus dem Umriss gelesen und lassen sich noch nicht von Hand korrigieren; sitzt ein Teil schlecht, hilft „Flach aufgelegt“ beim Teil. Kleider und Röcke liegen weiter flach.
 - **Gesicht.** Es gibt keine Gesichtserkennung. Das Gesicht wird als Oval aus dem Selfie geschnitten und von Hand zurechtgerückt.
 - **Interne Komponenten-Übersicht** (Phase 2 des Auftrags) gibt es nicht als eigene Seite. Die Bausteine sind in `DESIGN.md` beschrieben.
 - **Querformat für installierte App auf iOS:** Startbilder gibt es nur für das Hochformat.
@@ -58,6 +59,7 @@ Avatar
 - [ ] Einstellungen, „Avatar einrichten“, Selfie aufnehmen: Der Avatar erscheint groß mit deinem Gesicht.
 - [ ] Gesicht mit einem Finger ziehen, mit zwei Fingern vergrößern: folgt dem Finger ohne Ruckeln, die Seite bewegt sich nicht mit.
 - [ ] Körper: weiblich und männlich, Größe, Körpertyp, Hautton ändern sich sofort.
+- [ ] Ein eigenes T-Shirt, einen Pullover und eine Hose fotografieren: Liegen die Ärmel an den Armen, bleiben die Hände frei, folgen die Hosenbeine den Beinen?
 - [ ] „Sitz der Teile am Avatar anpassen“: Teil am Avatar ziehen, zwei Finger ändern die Größe.
 
 Bedienung

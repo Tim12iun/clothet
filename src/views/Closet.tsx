@@ -1,5 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { IconPlus, IconSearch, IconSort } from '../icons'
+import { fitKind } from '../lib/fitting'
 import { seedSamples } from '../lib/samples'
 import type { Toast } from '../main'
 import { deleteItem, markSeeded, saveItem, urlFor, useStore } from '../store'
@@ -191,6 +192,16 @@ function ItemSheet({ item, onClose, onDelete }: { item: Item; onClose: () => voi
     <Sheet title="Teil bearbeiten" onClose={onClose}>
       <div className="preview-tile small"><img src={urlFor(item.image)} alt={item.name} /></div>
       <ItemFields value={draft} onChange={(v) => setDraft({ ...draft, ...v })} />
+      {fitKind(draft.category) && (
+        <div className="field">
+          <span>Am Avatar</span>
+          <div className="chips wrap">
+            <button className={'chip' + (!draft.flat ? ' is-on' : '')} aria-pressed={!draft.flat} onClick={() => setDraft({ ...draft, flat: false })} id="fit-shaped">An den Körper angepasst</button>
+            <button className={'chip' + (draft.flat ? ' is-on' : '')} aria-pressed={!!draft.flat} onClick={() => setDraft({ ...draft, flat: true })} id="fit-flat">Flach aufgelegt</button>
+          </div>
+          <p className="muted">Angepasst folgt das Teil der Körperlinie, Ärmel und Hosenbeine liegen an Armen und Beinen. Sitzt es so nicht gut, nimm „Flach aufgelegt“.</p>
+        </div>
+      )}
       <div className="actions">
         <button className="btn btn-danger" onClick={onDelete} id="delete-item">Löschen</button>
         <span className="grow" />

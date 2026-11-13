@@ -334,3 +334,18 @@ test('Offline-Start: nach dem ersten Besuch lädt die App ohne Netz und zeigt di
   const font = await page.evaluate(() => document.fonts.check('16px Inter'))
   expect(font).toBe(true)
 })
+
+test('Passform: Oberteil und Hose werden an die Figur angepasst, „Flach aufgelegt“ schaltet es je Teil ab', async ({ page }) => {
+  const errors = await withSamples(page)
+  await expect(page.locator('.wear.is-full')).toHaveCount(2)
+  await page.locator('#save-outfit').click()
+  await expect(page.locator('.toast')).toContainText('Outfit gespeichert')
+  await go(page, 'Schrank')
+  await page.locator('.view:not([hidden]) .grid .tile', { hasText: 'Weißes T-Shirt' }).click()
+  await expectAccessible(page, 'Teil bearbeiten mit Passform')
+  await page.locator('#fit-flat').click()
+  await page.locator('#save-edit').click()
+  await go(page, 'Anprobe')
+  await expect(page.locator('.wear.is-full')).toHaveCount(1)
+  expect(errors).toEqual([])
+})

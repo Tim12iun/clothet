@@ -1,4 +1,4 @@
-import { DEFAULT_FIGURE, type AvatarMode, type Figure, type Fit, type Zone } from '../types'
+import { DEFAULT_FIGURE, type AvatarMode, type Figure, type Fit, type Sex, type Zone } from '../types'
 
 /**
  * Sitz je Zone als Anteil der Bühne (3:4): Teile hängen an einer Kante (oben = Schulter/Bund, unten = Boden),
@@ -93,6 +93,37 @@ function hand(sh: Shape, s: 1 | -1, fill: string, edge: string): string {
   return `<g fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="${fingers}" stroke="${edge}" stroke-width="${n1(+w + 1)}"/><path d="${thumb}" stroke="${edge}" stroke-width="3.900"/>` +
     `<path d="${palm}" fill="${fill}" stroke="${edge}" stroke-width=".7"/><path d="${fingers}" stroke="${fill}" stroke-width="${w}"/><path d="${thumb}" stroke="${fill}" stroke-width="2.900"/>` +
     `<path d="M${x(-h + 1.500)} 206.500L${x(h)} 205.800" stroke="${edge}" stroke-width=".5" opacity=".6"/></g>`
+}
+
+/** Wo eine waagerechte Linie in Höhe y einen Umriss schneidet: kleinster und größter Abstand von der Mittelachse. */
+function spanAt(pts: Pt[], y: number): [number, number] | null {
+  let lo = Infinity, hi = -Infinity
+  for (let i = 0; i < pts.length; i++) {
+    const a = pts[i], b = pts[(i + 1) % pts.length]
+    if (a[1] === b[1] || (a[1] - y) * (b[1] - y) > 0) continue
+    const x = a[0] + ((b[0] - a[0]) * (y - a[1])) / (b[1] - a[1])
+    lo = Math.min(lo, x)
+    hi = Math.max(hi, x)
+  }
+  return hi === -Infinity ? null : [lo, hi]
+}
+
+/**
+ * Körperpunkte, an denen Kleidung ausgerichtet wird (src/lib/fitting.ts). Alle Maße in der Zeichnung 300 x 400,
+ * waagerecht als Abstand von der Mittelachse, für die Figur in Normalbreite.
+ */
+export function bodyTargets(sex: Sex | undefined) {
+  const sh = sex === 'Weiblich' ? FEMALE : MALE
+  const torso: Pt[] = [...sh.torso, [0, sh.torso[0][1]]]
+  const armTop = spanAt(sh.arm, 100)!
+  return {
+    shoulderHalf: sh.torso[4][0], shoulderY: sh.torso[4][1],
+    torsoHalf: (y: number) => spanAt(torso, clamp(y, 91, 205))?.[1] ?? sh.torso[4][0],
+    armOuter: spanAt(sh.arm, 104)![1],
+    armFrom: [(armTop[0] + armTop[1]) / 2, 100] as Pt, armTo: [sh.wrist, 192] as Pt,
+    leg: (y: number) => { const s = spanAt(sh.leg, clamp(y, 196, 360))!; return (s[0] + s[1]) / 2 },
+    waistY: 177, crotchY: 209, ankleY: 369,
+  }
 }
 
 const shapeOf = (f: Figure) => (f.sex === 'Weiblich' ? FEMALE : MALE)

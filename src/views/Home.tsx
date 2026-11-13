@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { IconBookmark, IconCheck, IconDice, IconDown, IconGear, IconMinus, IconPlus, IconSliders, IconUp } from '../icons'
 import { DRAW_ORDER, avatarOf, placement } from '../lib/avatar'
 import { judge, randomOutfit, type Pools, type RandomPrefs } from '../lib/engine'
+import { FIT_ORIGIN, fitKind, fittedUrl } from '../lib/fitting'
 import { ensureOutfit, today } from '../lib/outfits'
 import { seedSamples } from '../lib/samples'
 import type { Toast } from '../main'
@@ -52,6 +53,19 @@ export function Home({ hidden, slots, setSlots, onSettings, onAdd, fitZone, setF
     return w
   }, [pools, slots])
   const isDress = worn.top?.category === 'Kleider'
+  // Passform: Teile, die an die Figur angepasst werden können, kommen als fertiges Bild in Bühnengröße
+  const sex = figure?.sex
+  const [fitted, setFitted] = useState<Record<string, string | null>>({})
+  const fitKey = (i: Item) => `${i.id}:${i.flat ? 1 : 0}:${sex ?? ''}`
+  useEffect(() => {
+    if (av.photo) return
+    let gone = false
+    for (const z of ZONES) {
+      const i = worn[z]
+      if (i && fitted[fitKey(i)] === undefined) fittedUrl(i, sex).then((url) => { if (!gone) setFitted((f) => ({ ...f, [fitKey(i)]: url })) })
+    }
+    return () => { gone = true }
+  }, [worn, sex, av.photo]) // eslint-disable-line react-hooks/exhaustive-deps
   const wornList = ZONES.filter((z) => !(z === 'bottom' && isDress)).map((z) => worn[z]).filter((i): i is Item => !!i)
   const verdict = judge(wornList, knowledge)
   const wornSlots = Object.fromEntries(ZONES.map((z) => [z, worn[z]?.id ?? null])) as Slots
@@ -176,6 +190,14 @@ export function Home({ hidden, slots, setSlots, onSettings, onAdd, fitZone, setF
             const item = worn[z]
             if (!item || (z === 'bottom' && isDress)) return null
             const p = placement(z, isDress, fits[z], av.wide)
+            const kind = fitKind(item.category), full = !av.photo && kind ? fitted[fitKey(item)] : null
+            if (full && kind) {
+              return (
+                <div key={z} className={'wear is-full' + (fitZone === z ? ' is-fitting' : '')} style={{ transformOrigin: `50% ${FIT_ORIGIN[kind] * 100}%`, transform: `translateY(${fits[z].dy * 100}%) scale(${av.wide * fits[z].scale}, ${fits[z].scale})` }}>
+                  <img key={item.id} className={'wear-img is-' + dir} src={full} alt={`${ZONE_LABEL[z]}: ${item.name}`} draggable={false} />
+                </div>
+              )
+            }
             return (
               <div key={z} className={'wear' + (fitZone === z ? ' is-fitting' : '')} style={{ width: p.w * 100 + '%', ...(p.anchor === 'top' ? { top: p.y * 100 + '%' } : { bottom: (1 - p.y) * 100 + '%' }) }}>
                 {z === 'shoes' && item.wearImage ? (

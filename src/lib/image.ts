@@ -1,4 +1,5 @@
-import type { Category, Fits, Item, Slots } from '../types'
+import type { Category, Fits, Item, Sex, Slots } from '../types'
+import { FIT_ORIGIN, fitKind, fittedUrl } from './fitting'
 import { DRAW_ORDER, PAIR_SHOE, placement } from './avatar'
 
 const MAX_SIDE = 900
@@ -194,7 +195,7 @@ export function trim(src: HTMLCanvasElement): HTMLCanvasElement {
 }
 
 /** Zeichnet den Avatar mit dem angezogenen Outfit im Format 3:4 als Vorschaubild. */
-export async function renderOutfit(slots: Slots, items: Item[], fits: Fits, avatar: Blob | string, isPhoto: boolean, tile: string, wide = 1): Promise<Blob> {
+export async function renderOutfit(slots: Slots, items: Item[], fits: Fits, avatar: Blob | string, isPhoto: boolean, tile: string, wide = 1, sex?: Sex): Promise<Blob> {
   const W = 600, H = 800
   const c = makeCanvas(W, H)
   const ctx = c.getContext('2d')!
@@ -227,6 +228,20 @@ export async function renderOutfit(slots: Slots, items: Item[], fits: Fits, avat
       ctx.translate(x0 + pw, y0)
       ctx.scale(-1, 1)
       ctx.drawImage(one, 0, 0, sw, sh)
+      ctx.restore()
+      continue
+    }
+    const kind = fitKind(item.category), full = !isPhoto && kind ? await fittedUrl(item, sex) : null
+    if (full && kind) {
+      // An die Figur angepasstes Bild in Bühnengröße, mit derselben Feineinstellung wie auf der Bühne
+      const img = new Image()
+      img.src = full
+      await img.decode()
+      const f = fits[zone], oy = FIT_ORIGIN[kind] * H
+      ctx.save()
+      ctx.translate(W / 2, oy + f.dy * H)
+      ctx.scale(wide * f.scale, f.scale)
+      ctx.drawImage(img, -W / 2, -oy, W, H)
       ctx.restore()
       continue
     }

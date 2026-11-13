@@ -13,6 +13,7 @@ Lies `DESIGN.md`. Es ist verbindlich für Design, Bildsprache und Tonalität. Nu
 - Bildverarbeitung in `src/lib/image.ts` (Freistellen, Farben erkennen, Outfit-Vorschau), Sitz der Teile auf dem Avatar in `src/lib/avatar.ts`.
 - App-Rahmen in `src/main.tsx`: drei Bereiche mit eigener Adresse (`#/anprobe`, `#/schrank`, `#/outfits`), alle bleiben eingehängt. Das Dokument scrollt nie. Überlagerungen (Sheet, Kamera, Avatar einrichten) laufen über `src/lib/overlay.ts` (Zurück-Taste, Escape, Fokus).
 - Avatar: Körpermodell aus Selfie und Körperdaten, weiblich oder männlich (`figureSvg` in `src/lib/avatar.ts`, Gesicht und Hautton in `src/lib/face.ts`), eingerichtet im Vollbild in `src/views/AvatarEditor.tsx`, oder Ganzkörperfoto. Eigene Kamera mit Umrisslinien in `src/views/Camera.tsx` und `src/lib/guides.ts`.
+- Passform in `src/lib/fitting.ts`: liest Ankerpunkte aus dem Umriss (Schulter, Achsel, Ärmelende, Bund, Schritt) und zieht Oberteile, Jacken und Hosen auf die Körperpunkte aus `bodyTargets` (`src/lib/avatar.ts`). Ohne KI, alles im Gerät. Ergebnis ist ein Bild in Bühnengröße, die Feineinstellung des Sitzes läuft per transform.
 - Outfit-Engine in `src/lib/engine.ts`: Bewertung von Kombinationen, Zufalls-Outfit, Auslesen von Farbregeln aus dem Stil-Wissen.
 - Planer und „getragen“: `calendar` und `worn` im Store, Hilfen in `src/lib/outfits.ts`. Sicherung: `exportAll` und `importAll` im Store.
 - Service Worker: Vorlage `scripts/sw.js`, der Build setzt die Dateiliste ein (`vite.config.ts`). Updates melden sich als Hinweis, geladen wird auf Wunsch.
@@ -25,5 +26,5 @@ Lies `DESIGN.md`. Es ist verbindlich für Design, Bildsprache und Tonalität. Nu
 - Freistellen mit KI-Modell statt der einfachen Hintergrund-Erkennung
 - Kategorie, Stil und Jahreszeit per Bildmodell erkennen (bisher nur Farben und eine Vermutung aus der Form)
 - Stil-Wissen als freien Text von einem Sprachmodell verstehen lassen (bisher nur Farbregeln)
-- Echte virtuelle Anprobe über ein Try-on-Modell (bisher liegen die Teile flach auf dem Avatar)
+- Passform verfeinern: Ankerpunkte von Hand korrigieren, Kleider und Röcke anpassen, Falten und Faltenwurf (bisher feste Pose, Ärmel als starres Stück)
 - Konto und Synchronisierung zwischen Geräten
