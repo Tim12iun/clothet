@@ -10,7 +10,11 @@ const MAX_SIDE = 900
  * Eigene Kamera im Vollbild mit Umrisslinie des Teils. Liegt für die Dauer der Aufnahme über allem; Zurück und Escape schließen sie.
  * Steht keine Kamera bereit (kein Zugriff, kein https), ruft sie onFail und der Aufrufer nimmt die Kamera des Geräts.
  */
-export function Camera({ title, guide, facing = 'environment', onShot, onClose, onFail }: { title: string; guide: Guide; facing?: 'environment' | 'user'; onShot: (c: HTMLCanvasElement) => void; onClose: () => void; onFail: () => void }) {
+export interface Kind { key: string; label: string; guide: Guide }
+export function Camera({ title, guide: single, kinds, facing = 'environment', onShot, onClose, onFail }: { title: string; guide: Guide; kinds?: Kind[]; facing?: 'environment' | 'user'; onShot: (c: HTMLCanvasElement, kind?: string) => void; onClose: () => void; onFail: () => void }) {
+  // Mit kinds wählt man unten, was man fotografiert: Die Umrisslinie wechselt mit und die Art des Teils steht damit fest
+  const [kind, setKind] = useState(kinds?.[0]?.key)
+  const guide = kinds?.find((k) => k.key === kind)?.guide ?? single
   const video = useRef<HTMLVideoElement>(null)
   const frame = useRef<HTMLDivElement>(null)
   const root = useRef<HTMLDivElement>(null)
@@ -53,7 +57,7 @@ export function Camera({ title, guide, facing = 'environment', onShot, onClose, 
     c.width = Math.round(sw * k)
     c.height = Math.round(sh * k)
     c.getContext('2d')!.drawImage(v, (v.videoWidth - sw) / 2, (v.videoHeight - sh) / 2, sw, sh, 0, 0, c.width, c.height)
-    onShot(c)
+    onShot(c, kind)
   }
 
   return createPortal(
@@ -67,6 +71,11 @@ export function Camera({ title, guide, facing = 'environment', onShot, onClose, 
         <svg className="camera-guide" viewBox={guide.vb} aria-hidden="true"><path d={guide.d} /></svg>
       </div>
       <footer className="camera-foot">
+        {kinds && (
+          <div className="chips camera-kinds" role="group" aria-label="Was fotografierst du?">
+            {kinds.map((k) => <button key={k.key} className={'chip' + (k.key === kind ? ' is-on' : '')} aria-pressed={k.key === kind} onClick={() => setKind(k.key)}>{k.label}</button>)}
+          </div>
+        )}
         <p>{live ? guide.hint : 'Kamera wird gestartet …'}</p>
         <button className="shutter" onClick={shoot} disabled={!live} aria-label="Foto aufnehmen" id="shutter" />
       </footer>

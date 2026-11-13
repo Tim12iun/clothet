@@ -213,11 +213,36 @@ export function detectColors(c: HTMLCanvasElement): { color: string; color2?: st
   return { color: sorted[0][0], color2: second }
 }
 
-/** Grobe Vermutung der Kategorie aus der Form des freigestellten Teils. Der Nutzer bestätigt sie. */
-export function guessCategory(c: HTMLCanvasElement): Category {
-  const r = c.height / c.width
-  if (r > 1.45) return 'Hosen'
+/**
+ * Vermutung der Art aus dem Umriss des freigestellten Teils: Seitenverhältnis, Lücke zwischen zwei Beinen, Ärmel, die
+ * breiter sind als der Saum, und ob das Teil nach unten breiter wird. Es bleibt eine Vermutung, der Nutzer korrigiert sie.
+ */
+export function guessCategory(src: HTMLCanvasElement): Category {
+  const c = trim(src), r = c.height / c.width
   if (r < 0.72) return 'Schuhe'
+  const w = 96, h = Math.max(24, Math.round(w * r))
+  const small = makeCanvas(w, h)
+  small.getContext('2d', { willReadFrequently: true })!.drawImage(c, 0, 0, w, h)
+  const d = small.getContext('2d')!.getImageData(0, 0, w, h).data
+  const on = (x: number, y: number) => d[(y * w + x) * 4 + 3] > 60
+  /** Breite (Anteil) und ob in der Mitte eine Lücke zwischen zwei Stücken liegt. */
+  const row = (f: number) => {
+    const y = Math.min(h - 1, Math.round(f * (h - 1)))
+    let l = 0, e = w - 1, hole = 0
+    while (l < w && !on(l, y)) l++
+    while (e > l && !on(e, y)) e--
+    for (let x = l; x <= e; x++) if (!on(x, y) && Math.abs(x - (l + e) / 2) < (e - l) * 0.3) hole++
+    return { width: l >= w ? 0 : (e - l + 1) / w, gap: hole >= 2 }
+  }
+  const band = (from: number, to: number) => { const out = []; for (let f = from; f <= to + 0.001; f += 0.03) out.push(row(f)); return out }
+  const top = Math.max(...band(0.03, 0.09).map((x) => x.width)), upper = Math.max(...band(0.12, 0.36).map((x) => x.width))
+  const lowerRows = band(0.72, 0.86), lower = Math.max(...lowerRows.map((x) => x.width))
+  const legs = band(0.8, 0.97).filter((x) => x.gap).length >= 2 && !band(0.03, 0.2).some((x) => x.gap)
+  if (legs && top > 0.4) return 'Hosen'
+  if (upper > lower * 1.2 && upper > 0.9) return r > 1.7 ? 'Kleider' : 'Oberteile' // Ärmel stehen über den Saum hinaus
+  if (lower > top * 1.3) return r > 1.5 ? 'Kleider' : r > 0.75 ? 'Röcke' : 'Oberteile'
+  // Weite Hosen, deren Beine aneinander liegen: oben ein gerader, breiter Bund ohne Ausschnitt
+  if (r > 1.45 || (r > 1.15 && top > 0.5 && !band(0.03, 0.2).some((x) => x.gap))) return 'Hosen'
   return 'Oberteile'
 }
 

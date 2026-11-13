@@ -135,7 +135,7 @@ Grundlage ist Entwurf 4A „Klar“ mit dem Zufallsknopf aus 4C.
 | Heute-Karte | `.today` | oben in Outfits: was heute geplant oder getragen ist, mit der einen Aktion |
 | Wochenliste | `.days`, `.day-row`, `.day-check` | sieben Tage, rechts der Haken für „getragen“ |
 | Kennzahlen, Karte, Balken | `.facts`, `.card`, `.bars` | Statistik |
-| Import | `.import-row`, `.import-kinds` | Sheet „Kleidung importieren“: Bilder wählen, je Bild nur die Art antippen (Oberteil, Hose, Schuhe, Rest hinter „Mehr“, als Raster `.import-kinds`), speichern. Freistellen, Farbe und Name laufen automatisch |
+| Hinzufügen | `.add-ways`, `.import-row`, `.import-kinds` | Sheet „Kleidung hinzufügen“: zwei große Buttons „Kamera“ und „Aus Galerie“ (auch mehrere Bilder). In der Kamera wählt man unten die Art (`.camera-kinds`), die Umrisslinie wechselt mit; bei Schuhen folgt direkt das Foto von vorne mit eigener Umrisslinie. Danach je Bild eine Zeile: ausgeschnitten, Farbe und Art erkannt, Art per Chip korrigierbar (Oberteil, Hose, Schuhe, Rest hinter „Mehr“), speichern |
 | Teil markieren | `.mark-frame`, `.mark-photo`, `.mark-box` | Vollbild im Stil der Kamera: Rahmen mit dem Finger um das Teil ziehen, freigestellt wird nur im Rahmen |
 | Sortieren | `.sort` | Auswahl über dem Raster im Schrank |
 | Schritte | `.steps` | nummerierte Anleitung, z. B. Installation |

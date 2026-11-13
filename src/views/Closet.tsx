@@ -11,7 +11,7 @@ const SORTS = { neu: 'Neueste zuerst', alt: 'Älteste zuerst', name: 'Name', kat
 type Sort = keyof typeof SORTS
 const PAGE = 120 // so viele Kacheln auf einmal, damit auch ein sehr großer Schrank flüssig bleibt
 
-export function Closet({ hidden, onAdd, onImport, toast, note }: { hidden: boolean; onAdd: () => void; onImport: () => void; toast: Toast; note: ReactNode }) {
+export function Closet({ hidden, onAdd, toast, note }: { hidden: boolean; onAdd: () => void; toast: Toast; note: ReactNode }) {
   const { items } = useStore()
   const [cat, setCat] = useState<Category | null>(null)
   const [season, setSeason] = useState<Season | null>(null)
@@ -64,8 +64,7 @@ export function Closet({ hidden, onAdd, onImport, toast, note }: { hidden: boole
           <p className="muted" aria-live="polite">{filtered ? `${shown.length} von ${items.length} Teilen` : items.length === 1 ? '1 Teil' : `${items.length} Teile`}</p>
         </div>
         <div className="actions">
-          <button className="btn" onClick={onImport} id="import-items">Importieren</button>
-          <button className="btn btn-primary" onClick={onAdd} id="add-item"><IconPlus /> Teil hinzufügen</button>
+          <button className="btn btn-primary" onClick={onAdd} id="add-item"><IconPlus /> Hinzufügen</button>
         </div>
       </header>
 
@@ -110,9 +109,8 @@ export function Closet({ hidden, onAdd, onImport, toast, note }: { hidden: boole
 
       {items.length === 0 ? (
         <div className="empty">
-          <p>Dein Schrank ist noch leer. Leg ein Teil flach hin, fotografier es von oben, und es hängt hier.</p>
+          <p>Dein Schrank ist noch leer. Fotografier ein Teil oder wähl Bilder aus deiner Galerie, und es hängt hier.</p>
           <button className="btn btn-primary" onClick={onAdd}><IconPlus /> Teil hinzufügen</button>
-          <button className="btn" onClick={onImport}>Mehrere Bilder importieren</button>
           <button className={'btn' + (seeding ? ' is-busy' : '')} onClick={loadSamples} id="closet-samples">Beispiele laden</button>
         </div>
       ) : shown.length === 0 ? (
