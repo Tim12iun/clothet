@@ -1,23 +1,33 @@
-import { useRef, useState } from 'react'
-import { IconCamera, IconImage } from '../icons'
+import { useEffect, useState } from 'react'
+import { IconImage } from '../icons'
 import { avatarOf } from '../lib/avatar'
-import { cropFace, skinTone, toCanvas } from '../lib/face'
-import { FACE_GUIDE } from '../lib/guides'
 import { loadPhoto, toBlob } from '../lib/image'
-import { setAvatarMode, setBody, setFigure, setKnowledge, urlFor, useStore } from '../store'
-import { BUILDS, DEFAULT_FIGURE, type Figure } from '../types'
-import { Camera } from './Camera'
+import type { Toast } from '../main'
+import { exportAll, importAll, setAvatarMode, setBody, setKnowledge, urlFor, useStore } from '../store'
+import { AvatarEditor } from './AvatarEditor'
 import { Sheet } from './Sheet'
 
-// Hauttöne zur Auswahl von hell nach dunkel (Bildinhalt der Figur, keine Oberflächenfarbe)
-const SKINS = ['#f6dcc6', '#eac4a4', '#d9a67e', '#b98058', '#8d5a3b', '#5c3a25']
+const mb = (n: number) => (n < 1048576 ? `${Math.max(1, Math.round(n / 1024))} KB` : `${(n / 1048576).toFixed(1).replace('.', ',')} MB`)
+const standalone = () => window.matchMedia('(display-mode: standalone)').matches || (navigator as { standalone?: boolean }).standalone === true
+const isIos = () => /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
 
-export function Settings({ onClose, onFit }: { onClose: () => void; onFit: () => void }) {
-  const { body, figure, avatarMode, knowledgeText, knowledge } = useStore()
-  const [camera, setCamera] = useState(false)
-  const nativeSelfie = useRef<HTMLInputElement>(null)
+/** Einstellungen: Avatar, Stil-Wissen, Sicherung, Installation und Version. Alles, was man selten braucht. */
+export function Settings({ online, onClose, onFit, toast }: { online: boolean; onClose: () => void; onFit: () => void; toast: Toast }) {
+  const { items, outfits, body, figure, avatarMode, knowledgeText, knowledge, persistent } = useStore()
+  const [editor, setEditor] = useState(false)
   const [text, setText] = useState(knowledgeText)
   const [error, setError] = useState('')
+  const [busy, setBusy] = useState<'export' | 'import' | null>(null)
+  const [pending, setPending] = useState<File | null>(null)
+  const [usage, setUsage] = useState<{ used: number; safe: boolean } | null>(null)
+
+  useEffect(() => {
+    let gone = false
+    Promise.all([navigator.storage?.estimate?.() ?? null, navigator.storage?.persisted?.() ?? false])
+      .then(([e, safe]) => { if (!gone && e) setUsage({ used: e.usage ?? 0, safe: !!safe }) })
+      .catch(() => {})
+    return () => { gone = true }
+  }, [items.length, outfits.length])
 
   async function pickBody(file?: File) {
     if (!file) return
@@ -30,56 +40,40 @@ export function Settings({ onClose, onFit }: { onClose: () => void; onFit: () =>
   }
   async function pickText(file?: File) {
     if (!file) return
-    const t = await file.text()
-    const merged = (text.trim() ? text.trim() + '\n' : '') + t.trim()
+    const merged = (text.trim() ? text.trim() + '\n' : '') + (await file.text()).trim()
     setText(merged)
     setKnowledge(merged)
   }
-  const pairs = knowledge.rules.filter((r, i, all) => all.findIndex((x) => x.a === r.a && x.b === r.b) === i)
-
-  const fig = figure ?? DEFAULT_FIGURE
-  const av = avatarOf(body, figure, avatarMode)
-
-  // Schritt 1: Aus dem Selfie entsteht sofort die Figur, mit Hautton aus dem Foto und Standardwerten.
-  async function applySelfie(src: HTMLCanvasElement) {
-    setError('')
-    const crop = { zoom: 1, dx: 0, dy: 0 }
-    const face = cropFace(src, crop)
-    await setFigure({ ...fig, selfie: src.toDataURL('image/jpeg', 0.88), crop, face: face.toDataURL('image/png'), skin: skinTone(face), skinAuto: true, tone: 0 })
-    setAvatarMode('figure')
-  }
-  async function pickSelfie(file?: File) {
-    if (!file) return
+  async function save() {
+    setBusy('export')
     try {
-      await applySelfie(await loadPhoto(file, 900))
+      const blob = await exportAll()
+      const a = document.createElement('a')
+      a.href = URL.createObjectURL(blob)
+      a.download = `clothet-sicherung-${new Date().toISOString().slice(0, 10)}.json`
+      a.click()
+      window.setTimeout(() => URL.revokeObjectURL(a.href), 10000)
+      toast('Die Sicherung ist gespeichert. Du findest sie bei deinen Downloads.')
     } catch {
-      setError('Das Foto ließ sich nicht öffnen. Versuch es mit einem JPG oder PNG.')
+      toast('Die Sicherung ließ sich nicht erstellen. Versuch es noch einmal.')
     }
+    setBusy(null)
   }
-  // Schritt 2: Ausschnitt nachstellen. Der Hautton folgt dem Foto, solange er nicht von Hand gewählt ist.
-  async function recrop(patch: Partial<Figure['crop']>) {
-    if (!fig.selfie) return
-    const crop = { ...fig.crop, ...patch }
-    const face = cropFace(await toCanvas(fig.selfie), crop)
-    setFigure({ ...fig, crop, face: face.toDataURL('image/png'), ...(fig.skinAuto ? { skin: skinTone(face) } : {}) })
+  async function restore() {
+    if (!pending) return
+    setBusy('import')
+    try {
+      const n = await importAll(pending)
+      setText(n.knowledgeText)
+      toast(`Sicherung geladen: ${n.items} Teile und ${n.outfits} Outfits.`)
+    } catch {
+      toast('Diese Datei ist keine Clothet-Sicherung. Es wurde nichts geändert.')
+    }
+    setPending(null)
+    setBusy(null)
   }
-  async function autoSkin() {
-    if (!fig.face) return
-    setFigure({ ...fig, skin: skinTone(await toCanvas(fig.face)), skinAuto: true, tone: 0 })
-  }
-
-  if (camera) {
-    return (
-      <Camera
-        title="Selfie"
-        guide={FACE_GUIDE}
-        facing="user"
-        onShot={(c) => { setCamera(false); applySelfie(c) }}
-        onClose={() => setCamera(false)}
-        onFail={() => { setCamera(false); nativeSelfie.current?.click() }}
-      />
-    )
-  }
+  const pairs = knowledge.rules.filter((r, i, all) => all.findIndex((x) => x.a === r.a && x.b === r.b) === i)
+  const av = avatarOf(body, figure, avatarMode)
 
   return (
     <Sheet title="Einstellungen" onClose={onClose}>
@@ -93,15 +87,8 @@ export function Settings({ onClose, onFit }: { onClose: () => void; onFit: () =>
           <div className="avatar-thumb"><img className={av.photo ? 'is-photo' : ''} src={av.photo ? urlFor(av.photo) : av.url} alt="Aktueller Avatar" /></div>
           {avatarMode === 'figure' ? (
             <div className="avatar-side">
-              <p className="muted">{fig.face ? 'Dein Gesicht sitzt auf einer gezeichneten Figur. Unten passt du sie an.' : 'Mach ein Selfie. Daraus entsteht sofort deine Figur, mit deinem Gesicht und deinem Hautton. Es bleibt auf deinem Gerät.'}</p>
-              <div className="actions">
-                <button className={'btn' + (fig.face ? '' : ' btn-primary')} onClick={() => setCamera(true)} id="selfie-camera"><IconCamera /> {fig.face ? 'Neues Selfie' : 'Selfie aufnehmen'}</button>
-                <label className="btn">
-                  <IconImage /> Foto wählen
-                  <input id="selfie-file" type="file" accept="image/*" hidden onChange={(e) => pickSelfie(e.target.files?.[0])} />
-                </label>
-                <input ref={nativeSelfie} type="file" accept="image/*" capture="user" hidden onChange={(e) => pickSelfie(e.target.files?.[0])} />
-              </div>
+              <p className="muted">{figure?.face ? 'Dein Gesicht sitzt auf einem Körpermodell. Gesicht, Körperform, Größe und Hautton passt du im Vollbild direkt am Avatar an.' : 'Aus einem Selfie und ein paar Angaben entsteht dein Avatar: weiblich oder männlich, in deiner Größe und deinem Hautton.'}</p>
+              <button className={'btn' + (figure?.face ? '' : ' btn-primary')} onClick={() => setEditor(true)} id="open-editor">{figure ? 'Avatar anpassen' : 'Avatar einrichten'}</button>
             </div>
           ) : (
             <div className="avatar-side">
@@ -109,74 +96,28 @@ export function Settings({ onClose, onFit }: { onClose: () => void; onFit: () =>
               <div className="actions">
                 <label className="btn">
                   <IconImage /> Foto wählen
-                  <input id="body-file" type="file" accept="image/*" hidden onChange={(e) => pickBody(e.target.files?.[0])} />
+                  <input id="body-file" type="file" accept="image/*" hidden onChange={(e) => { pickBody(e.target.files?.[0]); e.target.value = '' }} />
                 </label>
                 {body && <button className="btn" onClick={() => setBody(null)}>Foto entfernen</button>}
               </div>
             </div>
           )}
         </div>
-        {error && <p className="note is-danger">{error}</p>}
+        {error && <p className="note is-danger" role="alert">{error}</p>}
+        <button className="link" onClick={onFit} id="open-fit">Sitz der Teile am Avatar anpassen</button>
       </div>
-
-      {avatarMode === 'figure' && figure && (
-        <>
-          {fig.selfie && (
-            <div className="field">
-              <span>Gesicht ausrichten</span>
-              <label className="range"><span className="muted">Größe</span>
-                <input id="face-zoom" type="range" min={50} max={300} value={fig.crop.zoom * 100} onChange={(e) => recrop({ zoom: +e.target.value / 100 })} />
-              </label>
-              <label className="range"><span className="muted">Höhe</span>
-                <input id="face-dy" type="range" min={-40} max={40} value={fig.crop.dy * 100} onChange={(e) => recrop({ dy: +e.target.value / 100 })} />
-              </label>
-              <label className="range"><span className="muted">Seite</span>
-                <input id="face-dx" type="range" min={-40} max={40} value={fig.crop.dx * 100} onChange={(e) => recrop({ dx: +e.target.value / 100 })} />
-              </label>
-            </div>
-          )}
-          <div className="field">
-            <span>Hautton</span>
-            <div className="chips wrap">
-              {fig.face && <button className={'chip' + (fig.skinAuto ? ' is-on' : '')} aria-pressed={fig.skinAuto} onClick={autoSkin}>Aus dem Selfie</button>}
-              {SKINS.map((c) => {
-                const on = !fig.skinAuto && fig.skin === c
-                return <button key={c} className={'dot' + (on ? ' is-on' : '')} style={{ ['--dot' as string]: c }} aria-pressed={on} aria-label={'Hautton ' + (SKINS.indexOf(c) + 1) + ' von ' + SKINS.length} onClick={() => setFigure({ ...fig, skin: c, skinAuto: false, tone: 0 })} />
-              })}
-            </div>
-            <label className="range"><span className="muted">dunkler</span>
-              <input id="skin-tone" type="range" min={-25} max={25} value={(fig.tone ?? 0) * 100} onChange={(e) => setFigure({ ...fig, tone: +e.target.value / 100 })} aria-label="Hautton heller oder dunkler" />
-              <span className="muted">heller</span>
-            </label>
-          </div>
-          <div className="field">
-            <span>Körpergröße</span>
-            <label className="range">
-              <input id="fig-height" type="range" min={140} max={210} value={fig.height} onChange={(e) => setFigure({ ...fig, height: +e.target.value })} aria-label="Körpergröße in Zentimetern" />
-              <output>{fig.height} cm</output>
-            </label>
-          </div>
-          <div className="field">
-            <span>Körpertyp</span>
-            <div className="chips wrap">
-              {BUILDS.map((b) => <button key={b} className={'chip' + (fig.build === b ? ' is-on' : '')} aria-pressed={fig.build === b} onClick={() => setFigure({ ...fig, build: b })}>{b}</button>)}
-            </div>
-          </div>
-        </>
-      )}
-      <button className="link" onClick={onFit}>Sitz der Teile am Avatar anpassen</button>
 
       <div className="field">
         <span>Stil-Wissen</span>
         <p className="muted">Schreib oder lad hoch, welche Farben für dich zusammenpassen. Eine Regel pro Zeile, zum Beispiel „Marine passt zu Beige“ oder „Rot und Rosa vermeiden“. Die Vorschläge richten sich danach.</p>
-        <textarea id="knowledge" rows={5} value={text} onChange={(e) => setText(e.target.value)} onBlur={() => setKnowledge(text)} placeholder={'Marine passt zu Beige\nGrün und Braun passen gut\nRot und Rosa vermeiden'} />
+        <textarea id="knowledge" rows={5} value={text} onChange={(e) => setText(e.target.value)} onBlur={() => setKnowledge(text)} placeholder={'Marine passt zu Beige\nGrün und Braun passen gut\nRot und Rosa vermeiden'} aria-label="Stil-Wissen" />
         <div className="actions">
           <label className="btn">
             Textdatei laden
-            <input id="knowledge-file" type="file" accept=".txt,.md,text/plain,text/markdown" hidden onChange={(e) => pickText(e.target.files?.[0])} />
+            <input id="knowledge-file" type="file" accept=".txt,.md,text/plain,text/markdown" hidden onChange={(e) => { pickText(e.target.files?.[0]); e.target.value = '' }} />
           </label>
           <span className="grow" />
-          <button className="btn btn-primary" id="save-knowledge" onClick={() => setKnowledge(text)}>Wissen speichern</button>
+          <button className="btn btn-primary" id="save-knowledge" onClick={() => { setKnowledge(text); toast('Stil-Wissen gespeichert.') }}>Wissen speichern</button>
         </div>
         {(pairs.length > 0 || knowledge.ignored > 0) && (
           <div className="note is-block">
@@ -193,6 +134,54 @@ export function Settings({ onClose, onFit }: { onClose: () => void; onFit: () =>
           </div>
         )}
       </div>
+
+      <div className="field">
+        <span>Deine Daten</span>
+        <p className="muted">
+          {items.length === 1 ? '1 Teil' : `${items.length} Teile`} und {outfits.length === 1 ? '1 Outfit' : `${outfits.length} Outfits`} liegen nur auf diesem Gerät{usage ? `, zusammen etwa ${mb(usage.used)}` : ''}.
+          {!persistent ? ' Dieser Browser speichert gerade nichts dauerhaft.' : usage && !usage.safe ? ' Der Browser darf sie bei knappem Speicher löschen. Als installierte App sind sie besser geschützt, eine Sicherung schützt sie ganz.' : ' Eine Sicherung schützt sie, falls du das Gerät wechselst.'}
+        </p>
+        {pending ? (
+          <div className="note is-block" role="alert">
+            <strong>Sicherung laden?</strong>
+            <span>Sie ersetzt alles, was jetzt im Schrank ist: Teile, Outfits, Planer und Avatar.</span>
+            <div className="actions">
+              <button className="btn" onClick={() => setPending(null)}>Abbrechen</button>
+              <button className={'btn btn-danger' + (busy === 'import' ? ' is-busy' : '')} onClick={restore} id="confirm-import">Alles ersetzen</button>
+            </div>
+          </div>
+        ) : (
+          <div className="pick">
+            <button className={'btn' + (busy === 'export' ? ' is-busy' : '')} onClick={save} id="export-data">Sicherung speichern</button>
+            <label className="btn">
+              Sicherung laden
+              <input id="import-data" type="file" accept=".json,application/json" hidden onChange={(e) => { setPending(e.target.files?.[0] ?? null); e.target.value = '' }} />
+            </label>
+          </div>
+        )}
+      </div>
+
+      {!standalone() && (
+        <div className="field">
+          <span>Als App installieren</span>
+          {isIos() ? (
+            <ol className="steps">
+              <li>Öffne Clothet in Safari.</li>
+              <li>Tipp unten auf Teilen, das Quadrat mit dem Pfeil nach oben.</li>
+              <li>Wähl „Zum Home-Bildschirm“ und bestätige mit „Hinzufügen“.</li>
+            </ol>
+          ) : (
+            <ol className="steps">
+              <li>Öffne das Menü deines Browsers, die drei Punkte oben rechts.</li>
+              <li>Wähl „App installieren“ oder „Zum Startbildschirm hinzufügen“.</li>
+            </ol>
+          )}
+          <p className="muted">Danach startet Clothet wie eine App im Vollbild und läuft auch ohne Netz.</p>
+        </div>
+      )}
+
+      <p className="muted" id="app-version">Clothet {__APP_VERSION__} · {online ? 'online' : 'offline, alles Gespeicherte bleibt nutzbar'}</p>
+      {editor && <AvatarEditor onClose={() => setEditor(false)} toast={toast} />}
     </Sheet>
   )
 }

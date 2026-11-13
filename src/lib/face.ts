@@ -20,10 +20,13 @@ export function toCanvas(url: string): Promise<HTMLCanvasElement> {
  * Schneidet das Oval aus, das die Kamera als Umriss zeigt (mittig, 80 % des Bildes, Verhältnis 160:220).
  * zoom vergrößert das Gesicht, dx und dy verschieben den Ausschnitt (Anteil der Bildbreite bzw. -höhe).
  */
-export function cropFace(src: HTMLCanvasElement, crop: { zoom: number; dx: number; dy: number }): HTMLCanvasElement {
-  const s = Math.min((0.8 * src.width) / 200, (0.8 * src.height) / 260)
+export function cropRect(sw: number, sh: number, crop: { zoom: number; dx: number; dy: number }) {
+  const s = Math.min((0.8 * sw) / 200, (0.8 * sh) / 260)
   const w = (160 * s) / crop.zoom, h = (220 * s) / crop.zoom
-  const x = src.width / 2 + crop.dx * src.width - w / 2, y = src.height / 2 + crop.dy * src.height - h / 2
+  return { x: sw / 2 + crop.dx * sw - w / 2, y: sh / 2 + crop.dy * sh - h / 2, w, h }
+}
+export function cropFace(src: HTMLCanvasElement, crop: { zoom: number; dx: number; dy: number }): HTMLCanvasElement {
+  const { x, y, w, h } = cropRect(src.width, src.height, crop)
   const c = document.createElement('canvas')
   c.width = OUT_W
   c.height = OUT_H

@@ -26,3 +26,6 @@ export const IconDice = () => <I><rect x="4" y="4" width="16" height="16" rx="3.
 export const IconSliders = () => <I><path d="M4 7h9M17 7h3M4 17h3M11 17h9" /><circle cx="15" cy="7" r="2" /><circle cx="9" cy="17" r="2" /></I>
 export const IconBookmark = () => <I><path d="M7 4h10a1 1 0 0 1 1 1v15l-6-4-6 4V5a1 1 0 0 1 1-1z" /></I>
 export const IconCheck = () => <I><path d="m5 12.5 4.5 4.5L19 7.5" /></I>
+export const IconMinus = () => <I><path d="M5 12h14" /></I>
+export const IconSort = () => <I><path d="M7 5v14M7 19l-3-3M7 19l3-3M17 19V5M17 5l-3 3M17 5l3 3" /></I>
+export const IconChart = () => <I><path d="M5 20V10M12 20V4M19 20v-7" /></I>

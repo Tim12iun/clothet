@@ -1,27 +1,33 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { IconBookmark, IconCheck, IconDice, IconGear, IconPlus, IconSliders } from '../icons'
+import { IconBookmark, IconCheck, IconDice, IconDown, IconGear, IconMinus, IconPlus, IconSliders, IconUp } from '../icons'
 import { DRAW_ORDER, avatarOf, placement } from '../lib/avatar'
 import { judge, randomOutfit, type Pools, type RandomPrefs } from '../lib/engine'
-import { renderOutfit } from '../lib/image'
-import { saveOutfit, setFits, urlFor, useStore } from '../store'
-import { COLORS, SEASONS, STYLES, ZONES, ZONE_CATEGORIES, ZONE_LABEL, uid, type Filter, type Item, type Season, type Slots, type Style, type Zone } from '../types'
+import { ensureOutfit, today } from '../lib/outfits'
+import { seedSamples } from '../lib/samples'
+import type { Toast } from '../main'
+import { deleteOutfit, markSeeded, setFits, setWorn, urlFor, useStore } from '../store'
+import { COLORS, DEFAULT_FITS, SEASONS, STYLES, ZONES, ZONE_CATEGORIES, ZONE_LABEL, type Filter, type Fit, type Item, type Season, type Slots, type Style, type Zone } from '../types'
 import { Sheet } from './Sheet'
 
 // Höhe der Körperzonen auf der Bühne (Anteil von oben): dort wischt oder tippt man.
 const STRIP: Record<Zone, [number, number]> = { jacket: [0, 0.2], top: [0.2, 0.47], bottom: [0.47, 0.84], shoes: [0.84, 1] }
 
+const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
+const fixFit = (f: Fit): Fit => ({ dy: clamp(f.dy, -0.14, 0.14), scale: clamp(f.scale, 0.6, 1.7) })
+
 interface Props {
+  hidden: boolean
   slots: Slots
   setSlots: (s: Slots) => void
   onSettings: () => void
   onAdd: () => void
   fitZone: Zone | null
   setFitZone: (z: Zone | null) => void
-  toast: (text: string) => void
+  toast: Toast
 }
 
-export function Home({ slots, setSlots, onSettings, onAdd, fitZone, setFitZone, toast }: Props) {
-  const { items, body, figure, avatarMode, fits, knowledge, outfits } = useStore()
+export function Home({ hidden, slots, setSlots, onSettings, onAdd, fitZone, setFitZone, toast }: Props) {
+  const { items, body, figure, avatarMode, fits, knowledge, outfits, worn: wornDays } = useStore()
   const av = useMemo(() => avatarOf(body, figure, avatarMode), [body, figure, avatarMode])
   const [filter, setFilter] = useState<Filter>({})
   const [prefs, setPrefs] = useState<RandomPrefs>({ mainColor: null, keep: [] })
@@ -30,6 +36,9 @@ export function Home({ slots, setSlots, onSettings, onAdd, fitZone, setFitZone, 
   const [open, setOpen] = useState(false)
   const [dir, setDir] = useState<'next' | 'prev'>('next')
   const swipe = useRef<{ x: number } | null>(null)
+  const [busy, setBusy] = useState<'save' | 'worn' | 'seed' | null>(null)
+  const touches = useRef(new Map<number, { x: number; y: number }>())
+  const grip = useRef<{ y: number; d: number; moved: number } | null>(null)
 
   const pools = useMemo(() => {
     const ok = (i: Item) => (!filter.season || i.seasons.includes(filter.season)) && (!filter.style || i.styles.includes(filter.style))
@@ -72,16 +81,76 @@ export function Home({ slots, setSlots, onSettings, onAdd, fitZone, setFitZone, 
     setSlots(result)
   }
 
+  // Gespeichert wird immer das, was zu sehen ist. Eine Kombination liegt nur einmal unter Outfits.
+  const saved = outfits.find((o) => ZONES.every((z) => (o.slots[z] ?? null) === wornSlots[z]))
+  const wornToday = !!saved && wornDays[today()] === saved.id
   async function save() {
-    if (!wornList.length) return
-    const tile = getComputedStyle(document.documentElement).getPropertyValue('--c-tile').trim() || '#f2f4f1'
+    if (!wornList.length || busy === 'save') return
+    if (saved) return toast('Dieses Outfit ist schon gespeichert. Du findest es unter Outfits.')
+    setBusy('save')
     try {
-      const preview = await renderOutfit(wornSlots, items, fits, av.photo ?? av.url, !!av.photo, tile, av.wide)
-      await saveOutfit({ id: uid(), name: `Outfit ${outfits.length + 1}`, slots: wornSlots, preview, createdAt: Date.now() })
-      toast('Outfit gespeichert. Du findest es unter Outfits.')
+      const { outfit } = await ensureOutfit(wornSlots)
+      toast('Outfit gespeichert. Du findest es unter Outfits.', () => deleteOutfit(outfit.id))
     } catch {
       toast('Das Outfit ließ sich nicht speichern. Versuch es noch einmal.')
     }
+    setBusy(null)
+  }
+  // Ein Tipp: Das Outfit wird, falls nötig, gespeichert und für heute als getragen eingetragen.
+  async function wearToday() {
+    if (!wornList.length || busy === 'worn') return
+    const day = today(), before = wornDays[day] ?? null
+    if (wornToday) {
+      await setWorn(day, null)
+      return toast('Der Eintrag für heute ist entfernt.', () => setWorn(day, before))
+    }
+    setBusy('worn')
+    try {
+      const { outfit, created } = await ensureOutfit(wornSlots)
+      await setWorn(day, outfit.id)
+      toast(created ? 'Für heute eingetragen und als Outfit gespeichert.' : 'Für heute als getragen eingetragen.', () => { setWorn(day, before); if (created) deleteOutfit(outfit.id) })
+    } catch {
+      toast('Das ließ sich nicht eintragen. Versuch es noch einmal.')
+    }
+    setBusy(null)
+  }
+  async function loadSamples() {
+    setBusy('seed')
+    await seedSamples()
+    await markSeeded()
+    setBusy(null)
+  }
+
+  // Sitz anpassen direkt am Avatar: ziehen verschiebt die Zone in der Höhe, zwei Finger ändern die Größe.
+  const setFit = (z: Zone, f: Fit) => setFits({ ...fits, [z]: fixFit(f) })
+  const grasp = () => {
+    const p = [...touches.current.values()]
+    return { y: p.reduce((a, q) => a + q.y, 0) / p.length, d: p.length > 1 ? Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y) : 0 }
+  }
+  function fitDown(e: React.PointerEvent<HTMLDivElement>) {
+    if (!fitZone) return
+    e.currentTarget.setPointerCapture(e.pointerId)
+    touches.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
+    grip.current = { ...grasp(), moved: grip.current?.moved ?? 0 }
+  }
+  function fitMove(e: React.PointerEvent<HTMLDivElement>) {
+    if (!fitZone || !grip.current || !touches.current.has(e.pointerId)) return
+    touches.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
+    const now = grasp(), was = grip.current, f = fits[fitZone]
+    grip.current = { ...now, moved: was.moved + Math.abs(now.y - was.y) + Math.abs(now.d - was.d) }
+    if (grip.current.moved < 6) return
+    setFit(fitZone, { dy: f.dy + (now.y - was.y) / e.currentTarget.clientHeight, scale: was.d && now.d ? f.scale * (now.d / was.d) : f.scale })
+  }
+  function fitUp(e: React.PointerEvent<HTMLDivElement>) {
+    if (!touches.current.delete(e.pointerId) || !grip.current) return
+    if (touches.current.size) return void (grip.current = { ...grasp(), moved: grip.current.moved })
+    // Ohne Bewegung war es ein Tipp: Er wählt die Zone, die angepasst wird.
+    if (grip.current.moved < 6) {
+      const r = e.currentTarget.getBoundingClientRect(), y = (e.clientY - r.top) / r.height
+      const z = ZONES.find((k) => y >= STRIP[k][0] && y < STRIP[k][1])
+      if (z) setFitZone(z)
+    }
+    grip.current = null
   }
 
   const fit = fitZone ? fits[fitZone] : null
@@ -90,24 +159,25 @@ export function Home({ slots, setSlots, onSettings, onAdd, fitZone, setFitZone, 
   const dressBlocks = zone === 'bottom' && isDress
 
   return (
-    <section className={'home' + (open ? ' is-open' : '')}>
+    <section className={'home' + (open ? ' is-open' : '') + (fitZone ? ' is-fit' : '')} hidden={hidden} aria-label="Anprobe">
       <header className="home-head">
         <h1>Anprobe</h1>
         <div className="home-head-actions">
-          <button className="icon-btn" onClick={save} disabled={!wornList.length} aria-label="Outfit speichern" id="save-outfit"><IconBookmark /></button>
+          <button className={'btn is-compact' + (wornToday ? ' is-on' : '') + (busy === 'worn' ? ' is-busy' : '')} onClick={wearToday} disabled={!wornList.length} aria-pressed={wornToday} aria-label="Heute getragen" id="worn-today"><IconCheck /><span>Heute getragen</span></button>
+          <button className={'icon-btn' + (saved ? ' is-on' : '')} onClick={save} disabled={!wornList.length} aria-label={saved ? 'Outfit ist gespeichert' : 'Outfit speichern'} aria-pressed={!!saved} id="save-outfit"><IconBookmark /></button>
           <button className="icon-btn" onClick={onSettings} aria-label="Einstellungen" id="open-settings"><IconGear /></button>
         </div>
       </header>
 
       <div className="stage-wrap">
-        <div className="stage">
+        <div className="stage" onPointerDown={fitDown} onPointerMove={fitMove} onPointerUp={fitUp} onPointerCancel={fitUp}>
           <img className={'avatar' + (av.photo ? ' is-photo' : '')} src={av.photo ? urlFor(av.photo) : av.url} alt={av.photo ? 'Dein Foto' : 'Avatar'} draggable={false} />
           {DRAW_ORDER.map((z) => {
             const item = worn[z]
             if (!item || (z === 'bottom' && isDress)) return null
             const p = placement(z, isDress, fits[z], av.wide)
             return (
-              <div key={z} className="wear" style={{ width: p.w * 100 + '%', ...(p.anchor === 'top' ? { top: p.y * 100 + '%' } : { bottom: (1 - p.y) * 100 + '%' }) }}>
+              <div key={z} className={'wear' + (fitZone === z ? ' is-fitting' : '')} style={{ width: p.w * 100 + '%', ...(p.anchor === 'top' ? { top: p.y * 100 + '%' } : { bottom: (1 - p.y) * 100 + '%' }) }}>
                 {z === 'shoes' && item.wearImage ? (
                   <div key={item.id} className={'wear-pair wear-img is-' + dir} role="img" aria-label={`${ZONE_LABEL[z]}: ${item.name}`}>
                     <img src={urlFor(item.wearImage)} alt="" draggable={false} />
@@ -119,7 +189,7 @@ export function Home({ slots, setSlots, onSettings, onAdd, fitZone, setFitZone, 
               </div>
             )
           })}
-          {ZONES.map((z) => (
+          {!fitZone && ZONES.map((z) => (
             <div
               key={z}
               className="strip"
@@ -131,7 +201,6 @@ export function Home({ slots, setSlots, onSettings, onAdd, fitZone, setFitZone, 
                 swipe.current = null
                 if (!s) return
                 const dx = e.clientX - s.x
-                if (fitZone) return setFitZone(z)
                 setZone(z) // Tippen oder Wischen zeigt die Zone auch in der Schublade
                 if (Math.abs(dx) > 28 && !(z === 'bottom' && isDress)) step(z, dx < 0 ? 1 : -1)
               }}
@@ -143,14 +212,15 @@ export function Home({ slots, setSlots, onSettings, onAdd, fitZone, setFitZone, 
           <div className="stage-empty">
             <p>Dein Schrank ist noch leer. Füg dein erstes Teil hinzu, dann kannst du es hier anziehen.</p>
             <button className="btn btn-primary" onClick={onAdd}>Teil hinzufügen</button>
+            <button className={'btn' + (busy === 'seed' ? ' is-busy' : '')} onClick={loadSamples} id="load-samples">Beispiele laden</button>
           </div>
         ) : (
           <>
             {verdict && (
-              <p className={'match is-' + verdict.level} aria-live="polite"><strong>{verdict.label}</strong>{verdict.reason}</p>
+              <p className={'match is-' + verdict.level} aria-live="polite"><strong>{verdict.label}</strong><span>{verdict.reason}</span></p>
             )}
             {!fitZone && (
-              <button className="fab" onClick={roll} id="roll" aria-label="Zufalls-Outfit würfeln">
+              <button className="fab" onClick={roll} id="roll" aria-label="Zufall: Outfit würfeln">
                 <IconDice /> Zufall
                 {prefs.mainColor && <span className="dot is-small" style={{ ['--dot' as string]: COLORS[prefs.mainColor] }} title={'Hauptfarbe ' + prefs.mainColor} />}
               </button>
@@ -166,12 +236,15 @@ export function Home({ slots, setSlots, onSettings, onAdd, fitZone, setFitZone, 
             <div className="segment" role="tablist" aria-label="Zone anpassen">
               {ZONES.map((z) => <button key={z} role="tab" aria-selected={fitZone === z} className={fitZone === z ? 'is-on' : ''} onClick={() => setFitZone(z)}>{ZONE_LABEL[z]}</button>)}
             </div>
-            <label className="range"><span className="muted">Höhe</span>
-              <input id="fit-dy" type="range" min={-12} max={12} step={0.5} value={fit.dy * 100} onChange={(e) => setFits({ ...fits, [fitZone]: { ...fit, dy: +e.target.value / 100 } })} />
-            </label>
-            <label className="range"><span className="muted">Größe</span>
-              <input id="fit-scale" type="range" min={60} max={160} value={fit.scale * 100} onChange={(e) => setFits({ ...fits, [fitZone]: { ...fit, scale: +e.target.value / 100 } })} />
-            </label>
+            <p className="muted">Zieh das Teil am Avatar nach oben oder unten. Mit zwei Fingern änderst du die Größe. Das gilt für alle Teile dieser Zone.</p>
+            <div className="pad" role="group" aria-label={'Sitz anpassen: ' + ZONE_LABEL[fitZone]}>
+              <button className="icon-btn is-outlined" id="fit-up" onClick={() => setFit(fitZone, { ...fit, dy: fit.dy - 0.005 })} aria-label="Höher"><IconUp /></button>
+              <button className="icon-btn is-outlined" id="fit-down" onClick={() => setFit(fitZone, { ...fit, dy: fit.dy + 0.005 })} aria-label="Tiefer"><IconDown /></button>
+              <button className="icon-btn is-outlined" id="fit-smaller" onClick={() => setFit(fitZone, { ...fit, scale: fit.scale / 1.03 })} aria-label="Kleiner"><IconMinus /></button>
+              <button className="icon-btn is-outlined" id="fit-bigger" onClick={() => setFit(fitZone, { ...fit, scale: fit.scale * 1.03 })} aria-label="Größer"><IconPlus /></button>
+              <span className="grow" />
+              <button className="btn" onClick={() => setFit(fitZone, DEFAULT_FITS[fitZone])}>Zurücksetzen</button>
+            </div>
             <button className="btn btn-primary" onClick={() => setFitZone(null)}>Fertig</button>
           </div>
         ) : (

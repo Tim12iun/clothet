@@ -60,6 +60,8 @@ export type Filter = { season?: Season; style?: Style }
 export const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36)
 
 /** Gezeichnete Figur aus Selfie und Körperdaten (Alternative zum Ganzkörperfoto). */
+export const SEXES = ['Weiblich', 'Männlich'] as const
+export type Sex = (typeof SEXES)[number]
 export const BUILDS = ['Schmal', 'Mittel', 'Kräftig'] as const
 export type Build = (typeof BUILDS)[number]
 export interface Figure {
@@ -71,6 +73,7 @@ export interface Figure {
   tone: number // Feinabstimmung: heller (+) oder dunkler (-), als Anteil
   height: number // Körpergröße in cm
   build: Build
+  sex?: Sex // Körperform der Figur, fehlt bei älteren Ständen (dann männlich)
 }
-export const DEFAULT_FIGURE: Figure = { selfie: null, crop: { zoom: 1, dx: 0, dy: 0 }, face: null, skin: '#d9a67e', skinAuto: true, tone: 0, height: 172, build: 'Mittel' }
+export const DEFAULT_FIGURE: Figure = { selfie: null, crop: { zoom: 1, dx: 0, dy: 0 }, face: null, skin: '#d9a67e', skinAuto: true, tone: 0, height: 172, build: 'Mittel', sex: 'Männlich' }
 export type AvatarMode = 'figure' | 'photo'

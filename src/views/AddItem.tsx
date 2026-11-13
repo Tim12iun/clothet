@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { IconCamera, IconImage } from '../icons'
 import { GUIDES, type GuideKey } from '../lib/guides'
 import { coverage, detectColors, loadPhoto, removeBackground, toBlob, trim } from '../lib/image'
+import type { Toast } from '../main'
 import { saveItem } from '../store'
 import { CATEGORIES, uid, type Category, type Season, type Style } from '../types'
 import { Camera } from './Camera'
@@ -10,7 +11,7 @@ import { Sheet } from './Sheet'
 
 type Which = 'main' | 'wear' // main: Bild für den Schrank, wear: Schuh von vorne für den Avatar
 
-export function AddItem({ onClose }: { onClose: () => void }) {
+export function AddItem({ onClose, toast }: { onClose: () => void; toast: Toast }) {
   const [photo, setPhoto] = useState<HTMLCanvasElement | null>(null)
   const [wearPhoto, setWearPhoto] = useState<HTMLCanvasElement | null>(null)
   const [cutout, setCutout] = useState(true)
@@ -19,6 +20,7 @@ export function AddItem({ onClose }: { onClose: () => void }) {
   const [wear, setWear] = useState<{ canvas: HTMLCanvasElement; url: string } | null>(null)
   const [camera, setCamera] = useState<Which | null>(null)
   const [error, setError] = useState('')
+  const [saving, setSaving] = useState(false)
   const [hint, setHint] = useState('')
   const [fields, setFields] = useState({ name: '', category: 'Oberteile' as Category, color: 'Grau', color2: undefined as string | undefined, seasons: ['Frühling', 'Sommer', 'Herbst', 'Winter'] as Season[], styles: [] as Style[] })
   const touched = useRef({ color: false })
@@ -60,25 +62,31 @@ export function AddItem({ onClose }: { onClose: () => void }) {
   }, [wearPhoto, cutout, tolerance])
 
   async function save() {
-    if (!result) return
-    const image = await toBlob(result.canvas)
-    const wearImage = isShoe && wear ? await toBlob(wear.canvas) : undefined
-    await saveItem({ id: uid(), ...fields, name: fields.name.trim() || 'Neues Teil', image, wearImage, createdAt: Date.now() })
-    onClose()
+    if (!result || saving) return
+    setSaving(true)
+    try {
+      const image = await toBlob(result.canvas)
+      const wearImage = isShoe && wear ? await toBlob(wear.canvas) : undefined
+      const name = fields.name.trim() || 'Neues Teil'
+      await saveItem({ id: uid(), ...fields, name, image, wearImage, createdAt: Date.now() })
+      toast(`„${name}“ hängt jetzt im Schrank.`)
+      onClose()
+    } catch {
+      setSaving(false)
+      setError('Das Teil ließ sich nicht speichern. Versuch es noch einmal.')
+    }
   }
 
   const guideKey: GuideKey = camera === 'wear' ? 'Schuh von vorne' : fields.category
-  if (camera) {
-    return (
-      <Camera
-        title={camera === 'wear' ? 'Schuh von vorne' : isShoe ? 'Schuh von der Seite' : fields.category}
-        guide={GUIDES[guideKey]}
-        onShot={(c) => { take(camera, c); setCamera(null) }}
-        onClose={() => setCamera(null)}
-        onFail={() => { const w = camera; setCamera(null); native.current[w]?.click() }}
-      />
-    )
-  }
+  const cam = camera && (
+    <Camera
+      title={camera === 'wear' ? 'Schuh von vorne' : isShoe ? 'Schuh von der Seite' : fields.category}
+      guide={GUIDES[guideKey]}
+      onShot={(c) => { take(camera, c); setCamera(null) }}
+      onClose={() => setCamera(null)}
+      onFail={() => { const w = camera; setCamera(null); native.current[w]?.click() }}
+    />
+  )
 
   // Zwei Wege zum Foto: eigene Kamera mit Umrisslinie oder ein vorhandenes Bild
   const sources = (which: Which, primary: boolean) => (
@@ -86,7 +94,7 @@ export function AddItem({ onClose }: { onClose: () => void }) {
       <button className={'btn' + (primary ? ' btn-primary' : '')} onClick={() => setCamera(which)} id={which + '-camera'}><IconCamera /> Foto aufnehmen</button>
       <label className="btn">
         <IconImage /> Aus Fotos wählen
-        <input id={which + '-file'} type="file" accept="image/*" hidden onChange={(e) => pick(which, e.target.files?.[0])} />
+        <input id={which + '-file'} type="file" accept="image/*" hidden onChange={(e) => { pick(which, e.target.files?.[0]); e.target.value = '' }} />
       </label>
       <input ref={(el) => { native.current[which] = el }} type="file" accept="image/*" capture="environment" hidden onChange={(e) => pick(which, e.target.files?.[0])} />
     </div>
@@ -113,7 +121,7 @@ export function AddItem({ onClose }: { onClose: () => void }) {
             )}
           </div>
           {sources('main', true)}
-          {error && <p className="note is-danger">{error}</p>}
+          {error && <p className="note is-danger" role="alert">{error}</p>}
         </>
       ) : (
         <>
@@ -147,7 +155,6 @@ export function AddItem({ onClose }: { onClose: () => void }) {
                   {sources('wear', true)}
                 </>
               )}
-              {error && <p className="note is-danger">{error}</p>}
             </div>
           )}
           <p className="muted">Die Farbe ist automatisch erkannt. Prüf sie kurz und ergänz Jahreszeit und Stil.</p>
@@ -158,13 +165,15 @@ export function AddItem({ onClose }: { onClose: () => void }) {
               setFields({ ...fields, ...v, ...(v.color ? { color2: undefined } : {}) })
             }}
           />
+          {error && <p className="note is-danger" role="alert">{error}</p>}
           <div className="actions">
             <button className="btn" onClick={() => { setPhoto(null); setResult(null); setWearPhoto(null) }}>Anderes Foto</button>
             <span className="grow" />
-            <button className={'btn' + (isShoe && !wear ? '' : ' btn-primary')} onClick={save} id="save-item">{isShoe && !wear ? 'Ohne zweites Foto speichern' : 'Speichern'}</button>
+            <button className={'btn' + (isShoe && !wear ? '' : ' btn-primary') + (saving ? ' is-busy' : '')} onClick={save} id="save-item">{isShoe && !wear ? 'Ohne zweites Foto speichern' : 'Speichern'}</button>
           </div>
         </>
       )}
+      {cam}
     </Sheet>
   )
 }

@@ -1,17 +1,21 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { IconClose } from '../icons'
 import type { Guide } from '../lib/guides'
+import { useOverlay } from '../lib/overlay'
 
 const MAX_SIDE = 900
 
 /**
- * Eigene Kamera im Vollbild mit Umrisslinie des Teils. Ersetzt für die Dauer der Aufnahme das Sheet.
+ * Eigene Kamera im Vollbild mit Umrisslinie des Teils. Liegt für die Dauer der Aufnahme über allem; Zurück und Escape schließen sie.
  * Steht keine Kamera bereit (kein Zugriff, kein https), ruft sie onFail und der Aufrufer nimmt die Kamera des Geräts.
  */
 export function Camera({ title, guide, facing = 'environment', onShot, onClose, onFail }: { title: string; guide: Guide; facing?: 'environment' | 'user'; onShot: (c: HTMLCanvasElement) => void; onClose: () => void; onFail: () => void }) {
   const video = useRef<HTMLVideoElement>(null)
   const frame = useRef<HTMLDivElement>(null)
+  const root = useRef<HTMLDivElement>(null)
   const [live, setLive] = useState(false)
+  useOverlay(onClose, root)
   const fail = useRef(onFail)
   fail.current = onFail
 
@@ -52,8 +56,8 @@ export function Camera({ title, guide, facing = 'environment', onShot, onClose, 
     onShot(c)
   }
 
-  return (
-    <div className="camera" role="dialog" aria-modal="true" aria-label={title}>
+  return createPortal(
+    <div className="camera" ref={root} role="dialog" aria-modal="true" aria-label={title} tabIndex={-1}>
       <header className="camera-head">
         <strong>{title}</strong>
         <button className="icon-btn" onClick={onClose} aria-label="Kamera schließen"><IconClose /></button>
@@ -63,9 +67,10 @@ export function Camera({ title, guide, facing = 'environment', onShot, onClose, 
         <svg className="camera-guide" viewBox={guide.vb} aria-hidden="true"><path d={guide.d} /></svg>
       </div>
       <footer className="camera-foot">
-        <p>{guide.hint}</p>
+        <p>{live ? guide.hint : 'Kamera wird gestartet …'}</p>
         <button className="shutter" onClick={shoot} disabled={!live} aria-label="Foto aufnehmen" id="shutter" />
       </footer>
-    </div>
+    </div>,
+    document.body,
   )
 }

@@ -52,6 +52,8 @@ Regeln:
 - Der Seitenhintergrund ist reines Weiß. Kleidung und Avatar liegen auf `--c-tile`.
 - Bewertungen von Outfits nutzen Worte plus Farbe: „Stimmig“ in Akzentgrün, „Passt“ neutral, „Gewagt“ in Rot.
 
+Zusätzlich gibt es `--c-guide` (Tannengrün, in beiden Farbmodi gleich) für Hilfslinien beim Ausrichten am Avatar: das Oval um das Gesicht und den Rahmen um die Zone, deren Sitz angepasst wird.
+
 ## 4. Typografie
 
 | Rolle | Schrift | Größe | Gewicht |
@@ -62,7 +64,7 @@ Regeln:
 | Nebentext, Chips | Inter | `--fs-sm` 14 | 400 / 500 |
 | Beschriftung, Tabs | Inter | `--fs-xs` 12 | 600, Großbuchstaben mit 0.06em Sperrung nur bei Feld-Beschriftungen |
 
-Es gibt nur eine Schrift, Inter. Rangfolge entsteht über Gewicht (400, 500, 600, 700) und Farbe (`--c-ink`, `--c-muted`). Zahlen in Rastern stehen mit `tabular-nums`.
+Es gibt nur eine Schrift, Inter. Sie liegt als Variable Font in der App selbst (`@font-face` in `tokens.css`), nichts wird von fremden Servern geladen, damit die App offline gleich aussieht. Rangfolge entsteht über Gewicht (400, 500, 600, 700) und Farbe (`--c-ink`, `--c-muted`). Zahlen in Rastern stehen mit `tabular-nums`.
 
 ## 5. Abstände, Raster, Form
 
@@ -103,14 +105,37 @@ Klassen stehen in `src/styles/app.css`. Bestehende Komponenten wiederverwenden, 
 
 Grundlage ist Entwurf 4A „Klar“ mit dem Zufallsknopf aus 4C.
 
-- **Oben die Bühne** auf `--c-stage`: Titel „Anprobe“, rechts Speichern und Einstellungen als Icon-Buttons. Der Avatar steht mittig. Ohne eigenes Foto ist es eine schlichte graue Figur.
+- **Oben die Bühne** auf `--c-stage`: Titel „Anprobe“, rechts „Heute getragen“ (ein Tipp speichert das Outfit, falls nötig, und trägt es für heute ein), Speichern als Lesezeichen und Einstellungen als Zahnrad. Auf schmalen Telefonen und im Querformat zeigt „Heute getragen“ nur den Haken. Der Avatar steht mittig, die Bühne ist immer 3:4. Ohne eigenes Selfie ist es das neutrale graue Körpermodell.
 - **Links oben auf der Bühne** steht die Bewertung des Outfits als kleine Karte.
 - **Rechts unten auf der Bühne** schwebt der Zufallsknopf („Zufall“ mit Würfel). Er ist die einzige grüne Fläche des Screens. Ist eine Hauptfarbe vorgegeben, zeigt er sie als Punkt.
 - **Unten die Schublade:** Griff, Umschalter für Jacke, Oberteil, Hose, Schuhe und daneben der Filter-Knopf. Darunter das Raster der Teile dieser Zone, drei pro Reihe. Ein Tipp zieht das Teil an. Bei der Jacke steht zuerst „Ohne“, am Ende des Rasters immer „Neues Teil“.
 - Ein Tipp auf den Griff vergrößert oder verkleinert die Schublade. Nur das Raster scrollt, der Screen selbst nicht.
 - Ein Tipp auf eine Körperzone des Avatars zeigt diese Zone in der Schublade, ein Wisch darüber wechselt direkt zum nächsten Teil.
 - Der Filter-Knopf öffnet das eine Sheet „Filter und Zufall“: Jahreszeit, Stil, Hauptfarbe und was beim Würfeln bleibt. Ist etwas gesetzt, trägt der Knopf einen grünen Punkt.
-- Die Feineinstellung des Sitzes (aus den Einstellungen) erscheint in der Schublade anstelle des Rasters.
+- **Sitz anpassen** (aus den Einstellungen): Die Schublade wird klein, der Avatar groß. Das Teil wird direkt am Avatar gezogen (hoch, runter), zwei Finger ändern die Größe, die gewählte Zone trägt einen gestrichelten Rahmen in `--c-guide`. In der Schublade stehen dieselben Schritte als Knöpfe (`.pad`), dazu „Zurücksetzen“ und „Fertig“.
+- Im Querformat am Telefon stehen Bühne und Schublade nebeneinander, die Bereiche wandern als schmale Leiste an die linke Seite.
+
+## 6b. Regeln für Abläufe
+
+- **Am Objekt arbeiten, nicht am Regler.** Was eine Position oder Größe hat (Gesicht am Avatar, Sitz der Teile), wird dort angefasst, wo es zu sehen ist, und groß gezeigt. Regler bleiben für Werte ohne Ort (Körpergröße, Helligkeit des Hauttons).
+- **Jede Geste hat sichtbare Knöpfe** mit derselben Wirkung (`.pad`), und die Pfeiltasten funktionieren.
+- **Rückgängig statt Nachfrage.** Löschen und Eintragen wirken sofort, der Toast bietet sechs Sekunden lang „Rückgängig“. Eine Nachfrage gibt es nur, wenn alles ersetzt wird (Sicherung laden).
+- **Ein Tipp für das Häufige.** „Heute getragen“ auf der Anprobe, „Getragen“ auf der Heute-Karte, der Haken in der Wochenliste.
+- **Überlagerungen** (Sheet, Kamera, Avatar einrichten) schließen mit Knopf, Escape und der Zurück-Taste, der Fokus kehrt zum Auslöser zurück (`src/lib/overlay.ts`).
+- **Zustände:** leer immer mit nächster Handlung, Laden als Platzhalter in der Form des Inhalts (`.skeleton`) oder als Kreisel im Knopf (`.btn.is-busy`), Fehler in einem Satz mit Ausweg.
+- **Das Dokument scrollt nie.** Es scrollen nur `.view`, `.sheet-body`, `.drawer-body` und `.editor-panel`. Sichere Ränder kommen aus `--safe-*`.
+
+## 6c. Weitere Bausteine
+
+| Baustein | Klasse | Einsatz |
+| --- | --- | --- |
+| Avatar einrichten | `.editor` | Vollbild: oben der große Avatar, unten das Feld mit „Gesicht“ und „Körper“ |
+| Steuerkreuz | `.pad` | Knöpfe als Ersatz für Gesten |
+| Heute-Karte | `.today` | oben in Outfits: was heute geplant oder getragen ist, mit der einen Aktion |
+| Wochenliste | `.days`, `.day-row`, `.day-check` | sieben Tage, rechts der Haken für „getragen“ |
+| Kennzahlen, Karte, Balken | `.facts`, `.card`, `.bars` | Statistik |
+| Sortieren | `.sort` | Auswahl über dem Raster im Schrank |
+| Schritte | `.steps` | nummerierte Anleitung, z. B. Installation |
 
 ## 7. Icons
 
@@ -123,8 +148,8 @@ Grundlage ist Entwurf 4A „Klar“ mit dem Zufallsknopf aus 4C.
 - **Kleidung:** von oben fotografiert, flach liegend, freigestellt, vollständig sichtbar, mit etwas Luft zum Rand. Immer `object-fit: contain`, nie beschnitten.
 - **Schuhe** sind die Ausnahme und brauchen zwei Fotos von einem Schuh: von der Seite (Spitze nach rechts) für Schrank und Schublade, und von vorne, leicht von oben (etwa 20 bis 30 Grad), für den Avatar. Am Avatar steht dieses Bild unter dem einen Bein und gespiegelt unter dem anderen, die Hose liegt darüber. Fehlt das zweite Foto, wird das Schrankbild verwendet.
 - **Umrisslinien:** Für jede Kategorie gibt es eine gestrichelte Umrisslinie (`src/lib/guides.ts`). Sie liegt in der Kamera über dem Bild und zeigt, wie das Teil ungefähr liegen soll.
-- **Avatar:** zwei Wege. Standard ist die **Figur aus dem Selfie**: eine gezeichnete, frontale Figur in schlichter heller Wäsche, deren Kopf das ausgeschnittene Gesicht aus dem Selfie ist. Arme, Hals, Beine und Füße tragen den Hautton aus dem Foto. Größe und Körpertyp ändern die Proportionen, die Kleidung wird im selben Maß breiter. Angezogen sollen nur Gesicht, Hals, Hände und Unterarme zu sehen sein, damit die Zeichnung kaum auffällt. Alternative ist ein eigenes **Ganzkörperfoto**: frontal, aufrecht, barfuß, Arme leicht ab, heller ruhiger Hintergrund, füllt die Bühne im Format 3:4. Ohne beides steht die neutrale graue Figur ohne Gesicht.
-- **Selfie:** auf Augenhöhe, das Gesicht füllt das Oval der Kamera vom Kinn bis zum Haaransatz. Erst das Selfie, daraus entsteht sofort die Figur, danach das Anpassen (Ausschnitt, Hautton, Größe, Körpertyp).
+- **Avatar:** zwei Wege. Standard ist die **Figur aus dem Selfie**: ein gezeichnetes, frontales Körpermodell, weiblich oder männlich, mit weichen Körperformen, Schattierung, Körperlinien, Händen mit Fingern und Füßen, in schlichter heller Wäsche. Der Kopf ist das ausgeschnittene Gesicht aus dem Selfie, der Körper trägt den Hautton aus dem Foto. Körperform, Größe und Körpertyp ändern die Proportionen, die Kleidung wird im selben Maß breiter. Angezogen sollen nur Gesicht, Hals, Hände und Unterarme zu sehen sein, damit die Zeichnung kaum auffällt. Alternative ist ein eigenes **Ganzkörperfoto**: frontal, aufrecht, barfuß, Arme leicht ab, heller ruhiger Hintergrund, füllt die Bühne im Format 3:4. Ohne beides steht die neutrale graue Figur ohne Gesicht.
+- **Selfie:** auf Augenhöhe, das Gesicht füllt das Oval der Kamera vom Kinn bis zum Haaransatz. Erst das Selfie, daraus entsteht sofort die Figur. Danach wird im Vollbild angepasst: das Gesicht mit dem Finger direkt am großen Avatar, dann Körperform, Körpertyp, Größe und Hautton.
 - **Outfit-Vorschau:** immer aus der Bühne erzeugt, gleiches Format 3:4, gleiche Ablagefarbe.
 - **Beispiel-Teile** sind schlichte Zeichnungen und klar als "Beispiel" markiert.
 - Keine Stockfotos, keine Models, keine Deko-Illustrationen.
@@ -151,7 +176,8 @@ Grundlage ist Entwurf 4A „Klar“ mit dem Zufallsknopf aus 4C.
 - **Stile:** Lässig, Business, Sport, Elegant
 - **Jahreszeiten:** Frühling, Sommer, Herbst, Winter
 - **Farben:** Schwarz, Weiß, Grau, Beige, Braun, Rot, Orange, Gelb, Grün, Türkis, Blau, Marine, Lila, Rosa
-- **Bereiche:** Anprobe, Schrank, Outfits (der Kalender ist eine Ansicht in Outfits)
+- **Bereiche:** Anprobe, Schrank, Outfits. Outfits hat die Ansichten Liste, Woche, Monat und Statistik. Avatar, Stil-Wissen, Sicherung und Installation liegen in den Einstellungen (Zahnrad), es gibt keinen vierten Bereich.
+- **Getragen und geplant:** Für heute und frühere Tage heißt ein gewähltes Outfit „getragen“, für kommende Tage „geplant“.
 
 ## 12. Checkliste vor jedem neuen Screen
 

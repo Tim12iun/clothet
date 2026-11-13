@@ -1,13 +1,14 @@
 {
   "name": "clothet",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "build:artifact": "vite build --mode artifact && node scripts/artifact.mjs",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "playwright test --trace off"
   },
   "dependencies": {
     "idb-keyval": "^6.3.0",
@@ -15,6 +16,9 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
+    "@fontsource-variable/inter": "^5.3.0",
+    "@playwright/test": "^1.65.0",
     "@types/react": "^18.3.31",
     "@types/react-dom": "^18.3.7",
     "@vitejs/plugin-react": "^6.3.0",

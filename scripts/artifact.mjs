@@ -7,6 +7,6 @@ html = html
   .replace(/<meta charset[^>]*>/i, '')
   .replace(/<meta name="viewport"[^>]*>/i, '')
   .replace(/<meta name="(theme-color|apple-[a-z-]+|mobile-web-app-capable)"[^>]*>/gi, '')
-  .replace(/<link rel="(manifest|icon|apple-touch-icon)"[^>]*>/gi, '')
+  .replace(/<link rel="(manifest|icon|apple-touch-icon|apple-touch-startup-image)"[^>]*>/gi, '')
 writeFileSync('dist-artifact/clothet.html', html.trim() + '\n')
 console.log('dist-artifact/clothet.html', (html.length / 1024).toFixed(0) + ' KB')

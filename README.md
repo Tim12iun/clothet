@@ -19,5 +19,6 @@ npm install
 npm run dev
 ```
 
-`npm run build` prüft die Typen und baut nach `dist`. Jeder Push auf `main` veröffentlicht automatisch auf GitHub Pages.
+`npm run build` prüft die Typen und baut nach `dist`. `npm test` prüft die App mit Playwright auf sechs Geräteprofilen (einmalig vorher `npx playwright install chromium`). Ein leerer Schrank lässt sich über die Adresse mit `?stress=1000` mit Testteilen füllen. Jeder Push auf `main` veröffentlicht automatisch auf GitHub Pages.
 Design-Regeln stehen in [DESIGN.md](DESIGN.md).
+Stand und Prüfliste für das echte Gerät stehen in [RELEASE.md](RELEASE.md).
