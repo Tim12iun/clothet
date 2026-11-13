@@ -79,30 +79,31 @@ export function Closet({ hidden, onAdd, onSettings, toast, note }: { hidden: boo
 
       {items.length > 0 && (
         <div className="filters">
+          <div className="filter-row">
           <label className="search">
             <IconSearch />
             <input id="closet-search" type="search" inputMode="search" enterKeyHint="search" autoComplete="off" autoCorrect="off" spellCheck={false} placeholder="Im Schrank suchen" value={q} onChange={(e) => { setQ(e.target.value); setLimit(PAGE) }} aria-label="Im Schrank suchen" />
           </label>
+          <label className="sort" title={'Sortieren: ' + SORTS[sort]}>
+            <IconSort />
+            <select id="closet-sort" aria-label="Sortieren" value={sort} onChange={(e) => setSort(e.target.value as Sort)}>
+              {(Object.keys(SORTS) as Sort[]).map((k) => <option key={k} value={k}>{SORTS[k]}</option>)}
+            </select>
+          </label>
+          </div>
           <div className="chips" role="group" aria-label="Kategorie">
             <button className={'chip' + (!cat ? ' is-on' : '')} aria-pressed={!cat} onClick={() => setCat(null)}>Alle</button>
             {CATEGORIES.map((c) => (
               <button key={c} className={'chip' + (cat === c ? ' is-on' : '')} aria-pressed={cat === c} onClick={() => setCat(cat === c ? null : c)}>{c}</button>
             ))}
           </div>
-          <div className="filter-row">
+          {usedColors.length > 0 && (
             <div className="chips" role="group" aria-label="Farbe">
               {usedColors.map((c) => (
                 <button key={c} className={'dot' + (color === c ? ' is-on' : '')} style={{ ['--dot' as string]: COLORS[c] }} onClick={() => setColor(color === c ? null : c)} aria-label={c} aria-pressed={color === c} title={c} />
               ))}
             </div>
-          <label className="sort">
-            <IconSort />
-            <span>Sortieren</span>
-            <select id="closet-sort" value={sort} onChange={(e) => setSort(e.target.value as Sort)}>
-              {(Object.keys(SORTS) as Sort[]).map((k) => <option key={k} value={k}>{SORTS[k]}</option>)}
-            </select>
-          </label>
-          </div>
+          )}
         </div>
       )}
 

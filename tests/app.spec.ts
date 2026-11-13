@@ -447,25 +447,52 @@ test('Schublade: bleibt in ihrem Bereich, auch groß, und lässt sich am Griff a
     expect(stage!.height).toBeGreaterThanOrEqual(150)
     return drawer!.height
   }
+  const home = page.locator('.home')
   const small = await inside()
   await handle.click()
-  await expect(handle).toHaveAttribute('aria-expanded', 'true')
+  await expect(home).toHaveClass(/is-open/)
   await page.waitForTimeout(400)
   expect(await inside()).toBeGreaterThanOrEqual(small)
-  // Nach unten wischen macht sie wieder klein, nach oben groß
+  // Wischen am Griff: nach unten eine Stufe kleiner, nach oben eine größer
   const swipe = async (dy: number) => {
     const b = (await handle.boundingBox())!
     await handle.dispatchEvent('pointerdown', { clientX: b.x + b.width / 2, clientY: b.y + 10, pointerId: 1 })
     await handle.dispatchEvent('pointerup', { clientX: b.x + b.width / 2, clientY: b.y + 10 + dy, pointerId: 1 })
   }
   await swipe(60)
+  await expect(home).not.toHaveClass(/is-open|is-min/)
+  // Noch einmal nach unten: Nur Griff und Zonen-Leiste bleiben, die Vorschau wird größer, der Zufall bleibt erreichbar
+  const stageMid = (await page.locator('.stage-wrap').boundingBox())!.height
+  await swipe(60)
+  await expect(home).toHaveClass(/is-min/)
   await expect(handle).toHaveAttribute('aria-expanded', 'false')
-  await swipe(-60)
-  await expect(handle).toHaveAttribute('aria-expanded', 'true')
-  // Wer den Bereich verlässt, findet die Schublade danach wieder klein vor
+  await expect(page.locator('.drawer-body')).toBeHidden()
+  await expect(page.locator('.drawer .segment')).toBeVisible()
+  await page.waitForTimeout(400)
+  expect(await inside()).toBeLessThan(small)
+  expect((await page.locator('.stage-wrap').boundingBox())!.height).toBeGreaterThan(stageMid)
+  await page.locator('#roll').click()
+  await expectNoOverflow(page, 'Schublade ganz klein')
+  await expectAccessible(page, 'Schublade ganz klein')
+  // Weiter nach unten geht nicht, sie bleibt greifbar. Die Stufe bleibt beim Wechsel des Bereichs
+  await swipe(60)
+  await expect(home).toHaveClass(/is-min/)
   await go(page, 'Schrank')
   await go(page, 'Anprobe')
-  await expect(handle).toHaveAttribute('aria-expanded', 'false')
+  await expect(home).toHaveClass(/is-min/)
+  // Ein Tipp auf eine Zone holt die Teile zurück, Hochwischen ebenso
+  await page.locator('.drawer .segment button', { hasText: 'Hose' }).click()
+  await expect(home).not.toHaveClass(/is-min/)
+  await expect(page.locator('.drawer-body')).toBeVisible()
+  await swipe(60)
+  await swipe(-60)
+  await expect(home).not.toHaveClass(/is-open|is-min/)
+  await swipe(-60)
+  await expect(home).toHaveClass(/is-open/)
+  // Die große Stufe gilt nur für den Moment
+  await go(page, 'Schrank')
+  await go(page, 'Anprobe')
+  await expect(home).not.toHaveClass(/is-open/)
   await page.waitForTimeout(400)
   await inside()
   expect(errors).toEqual([])
@@ -586,5 +613,28 @@ test('Zufall: Normal bleibt ruhig, Speziell bringt ein spannendes Farbpaar', asy
   expect(NEUTRAL.length).toBe(6)
   await expectNoOverflow(page, 'Zufall mit Art')
   await expectAccessible(page, 'Zufall mit Art')
+  expect(errors).toEqual([])
+})
+
+test('Jacke: verdeckt das Oberteil, ohne Jacke ist es wieder da, der Zufall ist ein einziger Knopf', async ({ page }) => {
+  const errors = await withSamples(page)
+  const top = page.locator('.home .stage .wear[data-zone="top"]')
+  await expect(top).toHaveCount(1)
+  await page.locator('.drawer .segment button', { hasText: 'Jacke' }).click()
+  await page.locator('.pick-tile[title]').first().click()
+  await expect(page.locator('.home .stage .wear[data-zone="jacket"]')).toHaveCount(1)
+  await expect(top).toHaveCount(0)
+  // Das Oberteil bleibt gewählt, die Schublade sagt, warum es nicht zu sehen ist
+  await page.locator('.drawer .segment button', { hasText: 'Oberteil' }).click()
+  await expect(page.locator('.pick-tile.is-on')).toHaveCount(1)
+  await expect(page.locator('.drawer-note')).toContainText('Unter der Jacke')
+  await expectNoOverflow(page, 'Jacke an')
+  await expectAccessible(page, 'Jacke an')
+  await page.locator('.drawer .segment button', { hasText: 'Jacke' }).click()
+  await page.locator('.pick-tile', { hasText: 'Ohne' }).click()
+  await expect(top).toHaveCount(1)
+  // Würfeln und Vorgaben teilen sich einen Knopf am Rand der Bühne
+  const [roll, more] = await Promise.all(['#roll', '#open-prefs'].map((s) => page.locator(s).boundingBox()))
+  expect(Math.abs(roll!.x + roll!.width - more!.x)).toBeLessThan(2)
   expect(errors).toEqual([])
 })

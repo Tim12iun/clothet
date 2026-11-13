@@ -346,6 +346,8 @@ export async function renderOutfit(slots: Slots, items: Item[], avatar: Blob | s
     if (zone === 'bottom' && isDress) continue
     const item = items.find((i) => i.id === slots[zone])
     if (!item) continue
+    // Unter einer Jacke ist das Oberteil nicht zu sehen, wie auf der Bühne
+    if (zone === 'top' && !isDress && items.some((i) => i.id === slots.jacket)) continue
     const f = item.fit ?? NO_FIT
     const p = placement(zone, isDress, f, wide)
     if (zone === 'shoes' && item.wearImage) {

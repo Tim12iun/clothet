@@ -28,10 +28,12 @@ export function Home({ hidden, slots, setSlots, onSettings, onAdd, toast }: Prop
   const [prefs, setPrefs] = useState<RandomPrefs>({ mainColor: null, keep: [], mode: 'normal' })
   const [prefsOpen, setPrefsOpen] = useState(false)
   const [zone, setZone] = useState<Zone>('top')
-  const [open, setOpen] = useState(false)
+  // Schublade in drei Größen: nur die Leiste der Zonen (die Vorschau ist groß), normal, groß
+  const [size, setSize] = useState<0 | 1 | 2>(1)
+  const open = size === 2
   const grip = useRef<number | null>(null), swiped = useRef(false)
   // Die große Schublade gilt nur für den Moment: Wer den Bereich verlässt, findet sie danach wieder klein vor
-  useEffect(() => { if (hidden) setOpen(false) }, [hidden])
+  useEffect(() => { if (hidden) setSize((s) => (s === 2 ? 1 : s)) }, [hidden])
   // Nur beim Wischen an der Figur gleitet das gewischte Teil herein, alles andere wechselt und steht still
   const [slide, setSlide] = useState<{ zone: Zone; dir: 'next' | 'prev' } | null>(null)
   const swipe = useRef<{ x: number } | null>(null)
@@ -48,6 +50,8 @@ export function Home({ hidden, slots, setSlots, onSettings, onAdd, toast }: Prop
     return w
   }, [pools, slots, bare])
   const isDress = worn.top?.category === 'Kleider'
+  // Wie beim Anziehen: Unter einer Jacke ist das Oberteil nicht zu sehen. Es bleibt gewählt und kommt ohne Jacke wieder. Ein Kleid bleibt sichtbar
+  const covered = !!worn.jacket && !!worn.top && !isDress
   const sex = figure?.sex
   const wornList = ZONES.filter((z) => !(z === 'bottom' && isDress)).map((z) => worn[z]).filter((i): i is Item => !!i)
   const wornSlots = Object.fromEntries(ZONES.map((z) => [z, worn[z]?.id ?? null])) as Slots
@@ -126,7 +130,7 @@ export function Home({ hidden, slots, setSlots, onSettings, onAdd, toast }: Prop
   const dressBlocks = zone === 'bottom' && isDress
 
   return (
-    <section className={'home' + (open ? ' is-open' : '')} hidden={hidden} aria-label="Anprobe">
+    <section className={'home' + (open ? ' is-open' : size === 0 ? ' is-min' : '')} hidden={hidden} aria-label="Anprobe">
       <header className="view-head home-head">
         <div className="view-title">
           <h1>Anprobe</h1>
@@ -144,7 +148,7 @@ export function Home({ hidden, slots, setSlots, onSettings, onAdd, toast }: Prop
           <img className={'avatar' + (av.photo ? ' is-photo' : '')} src={av.photo ? urlFor(av.photo) : av.url} alt={av.photo ? 'Dein Foto' : 'Avatar'} draggable={false} />
           {DRAW_ORDER.map((z) => {
             const item = worn[z]
-            if (!item || (z === 'bottom' && isDress)) return null
+            if (!item || (z === 'bottom' && isDress) || (z === 'top' && covered)) return null
             return <Wear key={z} item={item} zone={z} isDress={isDress} wide={av.wide} photo={!!av.photo} sex={sex} dir={slide?.zone === z ? slide.dir : null} />
           })}
           {!av.photo && <img className="avatar is-front" src={av.url} alt="" aria-hidden="true" draggable={false} />}
@@ -176,11 +180,8 @@ export function Home({ hidden, slots, setSlots, onSettings, onAdd, toast }: Prop
         ) : (
           <>
             <div className="roll">
-              <button className={'icon-btn is-float' + (tuned ? ' is-on' : '')} onClick={() => setPrefsOpen(true)} id="open-prefs" aria-label="Zufall einstellen"><IconSliders /></button>
-              <button className="fab" onClick={roll} id="roll" aria-label="Zufall: Outfit würfeln">
-                <IconDice /> Zufall
-                {prefs.mainColor && <span className="dot is-small" style={{ ['--dot' as string]: COLORS[prefs.mainColor] }} title={'Hauptfarbe ' + prefs.mainColor} />}
-              </button>
+              <button className="fab" onClick={roll} id="roll" aria-label="Zufall: Outfit würfeln"><IconDice /> Zufall</button>
+              <button className={'fab-more' + (tuned ? ' is-on' : '')} onClick={() => setPrefsOpen(true)} id="open-prefs" aria-label={tuned ? 'Zufall einstellen, Vorgaben aktiv' : 'Zufall einstellen'}><IconSliders /></button>
             </div>
           </>
         )}
@@ -188,24 +189,25 @@ export function Home({ hidden, slots, setSlots, onSettings, onAdd, toast }: Prop
 
       <div className="drawer">
         <button
-          className="drawer-handle" aria-expanded={open} aria-label={open ? 'Schublade verkleinern' : 'Schublade vergrößern'}
+          className="drawer-handle" aria-expanded={size > 0} aria-label={size === 0 ? 'Schublade öffnen' : open ? 'Schublade verkleinern' : 'Schublade vergrößern'}
           onPointerDown={(e) => { grip.current = e.clientY }}
           onPointerCancel={() => { grip.current = null }}
           onPointerUp={(e) => {
-            // Wischen am Griff: nach oben groß, nach unten klein. Der Klick danach schaltet dann nicht noch einmal um
+            // Wischen am Griff: nach oben eine Stufe größer, nach unten eine kleiner. Der Klick danach schaltet dann nicht noch einmal um
             const dy = grip.current === null ? 0 : e.clientY - grip.current
             grip.current = null
-            if (Math.abs(dy) > 10) { swiped.current = true; setOpen(dy < 0) }
+            if (Math.abs(dy) > 10) { swiped.current = true; setSize((s) => Math.min(2, Math.max(0, s + (dy < 0 ? 1 : -1))) as 0 | 1 | 2) }
           }}
-          onClick={() => { if (swiped.current) swiped.current = false; else setOpen(!open) }}
+          onClick={() => { if (swiped.current) swiped.current = false; else setSize(size === 1 ? 2 : 1) }}
         ><i /></button>
         <>
             <div className="drawer-bar">
               <div className="segment grow" role="tablist" aria-label="Körperzone">
-                {ZONES.map((z) => <button key={z} role="tab" aria-selected={zone === z} className={zone === z ? 'is-on' : ''} onClick={() => setZone(z)}>{ZONE_LABEL[z]}</button>)}
+                {ZONES.map((z) => <button key={z} role="tab" aria-selected={zone === z} className={zone === z ? 'is-on' : ''} onClick={() => { setZone(z); if (size === 0) setSize(1) }}>{ZONE_LABEL[z]}</button>)}
               </div>
             </div>
-            <div className="drawer-body">
+            <div className="drawer-body" hidden={size === 0}>
+              {zone === 'top' && covered && <p className="muted drawer-note">Unter der Jacke ist das Oberteil nicht zu sehen. Ohne Jacke erscheint es wieder.</p>}
               {dressBlocks ? (
                 <p className="muted drawer-note">Zum Kleid gehört keine Hose. Wähl ein anderes Oberteil, dann kannst du hier wieder wechseln.</p>
               ) : (

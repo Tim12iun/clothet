@@ -71,7 +71,7 @@ Es gibt nur eine Schrift, Inter. Sie liegt als Variable Font in der App selbst (
 - **Abstände** im 4er-Raster: `--s-1` 4, `--s-2` 8, `--s-3` 12, `--s-4` 16, `--s-5` 24, `--s-6` 32, `--s-7` 48. Zwischen Geschwistern immer `gap`, keine Einzel-Margins.
 - **Seitenrand** mindestens 16 px, Inhalt maximal `--maxw` 960 px breit.
 - **Kleider-Raster:** Kacheln im Format 3:4, mindestens 150 px breit, Abstand `--s-3`.
-- **Radien:** `--r-sm` 8 für Eingaben, `--r-md` 16 für Kacheln und den Zufallsknopf, `--r-lg` 24 für Sheets und die Schublade, `--r-pill` für Buttons und Chips.
+- **Radien:** `--r-sm` 8 für Eingaben, `--r-md` 16 für Kacheln, `--r-lg` 24 für Sheets und die Schublade, `--r-pill` für Buttons und Chips.
 - **Schatten** nur für Schwebendes: `--sh-1` für kleine Karten und den aktiven Umschalter, `--sh-2` für Sheets, `--sh-drawer` für die Schublade, `--sh-fab` für den Zufallsknopf. Kacheln haben keinen Schatten.
 - **Antippflächen** mindestens 48 px (`--tap`).
 
@@ -93,13 +93,13 @@ Klassen stehen in `src/styles/app.css`. Bestehende Komponenten wiederverwenden, 
 | Leerer Zustand | `.empty` | ein Satz, was hier erscheint, plus die eine Aktion |
 | Hinweis | `.note` | kurze Rückmeldung in einem Satz |
 | Bühne | `.stage` | Avatar-Fläche 3:4 ohne eigene Kachel, steht auf `--c-stage` und füllt die freie Höhe |
-| Zufall | `.roll`, `.fab`, `.icon-btn.is-float` | unten rechts auf der Bühne: der grüne Zufallsknopf, links daneben der Knopf für das Sheet „Zufall“. Ist dort etwas eingestellt, ist er grün hinterlegt |
+| Zufall | `.roll`, `.fab`, `.fab-more` | unten rechts auf der Bühne ein einziger grüner Knopf mit zwei Hälften: links würfeln, rechts hinter einer feinen Linie das Sheet „Zufall“ (`.fab-more`). Sind dort Vorgaben gesetzt, trägt die rechte Hälfte einen Punkt. Sonst liegt nichts auf der Bühne |
 | Seitenkopf | `.view-head`, `.view-title` | in allen drei Bereichen gleich: links Titel und eine Zeile Stand, rechts die Aktionen, ganz rechts das Zahnrad |
 | Karte | `.card` | Titel (h3) und Inhalt. Gliedert Statistik und Einstellungen, Kennzahlen darin als `.facts` |
 | Teil bearbeiten | `.item-edit` | alles auf einer Seite: oben Vorschau am Avatar, Name und Sitz, darunter Kategorie und Farbe, alle Werte sichtbar |
 | Wege zum Bild | `.add-ways` | drei gleich große Knöpfe: Kamera, Aus Galerie, Einfügen (übernimmt ein kopiertes, schon freigestelltes Motiv) |
 | Markierrahmen | `.mark-box` | Rahmen mit vier runden Griffen an den Ecken. Ecken ziehen, Rahmen verschieben oder daneben neu aufziehen |
-| Schublade | `.drawer` | weiße Fläche unter der Bühne mit Griff, Umschalter und Auswahl-Raster. Zwei Größen (klein ist Standard), Griff antippen oder wischen. Sie gibt nach, bevor die Bühne zu klein wird, ragt nie über die untere Leiste und ist nach einem Bereichswechsel wieder klein |
+| Schublade | `.drawer` | weiße Fläche unter der Bühne mit Griff, Umschalter und Auswahl-Raster. Drei Stufen: nur Griff und Zonen-Leiste (die Vorschau ist groß, zum Durchwürfeln), normal (Standard, eine Reihe Teile) und groß. Am Griff wischen wechselt je eine Stufe, ein Tipp auf eine Zone holt die Teile zurück. Sie gibt nach, bevor die Bühne zu klein wird, ragt nie über die untere Leiste, bleibt immer greifbar, und die große Stufe gilt nur bis zum Bereichswechsel |
 | Auswahl-Kachel | `.pick-tile` | ein Teil im Raster der Schublade, angezogen mit grünem Rahmen und Haken (`.check`) |
 | Zufallsknopf | `.fab` | die eine schwebende Hauptaktion der Anprobe, rechts unten auf der Bühne |
 | Umschalter | `.segment` | zwei bis vier gleichrangige Ansichten, in der Schublade die Körperzonen |
@@ -114,7 +114,8 @@ Grundlage ist Entwurf 4A „Klar“ mit dem Zufallsknopf aus 4C.
 - **Oben die Bühne** auf `--c-stage`: Titel „Anprobe“, rechts „Heute getragen“ (ein Tipp speichert das Outfit, falls nötig, und trägt es für heute ein), Speichern als Lesezeichen und Einstellungen als Zahnrad. Auf schmalen Telefonen und im Querformat zeigt „Heute getragen“ nur den Haken. Der Avatar steht mittig, die Bühne ist immer 3:4. Ohne eigenes Selfie ist es das neutrale graue Körpermodell.
 - **Rechts unten auf der Bühne** schwebt der Zufallsknopf („Zufall“ mit Würfel). Er ist die einzige grüne Fläche des Screens. Ist eine Hauptfarbe vorgegeben, zeigt er sie als Punkt.
 - **Unten die Schublade:** Griff, Umschalter für Jacke, Oberteil, Hose, Schuhe über die ganze Breite. Darunter das Raster der Teile dieser Zone, drei pro Reihe. Ein Tipp zieht das Teil an. Bei der Jacke steht zuerst „Ohne“, am Ende des Rasters immer „Neues Teil“.
-- Ein Tipp auf den Griff vergrößert oder verkleinert die Schublade. Nur das Raster scrollt, der Screen selbst nicht.
+- Ein Tipp auf den Griff vergrößert oder verkleinert die Schublade, ein Wisch nach unten lässt nur die Zonen-Leiste stehen.
+- **Jacke an:** Das Oberteil darunter ist nicht zu sehen (auch in der Outfit-Vorschau), bleibt aber gewählt. Ein Kleid bleibt sichtbar. Nur das Raster scrollt, der Screen selbst nicht.
 - Ein Tipp auf eine Körperzone des Avatars zeigt diese Zone in der Schublade, ein Wisch darüber wechselt direkt zum nächsten Teil.
 - Die Anprobe hat keinen Filter. Der Knopf neben „Zufall“ öffnet das Sheet „Zufall“: Art (Normal oder Speziell), Hauptfarbe und welche Teile bleiben. Gefiltert wird nur im Schrank: Suche, Kategorie, Farbe, Sortierung.
 - **Sitz am Avatar** (in „Teil bearbeiten“, ganz oben): kleine Bühne mit dem Avatar und dem Teil, daneben vier Knöpfe (höher, tiefer, kleiner, größer). Die Einstellung gilt nur für dieses Teil. Oberteile werden nie verzerrt, nur skaliert. Einen eigenen Modus dafür gibt es nicht.
