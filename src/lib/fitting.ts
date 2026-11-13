@@ -4,8 +4,8 @@ import { specks } from './image'
 
 /**
  * Passform ohne KI: Aus dem freigestellten Umriss eines Teils werden wenige Ankerpunkte gelesen (Schulternaht, Rumpfkante,
- * Ärmelende, Bund, Mitte der Hosenbeine). Damit wird das ganze Bild in einem Stück stufenlos auf die Körperpunkte der
- * Figur gelegt: skaliert, ausgerichtet und leicht gedehnt. Das Teil bleibt, wie es fotografiert wurde, es wird nicht
+ * Ärmelende, Bund). Damit wird das ganze Bild in einem Stück auf die Körperpunkte der Figur gelegt: Hosen nur skaliert
+ * und gesetzt, bei Oberteilen fallen zusätzlich die Ärmel stufenlos zu den Armen hin. Das Teil bleibt, wie es fotografiert wurde, es wird nicht
  * zerschnitten und bekommt keine Körperform und keine Schatten.
  * Ergebnis ist ein Bild in Bühnengröße (3:4) für die Figur in Normalbreite.
  */
@@ -162,56 +162,31 @@ function span(m: Mask, y: number): [number, number] | null {
 }
 
 /**
- * Hose: ein Maßstab für das ganze Teil (Bundbreite auf Hüftbreite), der Bund sitzt an der Hüfte, lange Hosen enden am
- * Knöchel. Jede Zeile wird als Ganzes um die Mitte gedehnt oder gestaucht, sodass die Mitte jedes Hosenbeins über dem
- * Bein der Figur liegt. Der Übergang ist stufenlos, die Hose wird nirgends zerschnitten.
+ * Hose: Der Schnitt bleibt, wie er fotografiert wurde. Das Bild wird nur als Ganzes skaliert und gesetzt: Bundbreite auf
+ * Hüftbreite, Bund mittig an der Hüfte, lange Hosen in der Länge leicht angeglichen, damit der Saum am Knöchel endet.
  */
 function warpBottom(src: HTMLCanvasElement, m: Mask, sex: Sex | undefined): HTMLCanvasElement | null {
   const t = bodyTargets(sex), hgt = m.bottom - m.top
-  const rows: [number, number][] = []
-  for (let y = Math.round(m.top + hgt * 0.02); y <= m.top + hgt * 0.07; y++) { const r = span(m, y); if (r) rows.push(r) }
+  // Bund: die erste Zeile von oben, die annähernd so breit ist wie die Hose im oberen Viertel.
+  // Etiketten oder Schlaufen, die über den Bund hinausragen, zählen so nicht mit.
+  const spans: ([number, number] | null)[] = []
+  let wide = 0
+  for (let y = m.top; y <= m.top + hgt * 0.25; y++) { const r = span(m, y); spans.push(r); if (r) wide = Math.max(wide, r[1] - r[0]) }
+  const first = spans.findIndex((r) => r && r[1] - r[0] > wide * 0.6)
+  if (first < 0) return null
+  const waist = m.top + first, len = m.bottom - waist
+  const rows = spans.slice(first + Math.round(len * 0.01), first + Math.round(len * 0.05) + 2).filter((r): r is [number, number] => !!r)
   if (rows.length < 2) return null
   const cx = median(rows.map((r) => (r[0] + r[1]) / 2)), wh = median(rows.map((r) => (r[1] - r[0]) / 2))
   if (wh < 10) return null
-  const s = ((t.torsoHalf(t.waistY) + 2.5) * U) / wh
   const waistT = t.waistY * U, full = (t.ankleY - t.waistY) * U
-  // Lange Hosen enden am Knöchel, kurze behalten ihre Länge
-  const sy = hgt * s > full * 0.8 ? s * clamp(full / (hgt * s), 0.75, 1.35) : s
-  // Je Zeile und Seite: Faktor, der die Mitte des Hosenbeins auf die Mitte des Beins legt
-  const k: Record<1 | -1, Float32Array> = { 1: new Float32Array(hgt + 1).fill(1), [-1]: new Float32Array(hgt + 1).fill(1) }
-  for (let i = 0; i <= hgt; i++) {
-    const y = m.top + i, on = smooth((i / hgt - 0.3) / 0.25)
-    if (!on) continue
-    for (const side of [1, -1] as const) {
-      const lim = side > 0 ? m.right : m.left
-      let a = Math.round(cx), e = lim
-      while (a !== lim && !m.on(a, y)) a += side
-      while (e !== a && !m.on(e, y)) e -= side
-      const mid = Math.abs((a + e) / 2 - cx) * s
-      if (a === e || mid < 2) continue
-      k[side][i] = 1 + on * (clamp((t.leg((waistT + i * sy) / U) * U) / mid, 0.7, 1.3) - 1)
-    }
-  }
-  const blur = Math.max(2, Math.round(hgt * 0.04))
-  for (const side of [1, -1] as const) {
-    const raw = k[side].slice()
-    for (let i = 0; i <= hgt; i++) {
-      let sum = 0, n = 0
-      for (let j = Math.max(0, i - blur); j <= Math.min(hgt, i + blur); j++) { sum += raw[j]; n++ }
-      k[side][i] = sum / n
-    }
-  }
+  // Die ganze Hose muss neben der Figur noch auf die Bühne passen
+  const s = Math.min(((t.torsoHalf(t.waistY) + 2.5) * U) / wh, (W * 0.3) / Math.max(cx - m.left, m.right - cx), (full * 1.15) / len)
+  // Lange Hosen enden am Knöchel, kurze behalten ihre Länge. Die Länge ändert sich höchstens leicht.
+  const sy = len * s > full * 0.8 ? s * clamp(full / (len * s), 0.88, 1.15) : s
   const { out, ctx } = stage()
-  const step = 1 / sy
-  for (let ty = Math.floor(waistT); ty < Math.min(H, waistT + hgt * sy + 1); ty++) {
-    const f = (ty + 0.5 - waistT) / sy, i = clamp(Math.round(f), 0, hgt), y = m.top + f - step / 2
-    if (f > hgt) break
-    for (const side of [1, -1] as const) {
-      const w = side > 0 ? m.right + 1 - cx : cx - m.left, tw = w * s * k[side][i]
-      if (w < 1) continue
-      ctx.drawImage(src, side > 0 ? cx : m.left, clamp(y, 0, m.h - step), w, step, side > 0 ? CX : CX - tw, ty, tw, 1)
-    }
-  }
+  ctx.setTransform(s, 0, 0, sy, CX - cx * s, waistT - waist * sy)
+  ctx.drawImage(src, 0, 0)
   return out
 }
 
