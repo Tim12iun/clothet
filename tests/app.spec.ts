@@ -646,8 +646,17 @@ test('Jacke: verdeckt das Oberteil, ohne Jacke ist es wieder da, der Zufall ist 
   await page.locator('.drawer .segment button', { hasText: 'Jacke' }).click()
   await page.locator('.pick-tile', { hasText: 'Ohne' }).click()
   await expect(top).toHaveCount(1)
+  // Ein anderes Oberteil wählen zieht die Jacke aus, damit es zu sehen ist
+  await page.locator('.pick-tile[title]').first().click()
+  await expect(top).toHaveCount(0)
+  await page.locator('.drawer .segment button', { hasText: 'Oberteil' }).click()
+  await page.locator('.pick-tile[title]:not(.is-on)').first().click()
+  await expect(page.locator('.home .stage .wear[data-zone="jacket"]')).toHaveCount(0)
+  await expect(top).toHaveCount(1)
   // Würfeln und Vorgaben teilen sich einen Knopf am Rand der Bühne
   const [roll, more] = await Promise.all(['#roll', '#open-prefs'].map((s) => page.locator(s).boundingBox()))
-  expect(Math.abs(roll!.x + roll!.width - more!.x)).toBeLessThan(2)
+  expect(Math.abs(roll!.y + roll!.height - more!.y)).toBeLessThan(2)
+  expect(Math.abs(roll!.x - more!.x)).toBeLessThan(2)
+  await expect(page.locator('#roll')).toHaveText('')
   expect(errors).toEqual([])
 })

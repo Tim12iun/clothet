@@ -286,20 +286,16 @@ button, label.btn, .nav, .home-head, .view-head, .segment, .chips, .sheet-head, 
   background: var(--c-surface); border-radius: var(--r-lg); box-shadow: var(--sh-2);
   text-align: center; color: var(--c-muted);
 }
-/* Zufall: schwebt unten rechts auf der Bühne, links daneben der Knopf für seine Einstellungen */
-.roll { position: absolute; z-index: 3; right: max(var(--gutter), var(--safe-right)); bottom: var(--s-3); display: flex; align-items: stretch; background: var(--c-accent); color: var(--c-accent-ink); border-radius: var(--r-pill); box-shadow: var(--sh-fab); }
-/* Ein Knopf, zwei Hälften: links würfeln, rechts hinter einer feinen Linie die Vorgaben. Sind Vorgaben gesetzt, trägt die rechte Hälfte einen Punkt */
-.fab-more { position: relative; display: inline-grid; place-items: center; width: var(--tap); min-height: var(--tap); color: inherit; border-radius: 0 var(--r-pill) var(--r-pill) 0; }
-.fab-more::before { content: ''; position: absolute; left: 0; top: 25%; bottom: 25%; width: 1px; background: currentColor; opacity: 0.35; }
+/* Zufall: eine schmale, hochkante Pille unten rechts auf der Bühne. Oben der Würfel, darunter hinter einer feinen Linie die Vorgaben. Sind Vorgaben gesetzt, trägt die untere Hälfte einen Punkt */
+.roll { position: absolute; z-index: 3; right: max(var(--gutter), var(--safe-right)); bottom: var(--s-3); display: flex; flex-direction: column; background: var(--c-accent); color: var(--c-accent-ink); border-radius: var(--r-pill); box-shadow: var(--sh-fab); }
+.fab, .fab-more { position: relative; display: grid; place-items: center; width: 52px; color: inherit; transition: opacity var(--t-fast) var(--ease); }
+.fab { height: 52px; border-radius: var(--r-pill) var(--r-pill) 0 0; }
+.fab svg { width: 26px; height: 26px; }
+.fab-more { height: var(--tap); border-radius: 0 0 var(--r-pill) var(--r-pill); }
+.fab-more::before { content: ''; position: absolute; top: 0; left: 25%; right: 25%; height: 1px; background: currentColor; opacity: 0.35; }
 .fab-more svg { width: 20px; height: 20px; }
-.fab-more.is-on::after { content: ''; position: absolute; top: 10px; right: 10px; width: 8px; height: 8px; border-radius: var(--r-pill); background: var(--c-accent-ink); }
+.fab-more.is-on::after { content: ''; position: absolute; top: 9px; right: 9px; width: 8px; height: 8px; border-radius: var(--r-pill); background: var(--c-accent-ink); }
 .fab-more:active { opacity: 0.6; }
-.fab {
-  display: inline-flex; align-items: center; gap: var(--s-2); min-height: var(--tap); padding: 0 var(--s-3) 0 var(--s-4);
-  color: inherit; border-radius: var(--r-pill) 0 0 var(--r-pill);
-  font-weight: 600; font-size: var(--fs-md);
-  transition: opacity var(--t-fast) var(--ease);
-}
 .fab:active { opacity: 0.8; }
 .icon-btn.is-outlined { border: 1px solid var(--c-line); background: var(--c-surface); }
 .icon-btn.has-mark { position: relative; border-color: var(--c-accent); color: var(--c-accent); }

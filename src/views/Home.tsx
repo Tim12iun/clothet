@@ -69,13 +69,14 @@ export function Home({ hidden, slots, setSlots, onSettings, onAdd, toast }: Prop
     if (ids.length < 2) return
     const at = ids.indexOf(wornSlots[z])
     setSlide({ zone: z, dir: d === 1 ? 'next' : 'prev' })
-    setSlots({ ...wornSlots, [z]: ids[(at + d + ids.length) % ids.length] })
+    setSlots({ ...wornSlots, ...(z === 'top' ? { jacket: null } : {}), [z]: ids[(at + d + ids.length) % ids.length] })
   }
   function wear(z: Zone, id: string | null) {
     setSlide(null)
     const off = id !== null && wornSlots[z] === id
     setBare((b) => (off ? [...b.filter((x) => x !== z), z] : b.filter((x) => x !== z)))
-    setSlots({ ...wornSlots, [z]: off ? null : id })
+    // Ein Oberteil wählen zieht die Jacke aus, sonst bliebe es unter ihr unsichtbar
+    setSlots({ ...wornSlots, ...(z === 'top' && !off ? { jacket: null } : {}), [z]: off ? null : id })
   }
 
   function roll() {
@@ -180,7 +181,7 @@ export function Home({ hidden, slots, setSlots, onSettings, onAdd, toast }: Prop
         ) : (
           <>
             <div className="roll">
-              <button className="fab" onClick={roll} id="roll" aria-label="Zufall: Outfit würfeln"><IconDice /> Zufall</button>
+              <button className="fab" onClick={roll} id="roll" aria-label="Zufall: Outfit würfeln" title="Zufall"><IconDice /></button>
               <button className={'fab-more' + (tuned ? ' is-on' : '')} onClick={() => setPrefsOpen(true)} id="open-prefs" aria-label={tuned ? 'Zufall einstellen, Vorgaben aktiv' : 'Zufall einstellen'}><IconSliders /></button>
             </div>
           </>
@@ -207,7 +208,7 @@ export function Home({ hidden, slots, setSlots, onSettings, onAdd, toast }: Prop
               </div>
             </div>
             <div className="drawer-body" hidden={size === 0}>
-              {zone === 'top' && covered && <p className="muted drawer-note">Unter der Jacke ist das Oberteil nicht zu sehen. Ohne Jacke erscheint es wieder.</p>}
+              {zone === 'top' && covered && <p className="muted drawer-note">Unter der Jacke ist das Oberteil nicht zu sehen. Wählst du ein Oberteil, kommt die Jacke weg.</p>}
               {dressBlocks ? (
                 <p className="muted drawer-note">Zum Kleid gehört keine Hose. Wähl ein anderes Oberteil, dann kannst du hier wieder wechseln.</p>
               ) : (

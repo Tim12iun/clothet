@@ -93,7 +93,7 @@ Klassen stehen in `src/styles/app.css`. Bestehende Komponenten wiederverwenden, 
 | Leerer Zustand | `.empty` | ein Satz, was hier erscheint, plus die eine Aktion |
 | Hinweis | `.note` | kurze Rückmeldung in einem Satz |
 | Bühne | `.stage` | Avatar-Fläche 3:4 ohne eigene Kachel, steht auf `--c-stage` und füllt die freie Höhe |
-| Zufall | `.roll`, `.fab`, `.fab-more` | unten rechts auf der Bühne ein einziger grüner Knopf mit zwei Hälften: links würfeln, rechts hinter einer feinen Linie das Sheet „Zufall“ (`.fab-more`). Sind dort Vorgaben gesetzt, trägt die rechte Hälfte einen Punkt. Sonst liegt nichts auf der Bühne |
+| Zufall | `.roll`, `.fab`, `.fab-more` | unten rechts auf der Bühne eine schmale, hochkante grüne Pille ohne Text: oben der Würfel, darunter hinter einer feinen Linie das Sheet „Zufall“ (`.fab-more`). Sind dort Vorgaben gesetzt, trägt die untere Hälfte einen Punkt. Sonst liegt nichts auf der Bühne |
 | Seitenkopf | `.view-head`, `.view-title` | in allen drei Bereichen gleich: links Titel und eine Zeile Stand, rechts die Aktionen, ganz rechts das Zahnrad |
 | Karte | `.card` | Titel (h3) und Inhalt. Gliedert Statistik und Einstellungen, Kennzahlen darin als `.facts` |
 | Teil bearbeiten | `.item-edit` | alles auf einer Seite: oben Vorschau am Avatar, Name und Sitz, darunter Kategorie und Farbe, alle Werte sichtbar |
@@ -115,7 +115,7 @@ Grundlage ist Entwurf 4A „Klar“ mit dem Zufallsknopf aus 4C.
 - **Rechts unten auf der Bühne** schwebt der Zufallsknopf („Zufall“ mit Würfel). Er ist die einzige grüne Fläche des Screens. Ist eine Hauptfarbe vorgegeben, zeigt er sie als Punkt.
 - **Unten die Schublade:** Griff, Umschalter für Jacke, Oberteil, Hose, Schuhe über die ganze Breite. Darunter das Raster der Teile dieser Zone, drei pro Reihe. Ein Tipp zieht das Teil an. Bei der Jacke steht zuerst „Ohne“, am Ende des Rasters immer „Neues Teil“.
 - Ein Tipp auf den Griff vergrößert oder verkleinert die Schublade, ein Wisch nach unten lässt nur die Zonen-Leiste stehen.
-- **Jacke an:** Das Oberteil darunter ist nicht zu sehen (auch in der Outfit-Vorschau), bleibt aber gewählt. Ein Kleid bleibt sichtbar. Nur das Raster scrollt, der Screen selbst nicht.
+- **Jacke an:** Das Oberteil darunter ist nicht zu sehen (auch in der Outfit-Vorschau), bleibt aber gewählt. Ein Kleid bleibt sichtbar. Wer ein Oberteil wählt oder an der Figur zum nächsten wischt, zieht damit die Jacke aus. Nur das Raster scrollt, der Screen selbst nicht.
 - Ein Tipp auf eine Körperzone des Avatars zeigt diese Zone in der Schublade, ein Wisch darüber wechselt direkt zum nächsten Teil.
 - Die Anprobe hat keinen Filter. Der Knopf neben „Zufall“ öffnet das Sheet „Zufall“: Art (Normal oder Speziell), Hauptfarbe und welche Teile bleiben. Gefiltert wird nur im Schrank: Suche, Kategorie, Farbe, Sortierung.
 - **Sitz am Avatar** (in „Teil bearbeiten“, ganz oben): kleine Bühne mit dem Avatar und dem Teil, daneben vier Knöpfe (höher, tiefer, kleiner, größer). Die Einstellung gilt nur für dieses Teil. Oberteile werden nie verzerrt, nur skaliert. Einen eigenen Modus dafür gibt es nicht.
