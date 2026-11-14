@@ -1,5 +1,10 @@
 export const CATEGORIES = ['Oberteile', 'Hosen', 'Röcke', 'Kleider', 'Jacken', 'Schuhe', 'Accessoires'] as const
 export type Category = (typeof CATEGORIES)[number]
+/** Vorgabe, welche Kategorien die App anbietet: Röcke und Kleider nur bei weiblichem Avatar. In den Einstellungen lässt sich jede einzeln schalten. */
+export const defaultCategories = (sex?: string): Category[] => CATEGORIES.filter((c) => sex === 'Weiblich' || (c !== 'Röcke' && c !== 'Kleider'))
+/** Angebotene Kategorien: die gewählten (sonst die Vorgabe) und immer jede, in der schon ein Teil liegt. */
+export const shownCategories = (chosen: Category[] | null, sex: string | undefined, items: { category: Category }[]): Category[] =>
+  CATEGORIES.filter((c) => (chosen ?? defaultCategories(sex)).includes(c) || items.some((i) => i.category === c))
 
 export const COLORS: Record<string, string> = {
   Schwarz: '#1c1c1c', Weiß: '#f5f5f2', Grau: '#8d9291', Beige: '#d8c7a6', Braun: '#7a5236',

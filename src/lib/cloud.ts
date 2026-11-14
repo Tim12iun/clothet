@@ -12,7 +12,7 @@ import { CLOUD } from '../cloud.config'
 const cfg: { url: string; key: string } = (window as { __CLOTHET_CLOUD__?: { url: string; key: string } }).__CLOTHET_CLOUD__ ?? CLOUD
 const BUCKET = 'clothet', SESSION = 'clothet-konto', META = 'sync-meta'
 /** Diese Einträge wandern in die Cloud. Alles andere (Merker für Beispiele und Umstellungen) gilt nur für das Gerät. */
-const synced = (k: string) => k.startsWith('item:') || k.startsWith('outfit:') || ['calendar', 'worn', 'fits', 'knowledge', 'body', 'figure', 'avatarMode'].includes(k)
+const synced = (k: string) => k.startsWith('item:') || k.startsWith('outfit:') || ['calendar', 'worn', 'fits', 'knowledge', 'body', 'figure', 'avatarMode', 'categories'].includes(k)
 
 interface Session { access: string; refresh: string; expires: number; id: string; email: string }
 interface Mark { ts: number; dirty?: boolean; deleted?: boolean; files?: Record<string, { path: string; sig: string }> }

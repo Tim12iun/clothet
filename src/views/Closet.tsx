@@ -4,7 +4,7 @@ import { avatarOf } from '../lib/avatar'
 import { fitKind } from '../lib/fitting'
 import { seedSamples } from '../lib/samples'
 import type { Toast } from '../main'
-import { deleteItem, markSeeded, saveItem, urlFor, useStore } from '../store'
+import { deleteItem, markSeeded, saveItem, urlFor, useCategories, useStore } from '../store'
 import { CATEGORIES, COLORS, NO_FIT, zoneOf, type Category, type Fit, type Item } from '../types'
 import { Sheet } from './Sheet'
 import { Wear } from './Wear'
@@ -15,6 +15,7 @@ const PAGE = 120 // so viele Kacheln auf einmal, damit auch ein sehr großer Sch
 
 export function Closet({ hidden, onAdd, onSettings, toast, note }: { hidden: boolean; onAdd: () => void; onSettings: () => void; toast: Toast; note: ReactNode }) {
   const { items } = useStore()
+  const cats = useCategories()
   const [cat, setCat] = useState<Category | null>(null)
   const [color, setColor] = useState<string | null>(null)
   const [q, setQ] = useState('')
@@ -93,7 +94,7 @@ export function Closet({ hidden, onAdd, onSettings, toast, note }: { hidden: boo
           </div>
           <div className="chips" role="group" aria-label="Kategorie">
             <button className={'chip' + (!cat ? ' is-on' : '')} aria-pressed={!cat} onClick={() => setCat(null)}>Alle</button>
-            {CATEGORIES.map((c) => (
+            {cats.map((c) => (
               <button key={c} className={'chip' + (cat === c ? ' is-on' : '')} aria-pressed={cat === c} onClick={() => setCat(cat === c ? null : c)}>{c}</button>
             ))}
           </div>
@@ -137,12 +138,14 @@ export function Closet({ hidden, onAdd, onSettings, toast, note }: { hidden: boo
 }
 
 export function ItemFields({ value, onChange }: { value: Pick<Item, 'category' | 'color'>; onChange: (v: Partial<Item>) => void }) {
+  const shown = useCategories()
+  const cats = CATEGORIES
   return (
     <div className="item-rows">
       <div className="field">
         <span>Kategorie</span>
         <div className="chips wrap">
-          {CATEGORIES.map((c) => (
+          {cats.filter((c) => shown.includes(c)).map((c) => (
             <button key={c} type="button" className={'chip' + (value.category === c ? ' is-on' : '')} aria-pressed={value.category === c} onClick={() => onChange({ category: c })}>{c}</button>
           ))}
         </div>

@@ -3,7 +3,7 @@ import { IconCamera, IconClose, IconImage, IconPaste, IconPlus } from '../icons'
 import { GUIDES } from '../lib/guides'
 import { coverage, cutArea, detectColors, guessCategory, isCutOut, loadPhoto, removeBackground, toBlob, trim, type Area } from '../lib/image'
 import type { Toast } from '../main'
-import { addItems } from '../store'
+import { addItems, useCategories } from '../store'
 import { uid, type Category, type Item } from '../types'
 import { Camera } from './Camera'
 import { MarkArea } from './MarkArea'
@@ -14,7 +14,7 @@ interface Row { id: string; photo: HTMLCanvasElement; cut: HTMLCanvasElement | n
 const SINGULAR: Record<Category, string> = { Oberteile: 'Oberteil', Hosen: 'Hose', Röcke: 'Rock', Kleider: 'Kleid', Jacken: 'Jacke', Schuhe: 'Schuhe', Accessoires: 'Accessoire' }
 // Das Häufigste steht direkt da, der Rest hinter „Mehr“
 const MAIN: Category[] = ['Oberteile', 'Hosen', 'Schuhe']
-const REST: Category[] = ['Jacken', 'Kleider', 'Röcke', 'Accessoires']
+const MORE: Category[] = ['Jacken', 'Kleider', 'Röcke', 'Accessoires']
 const MAX = 40
 
 /** Freistellen klappt auf ruhigem Grund. Bleibt fast alles oder fast nichts übrig, gilt es als nicht gelungen. */
@@ -30,6 +30,9 @@ function usable(removed: HTMLCanvasElement, from: HTMLCanvasElement) {
  */
 export function AddItems({ onClose, toast }: { onClose: () => void; toast: Toast }) {
   const [rows, setRows] = useState<Row[]>([])
+  // Nur Kategorien, die in den Einstellungen an sind (und was eine Zeile schon trägt)
+  const on = useCategories()
+  const REST = MORE.filter((c) => on.includes(c) || rows.some((r) => r.category === c))
   const [busy, setBusy] = useState<'load' | 'save' | null>(null)
   const [progress, setProgress] = useState('')
   const [failed, setFailed] = useState(0)
@@ -39,11 +42,16 @@ export function AddItems({ onClose, toast }: { onClose: () => void; toast: Toast
   const native = useRef<HTMLInputElement>(null)
   const gallery = useRef<HTMLInputElement>(null) // ein Bild aus der Galerie für den Schuh von vorne
 
+  // Was die Form vermuten lässt, aber nur aus den angebotenen Kategorien: ohne Kleider und Röcke wird daraus Oberteil und Hose
+  const guess = (c: HTMLCanvasElement): Category => {
+    const g = guessCategory(c)
+    return on.includes(g) ? g : g === 'Kleider' ? 'Oberteile' : g === 'Röcke' ? 'Hosen' : g
+  }
   function addPhoto(photo: HTMLCanvasElement, kind?: Category) {
     // Schon freigestellte Bilder (durchsichtiger Grund, etwa ein in Fotos kopiertes Motiv) bleiben, wie sie sind
     const cut = isCutOut(photo) ? trim(photo) : usable(removeBackground(photo, 45), photo)
     const base = cut ?? photo
-    const row: Row = { id: uid(), photo, cut, area: null, url: base.toDataURL('image/png'), category: kind ?? (cut ? guessCategory(cut) : 'Oberteile'), ...detectColors(base), more: false, picked: !!kind, wear: null }
+    const row: Row = { id: uid(), photo, cut, area: null, url: base.toDataURL('image/png'), category: kind ?? (cut ? guess(cut) : 'Oberteile'), ...detectColors(base), more: false, picked: !!kind, wear: null }
     setRows((all) => [...all, row])
     return row
   }
@@ -88,7 +96,7 @@ export function AddItems({ onClose, toast }: { onClose: () => void; toast: Toast
     const part = cutArea(r.photo, area)
     // Ließ sich im Rahmen nichts trennen, bleibt der Ausschnitt selbst: Alles außerhalb ist trotzdem weg
     const cut = isCutOut(part) ? trim(part) : part
-    patch(r.id, { cut, area, url: cut.toDataURL('image/png'), ...detectColors(cut), ...(r.picked ? {} : { category: guessCategory(cut) }) })
+    patch(r.id, { cut, area, url: cut.toDataURL('image/png'), ...detectColors(cut), ...(r.picked ? {} : { category: guess(cut) }) })
     setMarking(null)
   }
 

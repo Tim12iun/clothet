@@ -183,7 +183,7 @@ Grundlage ist Entwurf 4A „Klar“ mit dem Zufallsknopf aus 4C.
 
 ## 11. Feste Begriffe und Listen
 
-- **Kategorien:** Oberteile, Hosen, Röcke, Kleider, Jacken, Schuhe, Accessoires
+- **Kategorien:** Oberteile, Hosen, Röcke, Kleider, Jacken, Schuhe, Accessoires. Angeboten wird nur, was in den Einstellungen an ist (Karte „Kategorien“): Vorgabe nach dem Avatar, männlich ohne Röcke und Kleider, weiblich alle. Jede lässt sich einzeln schalten, eine Kategorie mit Teilen bleibt immer an.
 - **Körperzonen:** Jacke, Oberteil, Hose, Schuhe
 - Ein Teil hat nur Art und Farbe. Stile und Jahreszeiten gibt es nicht mehr.
 - **Farben:** Schwarz, Weiß, Grau, Beige, Braun, Rot, Orange, Gelb, Grün, Türkis, Blau, Marine, Lila, Rosa

@@ -1,6 +1,6 @@
-import { useSyncExternalStore } from 'react'
+import { useMemo, useSyncExternalStore } from 'react'
 import { createStore, del, entries, set, setMany } from 'idb-keyval'
-import { DEFAULT_FITS, type AvatarMode, type Figure, type Fits, type Item, type Outfit } from './types'
+import { DEFAULT_FITS, shownCategories, type AvatarMode, type Category, type Figure, type Fits, type Item, type Outfit } from './types'
 import { attach, touch } from './lib/cloud'
 import { parseKnowledge, type Knowledge } from './lib/engine'
 
@@ -13,13 +13,14 @@ export interface State {
   body: Blob | null // eigenes Avatar-Foto, sonst Standard-Avatar
   figure: Figure | null // gezeichnete Figur aus Selfie und Körperdaten
   avatarMode: AvatarMode // was auf der Bühne steht: Figur oder Ganzkörperfoto
+  categories: Category[] | null // angebotene Kategorien, null heißt Vorgabe nach dem Avatar
   fits: Fits
   knowledgeText: string
   knowledge: Knowledge
   persistent: boolean // false, wenn der Browser keinen Speicher erlaubt
 }
 
-let state: State = { ready: false, items: [], outfits: [], calendar: {}, worn: {}, body: null, figure: null, avatarMode: 'figure', fits: DEFAULT_FITS, knowledgeText: '', knowledge: { rules: [], ignored: 0 }, persistent: true }
+let state: State = { ready: false, items: [], outfits: [], calendar: {}, worn: {}, body: null, figure: null, avatarMode: 'figure', categories: null, fits: DEFAULT_FITS, knowledgeText: '', knowledge: { rules: [], ignored: 0 }, persistent: true }
 const listeners = new Set<() => void>()
 const db = (() => {
   try {
@@ -64,6 +65,7 @@ export async function load(): Promise<boolean> {
   let body: Blob | null = null
   let figure: Figure | null = null
   let avatarMode: AvatarMode | null = null
+  let categories: Category[] | null = null
   let seeded = false, fitReset = false
   shoesFront = false
   let persistent = true
@@ -88,6 +90,7 @@ export async function load(): Promise<boolean> {
       else if (key === 'body') body = v as Blob
       else if (key === 'figure') figure = v as Figure
       else if (key === 'avatarMode') avatarMode = v as AvatarMode
+      else if (key === 'categories') categories = v as Category[]
       else if (key === 'seeded2') seeded = true
       else if (key === 'shoes-front') shoesFront = true
       else if (key === 'fit-reset2') fitReset = true
@@ -102,7 +105,7 @@ export async function load(): Promise<boolean> {
   }
   items.sort((a, b) => b.createdAt - a.createdAt)
   outfits.sort((a, b) => b.createdAt - a.createdAt)
-  update({ ready: true, items, outfits, calendar, worn, body, figure, avatarMode: avatarMode ?? (body ? 'photo' : 'figure'), fits, knowledgeText, knowledge: parseKnowledge(knowledgeText), persistent })
+  update({ ready: true, items, outfits, calendar, worn, body, figure, avatarMode: avatarMode ?? (body ? 'photo' : 'figure'), categories, fits, knowledgeText, knowledge: parseKnowledge(knowledgeText), persistent })
   return !seeded
 }
 
@@ -180,7 +183,7 @@ export async function exportAll(): Promise<Blob> {
     kind: BACKUP_KIND, version: 1, exportedAt: new Date().toISOString(),
     items: await Promise.all(s.items.map(async (i) => ({ ...i, image: await toDataUrl(i.image), wearImage: i.wearImage ? await toDataUrl(i.wearImage) : undefined }))),
     outfits: await Promise.all(s.outfits.map(async (o) => ({ ...o, preview: await toDataUrl(o.preview) }))),
-    calendar: s.calendar, worn: s.worn, fits: s.fits, figure: s.figure, avatarMode: s.avatarMode, knowledgeText: s.knowledgeText,
+    calendar: s.calendar, worn: s.worn, fits: s.fits, figure: s.figure, avatarMode: s.avatarMode, categories: s.categories, knowledgeText: s.knowledgeText,
     body: s.body ? await toDataUrl(s.body) : null,
   }
   return new Blob([JSON.stringify(data)], { type: 'application/json' })
@@ -199,7 +202,7 @@ export async function importAll(file: Blob): Promise<{ items: number; outfits: n
   outfits.sort((a, b) => b.createdAt - a.createdAt)
   const patch = {
     items, outfits, body, calendar: data.calendar ?? {}, worn: data.worn ?? {}, fits: { ...DEFAULT_FITS, ...(data.fits ?? {}) },
-    figure: (data.figure ?? null) as Figure | null, avatarMode: (data.avatarMode ?? 'figure') as AvatarMode,
+    figure: (data.figure ?? null) as Figure | null, avatarMode: (data.avatarMode ?? 'figure') as AvatarMode, categories: (Array.isArray(data.categories) ? data.categories : null) as Category[] | null,
     knowledgeText: data.knowledgeText ?? '', knowledge: parseKnowledge(data.knowledgeText ?? ''),
   }
   update(patch)
@@ -208,6 +211,7 @@ export async function importAll(file: Blob): Promise<{ items: number; outfits: n
   await put('calendar', patch.calendar); await put('worn', patch.worn); await put('fits', patch.fits)
   await put('knowledge', patch.knowledgeText); await put('avatarMode', patch.avatarMode)
   if (patch.figure) await put('figure', patch.figure); else await remove('figure')
+  if (patch.categories) await put('categories', patch.categories); else await remove('categories')
   if (body) await put('body', body); else await remove('body')
   await put('seeded2', true)
   return { items: items.length, outfits: outfits.length, knowledgeText: patch.knowledgeText }
@@ -221,6 +225,16 @@ export function setBody(body: Blob | null) {
 export function setFigure(figure: Figure) {
   update({ figure })
   return put('figure', figure)
+}
+/** Welche Kategorien die App anbietet. null stellt die Vorgabe nach dem Avatar wieder her. */
+export function setCategories(categories: Category[] | null) {
+  update({ categories })
+  return categories ? put('categories', categories) : remove('categories')
+}
+/** Die Kategorien, die Schrank, Anlegen und Bearbeiten anbieten. */
+export function useCategories(): Category[] {
+  const { categories, figure, items } = useStore()
+  return useMemo(() => shownCategories(categories, figure?.sex, items), [categories, figure?.sex, items])
 }
 export function setAvatarMode(avatarMode: AvatarMode) {
   update({ avatarMode })

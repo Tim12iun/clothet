@@ -3,7 +3,8 @@ import { IconImage } from '../icons'
 import { avatarOf } from '../lib/avatar'
 import { loadPhoto, toBlob } from '../lib/image'
 import type { Toast } from '../main'
-import { exportAll, importAll, setAvatarMode, setBody, setKnowledge, urlFor, useStore } from '../store'
+import { exportAll, importAll, setAvatarMode, setBody, setCategories, setFigure, setKnowledge, urlFor, useCategories, useStore } from '../store'
+import { CATEGORIES, DEFAULT_FIGURE, SEXES, type Category, type Sex } from '../types'
 import { AvatarEditor } from './AvatarEditor'
 import { Sheet } from './Sheet'
 
@@ -14,6 +15,16 @@ const isIos = () => /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.p
 /** Einstellungen: Avatar, Farbregeln, Sicherung, Installation und Version. Alles, was man selten braucht. */
 export function Settings({ online, onClose, toast }: { online: boolean; onClose: () => void; toast: Toast }) {
   const { items, outfits, body, figure, avatarMode, knowledgeText, knowledge, persistent } = useStore()
+  const cats = useCategories()
+  const sex: Sex = figure?.sex ?? 'Männlich'
+  // Männlich oder weiblich gilt für die Figur und setzt die Kategorien auf die passende Vorgabe zurück
+  const pickSex = (s: Sex) => { setFigure({ ...(figure ?? DEFAULT_FIGURE), sex: s }); setCategories(null) }
+  const used = (c: Category) => items.some((i) => i.category === c)
+  function toggle(c: Category) {
+    if (used(c)) return toast(`Im Schrank liegen noch ${c}. Solange bleibt die Kategorie an.`)
+    const next = cats.includes(c) ? cats.filter((x) => x !== c) : CATEGORIES.filter((x) => x === c || cats.includes(x))
+    if (next.length) setCategories(next)
+  }
   const [editor, setEditor] = useState(false)
   const [text, setText] = useState(knowledgeText)
   const [error, setError] = useState('')
@@ -104,6 +115,17 @@ export function Settings({ online, onClose, toast }: { online: boolean; onClose:
           )}
         </div>
         {error && <p className="note is-danger" role="alert">{error}</p>}
+      </section>
+
+      <section className="card" aria-labelledby="set-cats">
+        <h3 id="set-cats">Kategorien</h3>
+        <p className="muted">Nur was hier an ist, erscheint im Schrank und beim Hinzufügen.</p>
+        <div className="segment" role="group" aria-label="Vorgabe" id="set-sex">
+          {SEXES.map((s) => <button key={s} className={sex === s ? 'is-on' : ''} aria-pressed={sex === s} onClick={() => pickSex(s)}>{s}</button>)}
+        </div>
+        <div className="chips wrap" role="group" aria-label="Kategorien" id="set-cat-list">
+          {CATEGORIES.map((c) => <button key={c} className={'chip' + (cats.includes(c) ? ' is-on' : '')} aria-pressed={cats.includes(c)} onClick={() => toggle(c)}>{c}</button>)}
+        </div>
       </section>
 
       <section className="card" aria-labelledby="set-rules">
