@@ -71,7 +71,7 @@ Es gibt nur eine Schrift, Inter. Sie liegt als Variable Font in der App selbst (
 - **Abstände** im 4er-Raster: `--s-1` 4, `--s-2` 8, `--s-3` 12, `--s-4` 16, `--s-5` 24, `--s-6` 32, `--s-7` 48. Zwischen Geschwistern immer `gap`, keine Einzel-Margins.
 - **Seitenrand** mindestens 16 px, Inhalt maximal `--maxw` 960 px breit.
 - **Kleider-Raster:** Kacheln im Format 3:4, mindestens 150 px breit, Abstand `--s-3`.
-- **Radien:** `--r-sm` 8 für Eingaben, `--r-md` 16 für Kacheln, `--r-lg` 24 für Sheets und die Schublade, `--r-pill` für Buttons und Chips.
+- **Radien:** `--r-sm` 8 für Eingaben, `--r-md` 16 für Kacheln, `--r-lg` 24 für Sheets und die Schublade, `--r-pill` nur für Buttons (Aktionen). Alles, was eine Auswahl ist (Chips, Umschalter, Farbkarte, Wahlkarten), hat `--r-sm` und ist eckig: So trennt die Form, was wählt und was auslöst.
 - **Schatten** nur für Schwebendes: `--sh-1` für kleine Karten und den aktiven Umschalter, `--sh-2` für Sheets, `--sh-drawer` für die Schublade, `--sh-fab` für den Zufallsknopf. Kacheln haben keinen Schatten.
 - **Antippflächen** mindestens 48 px (`--tap`).
 
@@ -85,7 +85,9 @@ Klassen stehen in `src/styles/app.css`. Bestehende Komponenten wiederverwenden, 
 | Nebenbutton | `.btn` | neutral mit Rahmen |
 | Löschbutton | `.btn.btn-danger` | rot, nur für Unwiderrufliches, immer mit Rückfrage |
 | Icon-Button | `.icon-btn` | 48 px, immer mit `aria-label` |
-| Chip | `.chip`, aktiv `.chip.is-on` | Filter und Mehrfachauswahl, 44 px hoch |
+| Chip | `.chip`, aktiv `.chip.is-on` | Filter und Mehrfachauswahl, 44 px hoch, eckig (`--r-sm`). Gewählt: dunkel gefüllt (`--c-ink` mit Text in `--c-surface`), kein grüner Schimmer. `.chips.is-even` stellt gleich breite Felder in eine Reihe |
+| Farbkarte | `.swatches`, Felder `.dot`, „egal“ `.swatch-any` | Farben liegen Kante an Kante wie auf einer Stoffkarte, keine einzelnen Punkte. Die gewählte trägt einen Rahmen im Feld, der Name steht in der Beschriftung darüber. `.is-all` zeigt alle 14 in zwei Reihen |
+| Wahlkarten | `.choices` | zwei Wege nebeneinander, jeder mit Titel und einem Satz (Art des Zufalls). Gewählt: dunkel gefüllt |
 | Regler | `.range` (Komponente `Range`) | Dicke Spur (12 px), Griff 36 px, links und rechts Tasten für einzelne Stufen, darunter die Enden in Worten oder der Wert |
 | Kachel | `.tile` | Kleidung 3:4 auf `--c-tile`, Name darunter |
 | Sheet | `.sheet` | Formulare und Details, von unten, am Desktop mittig |
@@ -115,9 +117,10 @@ Grundlage ist Entwurf 4A „Klar“ mit dem Zufallsknopf aus 4C.
 - **Rechts unten auf der Bühne** schwebt der Zufallsknopf („Zufall“ mit Würfel). Er ist die einzige grüne Fläche des Screens. Ist eine Hauptfarbe vorgegeben, zeigt er sie als Punkt.
 - **Unten die Schublade:** Griff, Umschalter für Jacke, Oberteil, Hose, Schuhe über die ganze Breite. Darunter das Raster der Teile dieser Zone, drei pro Reihe. Ein Tipp zieht das Teil an. Bei der Jacke steht zuerst „Ohne“, am Ende des Rasters immer „Neues Teil“.
 - Ein Tipp auf den Griff vergrößert oder verkleinert die Schublade, ein Wisch nach unten lässt nur die Zonen-Leiste stehen.
+- **Nichts schaut hervor:** Unter Oberteil oder Jacke bleibt vom Körper der Puppe in jeder Zeile nur, was zwischen linkem und rechtem Rand des Teils liegt (`src/lib/tuck.ts`). Schulterspitzen neben einem schmaleren Teil verschwinden, Kopf und Hals bleiben vorne, alles unter dem Saum bleibt.
 - **Jacke an:** Das Oberteil darunter ist nicht zu sehen (auch in der Outfit-Vorschau), bleibt aber gewählt. Ein Kleid bleibt sichtbar. Wer ein Oberteil wählt oder an der Figur zum nächsten wischt, zieht damit die Jacke aus. Nur das Raster scrollt, der Screen selbst nicht.
 - Ein Tipp auf eine Körperzone des Avatars zeigt diese Zone in der Schublade, ein Wisch darüber wechselt direkt zum nächsten Teil.
-- Die Anprobe hat keinen Filter. Der Knopf neben „Zufall“ öffnet das Sheet „Zufall“: Art (Normal oder Speziell), Hauptfarbe und welche Teile bleiben. Gefiltert wird nur im Schrank: Suche, Kategorie, Farbe, Sortierung.
+- Die Anprobe hat keinen Filter. Die untere Hälfte der Zufalls-Pille öffnet das Sheet „Zufall“: oben zwei Wahlkarten (Normal, Speziell), darunter die Farbkarte für die Hauptfarbe, eine Reihe für die Teile, die bleiben, und der eine grüne Knopf „Würfeln“ über die ganze Breite. „Vorgaben zurücksetzen“ steht als Link darunter und nur, wenn etwas gesetzt ist. Gefiltert wird nur im Schrank: Suche, Kategorie, Farbe, Sortierung.
 - **Sitz am Avatar** (in „Teil bearbeiten“, ganz oben): kleine Bühne mit dem Avatar und dem Teil, daneben vier Knöpfe (höher, tiefer, kleiner, größer). Die Einstellung gilt nur für dieses Teil. Oberteile werden nie verzerrt, nur skaliert. Einen eigenen Modus dafür gibt es nicht.
 - Im Querformat am Telefon stehen Bühne und Schublade nebeneinander, die Bereiche wandern als schmale Leiste an die linke Seite.
 

@@ -1,7 +1,7 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { IconDown, IconGear, IconMinus, IconPlus, IconSearch, IconSort, IconUp } from '../icons'
 import { avatarOf } from '../lib/avatar'
-import { fitKind } from '../lib/fitting'
+import { useTucked } from '../lib/tuck'
 import { seedSamples } from '../lib/samples'
 import type { Toast } from '../main'
 import { deleteItem, markSeeded, saveItem, urlFor, useCategories, useStore } from '../store'
@@ -99,7 +99,7 @@ export function Closet({ hidden, onAdd, onSettings, toast, note }: { hidden: boo
             ))}
           </div>
           {usedColors.length > 0 && (
-            <div className="chips" role="group" aria-label="Farbe">
+            <div className="swatches" role="group" aria-label="Farbe">
               {usedColors.map((c) => (
                 <button key={c} className={'dot' + (color === c ? ' is-on' : '')} style={{ ['--dot' as string]: COLORS[c] }} onClick={() => setColor(color === c ? null : c)} aria-label={c} aria-pressed={color === c} title={c} />
               ))}
@@ -152,7 +152,7 @@ export function ItemFields({ value, onChange }: { value: Pick<Item, 'category' |
       </div>
       <div className="field">
         <span>Farbe: {value.color}</span>
-        <div className="chips wrap">
+        <div className="swatches is-all">
           {Object.keys(COLORS).map((c) => (
             <button key={c} type="button" className={'dot' + (value.color === c ? ' is-on' : '')} style={{ ['--dot' as string]: COLORS[c] }} onClick={() => onChange({ color: c })} aria-label={c} aria-pressed={value.color === c} title={c} />
           ))}
@@ -169,6 +169,7 @@ function ItemSheet({ item, onClose, onDelete }: { item: Item; onClose: () => voi
   const av = useMemo(() => avatarOf(body, figure, avatarMode), [body, figure, avatarMode])
   const [draft, setDraft] = useState(item)
   const zone = zoneOf(draft.category), fit = draft.fit ?? NO_FIT
+  const tucked = useTucked(av.photo ? null : av.url, zone === 'top' || zone === 'jacket' ? [draft] : [], av.wide, figure?.sex)
   const setFit = (f: Fit) => setDraft({ ...draft, fit: { dy: clamp(f.dy, -0.14, 0.14), scale: clamp(f.scale, 0.6, 1.7) } })
   // Mit der Art ändert sich, wo und wie das Teil sitzt: Passform und Feineinstellung beginnen neu
   const change = (v: Partial<Item>) => setDraft({ ...draft, ...v, ...(v.category && v.category !== draft.category ? { fit: undefined } : {}) })
@@ -178,7 +179,7 @@ function ItemSheet({ item, onClose, onDelete }: { item: Item; onClose: () => voi
       <div className="fit-row">
         {zone ? (
           <div className="stage is-mini" id="fit-stage">
-            <img className={'avatar' + (av.photo ? ' is-photo' : '')} src={av.photo ? urlFor(av.photo) : av.url} alt="" draggable={false} />
+            <img className={'avatar' + (av.photo ? ' is-photo' : '')} src={av.photo ? urlFor(av.photo) : tucked ?? av.url} alt="" draggable={false} />
             <Wear item={draft} zone={zone} isDress={draft.category === 'Kleider'} wide={av.wide} photo={!!av.photo} sex={figure?.sex} />
             {!av.photo && <img className="avatar is-front" src={av.url} alt="" aria-hidden="true" draggable={false} />}
           </div>

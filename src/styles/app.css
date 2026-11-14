@@ -97,16 +97,35 @@ button, label.btn, .nav, .home-head, .view-head, .segment, .chips, .sheet-head, 
 .chips-gap { width: var(--s-2); flex: none; }
 .chip {
   flex: none; min-height: 44px; padding: 0 var(--s-4);
-  border: 1px solid var(--c-line); border-radius: var(--r-pill);
+  border: 1px solid var(--c-line); border-radius: var(--r-sm);
   background: var(--c-surface); font-size: var(--fs-sm); font-weight: 500;
   transition: background var(--t-fast) var(--ease);
 }
-.chip.is-on { background: var(--c-accent-soft); border-color: var(--c-accent); color: var(--c-ink); font-weight: 600; }
+/* Auswahl ist eckig und wird dunkel gefüllt, Aktionen (.btn) bleiben rund: So sieht man auf einen Blick, was wählt und was auslöst */
+.chip.is-on { background: var(--c-ink); border-color: var(--c-ink); color: var(--c-surface); font-weight: 600; }
+/* Gleich breite Felder in einer Reihe, etwa die vier Körperzonen */
+.chips.is-even { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); overflow: visible; }
+.chips.is-even .chip { padding: 0 var(--s-1); }
 .dot {
   flex: none; width: 28px; height: 28px; border-radius: var(--r-pill);
   background: var(--dot); border: 1px solid var(--c-line);
 }
 .dot.is-on { outline: 2px solid var(--c-accent); outline-offset: 2px; }
+/* Farbkarte: Die Farben liegen als Felder Kante an Kante wie auf einer Stoffkarte. Die gewählte trägt einen Rahmen im Feld */
+.swatches { display: grid; grid-template-columns: repeat(auto-fit, minmax(40px, 1fr)); border: 1px solid var(--c-line); border-radius: var(--r-sm); overflow: hidden; background: var(--c-tile); }
+.swatches.is-all { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.swatches > * { position: relative; width: auto; height: 44px; min-width: 0; border: 0; border-radius: 0; }
+.swatches > .dot.is-on { outline: 0; box-shadow: inset 0 0 0 3px var(--c-ink), inset 0 0 0 5px var(--c-surface); z-index: 1; }
+.swatches > .swatch-any { display: grid; place-items: center; background: var(--c-surface); font-size: var(--fs-xs); font-weight: 600; color: var(--c-muted); }
+.swatches > .swatch-any.is-on { background: var(--c-ink); color: var(--c-surface); }
+/* Zwei Wege zur Wahl, jeder mit einem Satz dazu */
+.choices { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-2); }
+.choices button { display: flex; flex-direction: column; gap: var(--s-1); padding: var(--s-3); text-align: left; border: 1px solid var(--c-line); border-radius: var(--r-sm); background: var(--c-surface); }
+.choices strong { font-size: var(--fs-md); }
+.choices span { font-size: var(--fs-xs); line-height: var(--lh-body); color: var(--c-muted); }
+.choices button.is-on { background: var(--c-ink); border-color: var(--c-ink); color: var(--c-surface); }
+.choices button.is-on span { color: inherit; opacity: 0.8; }
+.choices button:active { opacity: 0.6; }
 
 /* Filter */
 .filters { display: flex; flex-direction: column; gap: var(--s-2); min-width: 0; }
@@ -249,8 +268,8 @@ button, label.btn, .nav, .home-head, .view-head, .segment, .chips, .sheet-head, 
 .cal-day.is-today .cal-num { background: var(--c-accent); color: var(--c-accent-ink); }
 
 /* Segment-Umschalter */
-.segment { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; padding: 4px; background: var(--c-tile); border-radius: var(--r-pill); }
-.segment button { min-height: 44px; padding: 0 var(--s-4); border-radius: var(--r-pill); font-weight: 500; font-size: var(--fs-sm); color: var(--c-muted); white-space: nowrap; }
+.segment { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; padding: 4px; background: var(--c-tile); border-radius: calc(var(--r-sm) + 4px); }
+.segment button { min-height: 44px; padding: 0 var(--s-4); border-radius: var(--r-sm); font-weight: 500; font-size: var(--fs-sm); color: var(--c-muted); white-space: nowrap; }
 .segment button.is-on { background: var(--c-surface); color: var(--c-ink); font-weight: 600; box-shadow: var(--sh-1); }
 
 /* Anprobe (Entwurf 4A): Avatar oben auf ruhigem Grund, darunter die Schublade mit der Kleidung */
@@ -484,7 +503,7 @@ button, label.btn, .nav, .home-head, .view-head, .segment, .chips, .sheet-head, 
 }
 
 /* Planer: Heute-Karte, Wochenliste, Haken */
-.segment.is-wide { width: 100%; grid-auto-flow: row; grid-template-columns: repeat(auto-fit, minmax(4.6em, 1fr)); border-radius: var(--r-lg); }
+.segment.is-wide { width: 100%; grid-auto-flow: row; grid-template-columns: repeat(auto-fit, minmax(4.6em, 1fr)); }
 .segment.is-wide button { padding: 0 var(--s-1); }
 .today {
   display: flex; align-items: center; gap: var(--s-3); padding: var(--s-3);
@@ -593,7 +612,7 @@ noscript { display: block; padding: var(--s-6) var(--s-4); text-align: center; }
 .filter-row .search { flex: 1 1 0; }
 .filter-row .sort { position: relative; flex: none; width: var(--tap); height: var(--tap); padding: 0; justify-content: center; color: var(--c-ink); }
 .filter-row .sort select { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
-.filters > .chips { padding-inline: 4px; }
+.link.is-center { align-self: center; }
 /* Karten in Sheets (Einstellungen): dieselbe Karte wie auf den Seiten, Kennzahlen darin als ruhige Kacheln */
 .card .facts div { background: var(--c-tile); border: 0; }
 .card .facts dd { font-size: var(--fs-lg); white-space: nowrap; }

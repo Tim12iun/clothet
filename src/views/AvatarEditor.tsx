@@ -217,8 +217,8 @@ export function AvatarEditor({ onClose, toast }: { onClose: () => void; toast: T
             </div>
             <div className="field">
               <span>Hautton</span>
-              <div className="chips wrap">
-                {fig.face && <button className={'chip' + (fig.skinAuto ? ' is-on' : '')} aria-pressed={fig.skinAuto} onClick={autoSkin}>Aus dem Selfie</button>}
+              <div className="swatches">
+                {fig.face && <button className={'swatch-any' + (fig.skinAuto ? ' is-on' : '')} aria-pressed={fig.skinAuto} aria-label="Aus dem Selfie" onClick={autoSkin}>Selfie</button>}
                 {SKINS.map((c, i) => {
                   const on = !fig.skinAuto && fig.skin === c
                   return <button key={c} className={'dot' + (on ? ' is-on' : '')} style={{ ['--dot' as string]: c }} aria-pressed={on} aria-label={`Hautton ${i + 1} von ${SKINS.length}`} onClick={() => patch({ skin: c, skinAuto: false, tone: 0 })} />

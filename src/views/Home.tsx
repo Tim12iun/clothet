@@ -4,6 +4,7 @@ import { DRAW_ORDER, avatarOf } from '../lib/avatar'
 import { randomOutfit, type Pools, type RandomPrefs } from '../lib/engine'
 import { ensureOutfit, today } from '../lib/outfits'
 import { seedSamples } from '../lib/samples'
+import { useTucked } from '../lib/tuck'
 import type { Toast } from '../main'
 import { deleteOutfit, markSeeded, setWorn, urlFor, useStore } from '../store'
 import { COLORS, ZONES, ZONE_CATEGORIES, ZONE_LABEL, type Item, type Slots, type Zone } from '../types'
@@ -53,6 +54,8 @@ export function Home({ hidden, slots, setSlots, onSettings, onAdd, toast }: Prop
   // Wie beim Anziehen: Unter einer Jacke ist das Oberteil nicht zu sehen. Es bleibt gewählt und kommt ohne Jacke wieder. Ein Kleid bleibt sichtbar
   const covered = !!worn.jacket && !!worn.top && !isDress
   const sex = figure?.sex
+  // Was unter Oberteil oder Jacke seitlich hervorschaut (Schulterspitzen), wird von der Figur weggenommen
+  const tucked = useTucked(av.photo ? null : av.url, [worn.jacket, covered ? null : worn.top].filter((i): i is Item => !!i), av.wide, sex)
   const wornList = ZONES.filter((z) => !(z === 'bottom' && isDress)).map((z) => worn[z]).filter((i): i is Item => !!i)
   const wornSlots = Object.fromEntries(ZONES.map((z) => [z, worn[z]?.id ?? null])) as Slots
 
@@ -146,7 +149,7 @@ export function Home({ hidden, slots, setSlots, onSettings, onAdd, toast }: Prop
 
       <div className="stage-wrap">
         <div className="stage">
-          <img className={'avatar' + (av.photo ? ' is-photo' : '')} src={av.photo ? urlFor(av.photo) : av.url} alt={av.photo ? 'Dein Foto' : 'Avatar'} draggable={false} />
+          <img className={'avatar' + (av.photo ? ' is-photo' : '')} src={av.photo ? urlFor(av.photo) : tucked ?? av.url} alt={av.photo ? 'Dein Foto' : 'Avatar'} draggable={false} />
           {DRAW_ORDER.map((z) => {
             const item = worn[z]
             if (!item || (z === 'bottom' && isDress) || (z === 'top' && covered)) return null
@@ -236,37 +239,30 @@ export function Home({ hidden, slots, setSlots, onSettings, onAdd, toast }: Prop
 
       {prefsOpen && (
         <Sheet title="Zufall" onClose={() => setPrefsOpen(false)}>
-          <div className="field">
-            <span>Art</span>
-            <div className="segment" role="group" aria-label="Art des Zufalls" id="roll-mode">
-              <button className={prefs.mode === 'normal' ? 'is-on' : ''} aria-pressed={prefs.mode === 'normal'} onClick={() => setPrefs({ ...prefs, mode: 'normal' })}>Normal</button>
-              <button className={prefs.mode === 'special' ? 'is-on' : ''} aria-pressed={prefs.mode === 'special'} onClick={() => setPrefs({ ...prefs, mode: 'special' })}>Speziell</button>
-            </div>
-            <p className="muted">{prefs.mode === 'normal' ? 'Ruhige Kombinationen: neutrale Farben und höchstens eine kräftige.' : 'Ungewöhnliche Kombinationen mit genau einem spannenden Farbpaar.'}</p>
+          <div className="choices" role="group" aria-label="Art des Zufalls" id="roll-mode">
+            <button className={prefs.mode === 'normal' ? 'is-on' : ''} aria-pressed={prefs.mode === 'normal'} onClick={() => setPrefs({ ...prefs, mode: 'normal' })}><strong>Normal</strong><span>Ruhig: neutrale Farben, höchstens eine kräftige.</span></button>
+            <button className={prefs.mode === 'special' ? 'is-on' : ''} aria-pressed={prefs.mode === 'special'} onClick={() => setPrefs({ ...prefs, mode: 'special' })}><strong>Speziell</strong><span>Gewagt: genau ein spannendes Farbpaar.</span></button>
           </div>
           <div className="field">
-            <span>Hauptfarbe{prefs.mainColor ? ': ' + prefs.mainColor : ''}</span>
-            <div className="chips wrap">
-              <button className={'chip' + (!prefs.mainColor ? ' is-on' : '')} onClick={() => setPrefs({ ...prefs, mainColor: null })}>Egal</button>
+            <span>Hauptfarbe: {prefs.mainColor ?? 'egal'}</span>
+            <div className="swatches">
+              <button className={'swatch-any' + (!prefs.mainColor ? ' is-on' : '')} aria-pressed={!prefs.mainColor} onClick={() => setPrefs({ ...prefs, mainColor: null })}>Egal</button>
               {Object.keys(COLORS).filter((c) => items.some((i) => i.color === c)).map((c) => (
                 <button key={c} className={'dot' + (prefs.mainColor === c ? ' is-on' : '')} style={{ ['--dot' as string]: COLORS[c] }} onClick={() => setPrefs({ ...prefs, mainColor: c })} aria-label={c} aria-pressed={prefs.mainColor === c} title={c} />
               ))}
             </div>
           </div>
           <div className="field">
-            <span>Diese Teile behalten</span>
-            <div className="chips wrap">
+            <span>Beim Würfeln behalten</span>
+            <div className="chips is-even">
               {ZONES.map((z) => {
                 const on = prefs.keep.includes(z)
                 return <button key={z} className={'chip' + (on ? ' is-on' : '')} aria-pressed={on} onClick={() => setPrefs({ ...prefs, keep: on ? prefs.keep.filter((k) => k !== z) : [...prefs.keep, z] })}>{ZONE_LABEL[z]}</button>
               })}
             </div>
           </div>
-          <div className="actions">
-            <button className="btn" onClick={() => setPrefs({ mode: 'normal', mainColor: null, keep: [] })} disabled={!tuned}>Zurücksetzen</button>
-            <span className="grow" />
-            <button className="btn btn-primary" id="roll-prefs" onClick={() => { setPrefsOpen(false); roll() }}><IconDice /> Würfeln</button>
-          </div>
+          <button className="btn btn-primary" id="roll-prefs" onClick={() => { setPrefsOpen(false); roll() }}><IconDice /> Würfeln</button>
+          {tuned && <button className="link is-center" onClick={() => setPrefs({ mode: 'normal', mainColor: null, keep: [] })}>Vorgaben zurücksetzen</button>}
         </Sheet>
       )}
     </section>

@@ -1,4 +1,5 @@
 import { NO_FIT, type Category, type Item, type Sex, type Slots } from '../types'
+import { tuck } from './tuck'
 import { FIT_ORIGIN, fitKind, fittedUrl } from './fitting'
 import { DRAW_ORDER, PAIR_SHOE, placement } from './avatar'
 
@@ -333,7 +334,10 @@ export async function renderOutfit(slots: Slots, items: Item[], avatar: Blob | s
     const img = new Image()
     img.src = avatar
     await img.decode()
-    ctx.drawImage(img, 0, 0, W, H)
+    // Wie auf der Bühne: Was unter Oberteil oder Jacke seitlich hervorschaut, fällt weg
+    const jacket = items.find((i) => i.id === slots.jacket), shirt = items.find((i) => i.id === slots.top)
+    const tops = [jacket, jacket && shirt?.category !== 'Kleider' ? undefined : shirt].filter((i): i is Item => !!i)
+    ctx.drawImage((tops.length ? await tuck(img, tops, wide, sex).catch(() => null) : null) ?? img, 0, 0, W, H)
     figure = img
   } else {
     const bmp = await createImageBitmap(avatar)
